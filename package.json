@@ -1,0 +1,33 @@
+{
+  "name": "mularpay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Nigerian fintech super-app: Wallet, VTU, Gift Cards, and Crypto Trading",
+  "author": "Mularpay",
+  "license": "UNLICENSED",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm --filter \"./apps/**\" dev",
+    "dev:api": "pnpm --filter @mularpay/api dev",
+    "dev:mobile": "pnpm --filter @mularpay/mobile dev",
+    "dev:web": "pnpm --filter @mularpay/web dev",
+    "dev:admin": "pnpm --filter @mularpay/admin dev",
+    "build": "pnpm --filter \"./apps/**\" build",
+    "build:api": "pnpm --filter @mularpay/api build",
+    "build:web": "pnpm --filter @mularpay/web build",
+    "build:admin": "pnpm --filter @mularpay/admin build",
+    "lint": "pnpm --filter \"./apps/**\" lint",
+    "test": "pnpm --filter \"./apps/**\" test",
+    "prisma:generate": "pnpm --filter @mularpay/api prisma:generate",
+    "prisma:migrate": "pnpm --filter @mularpay/api prisma:migrate",
+    "prisma:studio": "pnpm --filter @mularpay/api prisma:studio"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}
