@@ -1,0 +1,476 @@
+// MularPay Fintech Database Schema
+// This schema defines all database models for the Nigerian fintech app
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// USER MANAGEMENT
+// ============================================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  phone     String   @unique
+  password  String // Argon2 hashed
+  firstName String
+  lastName  String
+  role      UserRole @default(USER)
+  status    UserStatus @default(PENDING_VERIFICATION)
+  kycTier   KYCTier  @default(TIER_0)
+
+  // Profile
+  avatar    String?
+  dateOfBirth DateTime?
+  gender    Gender?
+  address   String?
+  city      String?
+  state     String?
+  country   String @default("Nigeria")
+
+  // KYC Data
+  bvn       String? @unique
+  bvnVerified Boolean @default(false)
+  nin       String? @unique
+  ninVerified Boolean @default(false)
+
+  // Security
+  pin       String? // Encrypted 4-digit transaction PIN
+  pinSetAt  DateTime?
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret  String?
+
+  // Timestamps
+  emailVerified Boolean @default(false)
+  emailVerifiedAt DateTime?
+  phoneVerified Boolean @default(false)
+  phoneVerifiedAt DateTime?
+  lastLoginAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  wallet          Wallet?
+  transactions    Transaction[]
+  vtuOrders       VTUOrder[]
+  giftCardOrders  GiftCardOrder[]
+  cryptoOrders    CryptoOrder[]
+  bankAccounts    BankAccount[]
+  virtualAccounts VirtualAccount[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([status])
+  @@map("users")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPPORT
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+  PENDING_VERIFICATION
+}
+
+enum KYCTier {
+  TIER_0 // Not verified - ₦50k limit
+  TIER_1 // Email + Phone - ₦300k limit
+  TIER_2 // BVN verified - ₦5M limit
+  TIER_3 // Full KYC - Unlimited
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+// ============================================
+// WALLET SYSTEM
+// ============================================
+
+model Wallet {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  balance       Decimal  @default(0) @db.Decimal(15, 2)
+  ledgerBalance Decimal  @default(0) @db.Decimal(15, 2) // Balance including pending transactions
+  currency      String   @default("NGN")
+
+  // Limits tracking (reset daily/monthly)
+  dailySpent    Decimal  @default(0) @db.Decimal(15, 2)
+  monthlySpent  Decimal  @default(0) @db.Decimal(15, 2)
+  lastResetAt   DateTime @default(now())
+
+  isLocked      Boolean  @default(false)
+  lockedReason  String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@map("wallets")
+}
+
+// ============================================
+// TRANSACTIONS (Double-entry bookkeeping)
+// ============================================
+
+model Transaction {
+  id              String   @id @default(uuid())
+  reference       String   @unique // e.g., TXN_1234567890
+
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+
+  type            TransactionType
+  status          TransactionStatus @default(PENDING)
+
+  amount          Decimal  @db.Decimal(15, 2)
+  fee             Decimal  @default(0) @db.Decimal(15, 2)
+  totalAmount     Decimal  @db.Decimal(15, 2) // amount + fee
+
+  balanceBefore   Decimal  @db.Decimal(15, 2)
+  balanceAfter    Decimal  @db.Decimal(15, 2)
+
+  currency        String   @default("NGN")
+
+  // Additional data (JSON for flexibility)
+  metadata        Json?
+
+  // Related entities
+  relatedType     String? // e.g., "vtu_order", "giftcard_order"
+  relatedId       String?
+
+  // Provider info (for external transactions)
+  provider        String? // e.g., "paystack", "vtpass"
+  providerRef     String?
+  providerStatus  String?
+
+  // Descriptions
+  description     String
+  narration       String?
+
+  // Timestamps
+  completedAt     DateTime?
+  failedAt        DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([reference])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  TRANSFER
+  VTU_AIRTIME
+  VTU_DATA
+  VTU_CABLE
+  VTU_ELECTRICITY
+  GIFTCARD_BUY
+  GIFTCARD_SELL
+  CRYPTO_BUY
+  CRYPTO_SELL
+  REFUND
+  FEE
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REVERSED
+}
+
+// ============================================
+// BANK ACCOUNTS & VIRTUAL ACCOUNTS
+// ============================================
+
+model BankAccount {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  bankName      String
+  bankCode      String
+  accountNumber String
+  accountName   String
+
+  isVerified    Boolean  @default(false)
+  isPrimary     Boolean  @default(false)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, accountNumber])
+  @@index([userId])
+  @@map("bank_accounts")
+}
+
+model VirtualAccount {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  provider      String   // e.g., "paystack"
+  bankName      String
+  bankCode      String
+  accountNumber String   @unique
+  accountName   String
+
+  providerRef   String?
+  isActive      Boolean  @default(true)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([accountNumber])
+  @@map("virtual_accounts")
+}
+
+// ============================================
+// VTU (VIRTUAL TOP-UP) SERVICES
+// ============================================
+
+model VTUOrder {
+  id            String   @id @default(uuid())
+  reference     String   @unique
+
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+
+  serviceType   VTUServiceType
+  provider      String   // MTN, GLO, AIRTEL, 9MOBILE, DSTV, etc.
+
+  // Recipient details
+  recipient     String   // Phone number or smartcard number
+
+  // Product details
+  productCode   String
+  productName   String
+  amount        Decimal  @db.Decimal(15, 2)
+
+  // Status
+  status        TransactionStatus @default(PENDING)
+
+  // Provider response
+  providerRef   String?
+  providerToken String?
+  providerResponse Json?
+
+  // Transaction reference
+  transactionId String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  completedAt   DateTime?
+
+  @@index([userId])
+  @@index([reference])
+  @@index([status])
+  @@map("vtu_orders")
+}
+
+enum VTUServiceType {
+  AIRTIME
+  DATA
+  CABLE_TV
+  ELECTRICITY
+}
+
+// ============================================
+// GIFT CARDS
+// ============================================
+
+model GiftCardOrder {
+  id            String   @id @default(uuid())
+  reference     String   @unique
+
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+
+  type          GiftCardType // BUY or SELL
+  brand         String   // AMAZON, APPLE, STEAM, etc.
+  country       String   // US, UK, CA, etc.
+
+  // Card details (for selling)
+  cardNumber    String?  // Encrypted
+  cardPin       String?  // Encrypted
+  cardImages    Json?    // Array of image URLs
+
+  // Pricing
+  faceValue     Decimal  @db.Decimal(15, 2)
+  rate          Decimal  @db.Decimal(5, 2) // Exchange rate
+  amount        Decimal  @db.Decimal(15, 2) // Amount in Naira
+
+  status        TransactionStatus @default(PENDING)
+
+  // Admin review
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  reviewNotes   String?
+
+  // Transaction reference
+  transactionId String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  completedAt   DateTime?
+
+  @@index([userId])
+  @@index([reference])
+  @@index([status])
+  @@map("giftcard_orders")
+}
+
+enum GiftCardType {
+  BUY
+  SELL
+}
+
+// ============================================
+// CRYPTO TRADING
+// ============================================
+
+model CryptoOrder {
+  id            String   @id @default(uuid())
+  reference     String   @unique
+
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+
+  type          CryptoOrderType // BUY or SELL
+  asset         String   // BTC, ETH, USDT
+  network       String   // BTC, ETH, TRC20, BEP20
+
+  // Amounts
+  cryptoAmount  Decimal  @db.Decimal(18, 8)
+  nairaAmount   Decimal  @db.Decimal(15, 2)
+  rate          Decimal  @db.Decimal(15, 2) // Exchange rate per unit
+
+  // Wallet address (for selling)
+  walletAddress String?
+
+  // Transaction hash (for verification)
+  txHash        String?
+
+  status        TransactionStatus @default(PENDING)
+
+  // Provider info
+  provider      String?  // e.g., "binance", "crypto.com"
+  providerRef   String?
+
+  // Transaction reference
+  transactionId String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  completedAt   DateTime?
+
+  @@index([userId])
+  @@index([reference])
+  @@index([status])
+  @@map("crypto_orders")
+}
+
+enum CryptoOrderType {
+  BUY
+  SELL
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type      NotificationType
+  title     String
+  message   String
+  data      Json?
+
+  isRead    Boolean  @default(false)
+  readAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  TRANSACTION
+  KYC
+  SECURITY
+  PROMOTIONAL
+  SYSTEM
+}
+
+// ============================================
+// AUDIT LOGS
+// ============================================
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  action    String
+  resource  String
+  resourceId String?
+
+  ipAddress String?
+  userAgent String?
+
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================
+// SYSTEM CONFIGURATION
+// ============================================
+
+model SystemConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+
+  @@map("system_config")
+}
