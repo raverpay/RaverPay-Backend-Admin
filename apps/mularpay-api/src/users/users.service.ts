@@ -69,6 +69,19 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
+    // Convert Decimal fields to strings for JSON serialization
+    if (user.wallet) {
+      return {
+        ...user,
+        wallet: {
+          ...user.wallet,
+          balance: user.wallet.balance.toString(),
+          dailySpent: user.wallet.dailySpent.toString(),
+          monthlySpent: user.wallet.monthlySpent.toString(),
+        },
+      };
+    }
+
     return user;
   }
 
@@ -198,10 +211,7 @@ export class UsersService {
 
     // TODO: Integrate with actual BVN verification API (e.g., Mono, Paystack Identity)
     // For now, we'll simulate the verification
-    const isValidBvn = await this.simulateBvnVerification(
-      verifyBvnDto.bvn,
-      verifyBvnDto.dateOfBirth,
-    );
+    const isValidBvn = await this.simulateBvnVerification(verifyBvnDto.bvn);
 
     if (!isValidBvn) {
       throw new BadRequestException(
@@ -272,10 +282,7 @@ export class UsersService {
 
     // TODO: Integrate with actual NIN verification API (NIMC)
     // For now, we'll simulate the verification
-    const isValidNin = await this.simulateNinVerification(
-      verifyNinDto.nin,
-      verifyNinDto.dateOfBirth,
-    );
+    const isValidNin = await this.simulateNinVerification(verifyNinDto.nin);
 
     if (!isValidNin) {
       throw new BadRequestException(
@@ -563,11 +570,7 @@ export class UsersService {
    * Simulate BVN verification (replace with actual API in production)
    * @private
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private async simulateBvnVerification(
-    bvn: string,
-    _dateOfBirth: string,
-  ): Promise<boolean> {
+  private async simulateBvnVerification(bvn: string): Promise<boolean> {
     // Simulate API call delay
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -580,11 +583,7 @@ export class UsersService {
    * Simulate NIN verification (replace with actual API in production)
    * @private
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private async simulateNinVerification(
-    nin: string,
-    _dateOfBirth: string,
-  ): Promise<boolean> {
+  private async simulateNinVerification(nin: string): Promise<boolean> {
     // Simulate API call delay
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
