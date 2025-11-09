@@ -5,9 +5,20 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { WalletModule } from './wallet/wallet.module';
+import { TransactionsModule } from './transactions/transactions.module';
+import { PaymentsModule } from './payments/payments.module';
+import { VirtualAccountsModule } from './virtual-accounts/virtual-accounts.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, UsersModule, WalletModule],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    UsersModule,
+    WalletModule,
+    TransactionsModule,
+    PaymentsModule,
+    VirtualAccountsModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

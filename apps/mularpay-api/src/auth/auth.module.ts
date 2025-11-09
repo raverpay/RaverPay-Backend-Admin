@@ -5,6 +5,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { PrismaModule } from '../prisma/prisma.module';
+import { VirtualAccountsModule } from '../virtual-accounts/virtual-accounts.module';
 
 /**
  * Authentication Module
@@ -19,6 +20,7 @@ import { PrismaModule } from '../prisma/prisma.module';
       secret: process.env.JWT_SECRET || 'your-secret-key',
       signOptions: { expiresIn: '15m' },
     }),
+    VirtualAccountsModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

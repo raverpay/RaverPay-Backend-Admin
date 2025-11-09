@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
+import { VirtualAccountsService } from '../virtual-accounts/virtual-accounts.service';
 import { RegisterDto, LoginDto } from './dto';
 import * as argon2 from 'argon2';
 import { User, UserStatus } from '@prisma/client';
@@ -24,6 +25,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly virtualAccountsService: VirtualAccountsService,
   ) {}
 
   /**
@@ -80,6 +82,16 @@ export class AuthService {
       });
 
       this.logger.log(`New user registered: ${user.email}`);
+
+      // Create virtual account for the user (async, don't wait)
+      this.virtualAccountsService
+        .createVirtualAccount(user.id)
+        .catch((error) => {
+          this.logger.error(
+            `Failed to create virtual account for ${user.id}`,
+            error,
+          );
+        });
 
       // Generate tokens
       const tokens = await this.generateTokens(user);
