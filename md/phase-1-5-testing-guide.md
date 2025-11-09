@@ -1,6 +1,6 @@
 # Phase 1.5 Testing Guide - Funding & Withdrawals
 
-**Prerequisites:**
+**Prerequisites:** https://mularpaymularpay-api-production.up.railway.app/api/payments/webhooks/paystack
 
 - Paystack test keys configured in `.env`
 - Server running on `http://localhost:3001/api`
