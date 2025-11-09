@@ -25,7 +25,33 @@ export class UsersService {
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        status: true,
+        kycTier: true,
+        avatar: true,
+        dateOfBirth: true,
+        gender: true,
+        address: true,
+        city: true,
+        state: true,
+        country: true,
+        bvn: true,
+        bvnVerified: true,
+        nin: true,
+        ninVerified: true,
+        emailVerified: true,
+        emailVerifiedAt: true,
+        phoneVerified: true,
+        phoneVerifiedAt: true,
+        twoFactorEnabled: true,
+        createdAt: true,
+        updatedAt: true,
         wallet: {
           select: {
             id: true,
@@ -43,11 +69,7 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    // Remove sensitive information
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, twoFactorSecret, ...userProfile } = user;
-
-    return userProfile;
+    return user;
   }
 
   /**
