@@ -20,6 +20,7 @@ import {
   VerifySmartcardDto,
   VerifyMeterDto,
   GetOrdersDto,
+  PurchaseInternationalAirtimeDto,
 } from './dto';
 
 @Controller('vtu')
@@ -41,6 +42,12 @@ export class VTUController {
     return this.vtuService.getDataPlans(network);
   }
 
+  @Get('data/sme-plans/:network')
+  @HttpCode(HttpStatus.OK)
+  getSMEDataPlans(@Param('network') network: string) {
+    return this.vtuService.getSMEDataPlans(network);
+  }
+
   @Get('cable-tv/plans/:provider')
   @HttpCode(HttpStatus.OK)
   getCableTVPlans(@Param('provider') provider: string) {
@@ -51,6 +58,44 @@ export class VTUController {
   @HttpCode(HttpStatus.OK)
   getElectricityProviders() {
     return this.vtuService.getElectricityProviders();
+  }
+
+  // ==================== International Airtime/Data Catalog ====================
+
+  @Get('international/countries')
+  @HttpCode(HttpStatus.OK)
+  getInternationalCountries() {
+    return this.vtuService.getInternationalCountries();
+  }
+
+  @Get('international/product-types/:countryCode')
+  @HttpCode(HttpStatus.OK)
+  getInternationalProductTypes(@Param('countryCode') countryCode: string) {
+    return this.vtuService.getInternationalProductTypes(countryCode);
+  }
+
+  @Get('international/operators/:countryCode/:productTypeId')
+  @HttpCode(HttpStatus.OK)
+  getInternationalOperators(
+    @Param('countryCode') countryCode: string,
+    @Param('productTypeId') productTypeId: string,
+  ) {
+    return this.vtuService.getInternationalOperators(
+      countryCode,
+      productTypeId,
+    );
+  }
+
+  @Get('international/variations/:operatorId/:productTypeId')
+  @HttpCode(HttpStatus.OK)
+  getInternationalVariations(
+    @Param('operatorId') operatorId: string,
+    @Param('productTypeId') productTypeId: string,
+  ) {
+    return this.vtuService.getInternationalVariations(
+      operatorId,
+      productTypeId,
+    );
   }
 
   // ==================== Validation ====================
@@ -104,6 +149,15 @@ export class VTUController {
     @Body() dto: PayElectricityDto,
   ) {
     return this.vtuService.payElectricityBill(userId, dto);
+  }
+
+  @Post('international/purchase')
+  @HttpCode(HttpStatus.CREATED)
+  purchaseInternationalAirtime(
+    @GetUser('id') userId: string,
+    @Body() dto: PurchaseInternationalAirtimeDto,
+  ) {
+    return this.vtuService.purchaseInternationalAirtime(userId, dto);
   }
 
   // ==================== Order Management ====================

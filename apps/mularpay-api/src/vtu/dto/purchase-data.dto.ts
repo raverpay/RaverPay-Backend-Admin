@@ -1,4 +1,4 @@
-import { IsString, Matches } from 'class-validator';
+import { IsString, Matches, IsOptional, IsBoolean } from 'class-validator';
 
 export class PurchaseDataDto {
   @IsString()
@@ -14,5 +14,9 @@ export class PurchaseDataDto {
   phone: string;
 
   @IsString()
-  productCode: string; // e.g., "mtn-1gb-1000"
+  productCode: string; // e.g., "mtn-1gb-1000" or "glo-dg-50"
+
+  @IsOptional()
+  @IsBoolean()
+  isSME?: boolean; // Optional flag to use SME data (only for GLO currently)
 }

@@ -285,13 +285,22 @@ export class VTPassService {
     productCode: string;
     amount: number;
     reference: string;
+    isSME?: boolean;
   }) {
+    // Determine serviceID based on network and SME flag
+    let serviceID: string;
+    if (data.isSME && data.network.toLowerCase() === 'glo') {
+      serviceID = 'glo-sme-data';
+    } else {
+      serviceID = `${this.mapNetworkToServiceId(data.network)}-data`;
+    }
+
     const response = await this.makeRequest<TransactionContent>(
       '/pay',
       'POST',
       {
         request_id: data.reference,
-        serviceID: `${this.mapNetworkToServiceId(data.network)}-data`,
+        serviceID,
         billersCode: data.phone,
         variation_code: data.productCode,
         amount: data.amount,
@@ -402,6 +411,112 @@ export class VTPassService {
           : 'failed',
       transactionId: response.content.transactions.transactionId,
       amount: response.content.transactions.amount,
+    };
+  }
+
+  // ==================== SME Data ====================
+
+  async getSMEDataProducts(network: string): Promise<ServiceVariation[]> {
+    // Currently only GLO supports SME data in VTPass
+    if (network.toLowerCase() !== 'glo') {
+      return [];
+    }
+    const serviceId = 'glo-sme-data';
+    return this.getServiceVariations(serviceId);
+  }
+
+  // ==================== International Airtime/Data ====================
+
+  async getInternationalCountries() {
+    const response = await this.makeRequest<{
+      countries: Array<{
+        code: string;
+        flag: string;
+        name: string;
+        currency: string;
+        prefix: string;
+      }>;
+    }>('/get-international-airtime-countries');
+
+    return response.content.countries;
+  }
+
+  async getInternationalProductTypes(countryCode: string) {
+    const response = await this.makeRequest<
+      Array<{
+        product_type_id: number;
+        name: string;
+      }>
+    >(`/get-international-airtime-product-types?code=${countryCode}`);
+
+    return response.content;
+  }
+
+  async getInternationalOperators(countryCode: string, productTypeId: string) {
+    const response = await this.makeRequest<
+      Array<{
+        operator_id: string;
+        name: string;
+        operator_image: string;
+      }>
+    >(
+      `/get-international-airtime-operators?code=${countryCode}&product_type_id=${productTypeId}`,
+    );
+
+    return response.content;
+  }
+
+  async getInternationalVariations(
+    operatorId: string,
+    productTypeId: string,
+  ): Promise<ServiceVariation[]> {
+    const response = await this.makeRequest<{
+      variations: ServiceVariation[];
+    }>(
+      `/service-variations?serviceID=foreign-airtime&operator_id=${operatorId}&product_type_id=${productTypeId}`,
+    );
+
+    return response.content.variations || [];
+  }
+
+  async purchaseInternationalAirtime(data: {
+    billersCode: string;
+    variationCode: string;
+    operatorId: string;
+    countryCode: string;
+    productTypeId: string;
+    email: string;
+    phone: string;
+    reference: string;
+    amount?: number;
+  }) {
+    const response = await this.makeRequest<TransactionContent>(
+      '/pay',
+      'POST',
+      {
+        request_id: data.reference,
+        serviceID: 'foreign-airtime',
+        billersCode: data.billersCode,
+        variation_code: data.variationCode,
+        operator_id: data.operatorId,
+        country_code: data.countryCode,
+        product_type_id: data.productTypeId,
+        email: data.email,
+        phone: data.phone,
+        amount: data.amount,
+      },
+    );
+
+    return {
+      status:
+        response.content.transactions.status === 'delivered'
+          ? 'success'
+          : 'failed',
+      transactionId: response.content.transactions.transactionId,
+      token: data.reference,
+      productName: response.content.transactions.product_name,
+      amount: response.content.transactions.amount,
+      commission: response.content.transactions.commission,
     };
   }
 

@@ -14,6 +14,7 @@ import {
   PayCableTVDto,
   PayElectricityDto,
   GetOrdersDto,
+  PurchaseInternationalAirtimeDto,
 } from './dto';
 import { VTUServiceType, TransactionStatus } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
@@ -49,12 +50,40 @@ export class VTUService {
     return this.vtpassService.getDataProducts(network);
   }
 
+  async getSMEDataPlans(network: string) {
+    return this.vtpassService.getSMEDataProducts(network);
+  }
+
   async getCableTVPlans(provider: string) {
     return this.vtpassService.getCableTVProducts(provider);
   }
 
   getElectricityProviders() {
     return this.vtpassService.getElectricityDISCOs();
+  }
+
+  // ==================== International Airtime/Data Catalog ====================
+
+  async getInternationalCountries() {
+    return this.vtpassService.getInternationalCountries();
+  }
+
+  async getInternationalProductTypes(countryCode: string) {
+    return this.vtpassService.getInternationalProductTypes(countryCode);
+  }
+
+  async getInternationalOperators(countryCode: string, productTypeId: string) {
+    return this.vtpassService.getInternationalOperators(
+      countryCode,
+      productTypeId,
+    );
+  }
+
+  async getInternationalVariations(operatorId: string, productTypeId: string) {
+    return this.vtpassService.getInternationalVariations(
+      operatorId,
+      productTypeId,
+    );
   }
 
   // ==================== Validation ====================
@@ -376,15 +405,18 @@ export class VTUService {
   // ==================== Data Purchase ====================
 
   async purchaseDataBundle(userId: string, dto: PurchaseDataDto) {
+    const serviceLabel = dto.isSME ? 'SME Data' : 'Data';
     this.logger.log(
-      `[Data] Purchase request: ${dto.network} - ${dto.phone} - ${dto.productCode}`,
+      `[${serviceLabel}] Purchase request: ${dto.network} - ${dto.phone} - ${dto.productCode}`,
     );
 
     // 1. Validate phone
     this.validatePhone(dto.phone);
 
-    // 2. Get product details from VTPass
-    const dataPlans = await this.getDataPlans(dto.network);
+    // 2. Get product details from VTPass (SME or regular)
+    const dataPlans = dto.isSME
+      ? await this.getSMEDataPlans(dto.network)
+      : await this.getDataPlans(dto.network);
     const product = dataPlans.find((p) => p.variation_code === dto.productCode);
 
     if (!product) {
@@ -474,6 +506,7 @@ export class VTUService {
           productCode: dto.productCode,
           amount,
           reference,
+          isSME: dto.isSME,
         });
       } catch (error) {
         this.logger.error('[Data] VTPass API failed:', error);
@@ -836,6 +869,180 @@ export class VTUService {
           vtpassResult.status === 'success'
             ? 'Electricity payment successful'
             : 'Electricity payment failed. Wallet refunded.',
+      };
+    } finally {
+      await this.unlockWalletForTransaction(userId);
+    }
+  }
+
+  // ==================== International Airtime Purchase ====================
+
+  async purchaseInternationalAirtime(
+    userId: string,
+    dto: PurchaseInternationalAirtimeDto,
+  ) {
+    this.logger.log(
+      `[International] Purchase request: ${dto.countryCode} - ${dto.billersCode} - ${dto.variationCode}`,
+    );
+
+    // 1. Get user details for email if not provided
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // 2. Get product details to determine amount
+    const variations = await this.getInternationalVariations(
+      dto.operatorId,
+      dto.productTypeId,
+    );
+    const product = variations.find(
+      (p) => p.variation_code === dto.variationCode,
+    );
+
+    if (!product) {
+      throw new BadRequestException('Invalid product code');
+    }
+
+    // Note: International airtime amounts may vary, use a fixed fee structure
+    const amount = Number(product.variation_amount) || 0;
+    const fee = 50; // Flat fee for international services
+    const total = amount + fee;
+
+    // 3. Check balance
+    await this.checkWalletBalance(userId, total);
+
+    // 4. Check duplicate
+    await this.checkDuplicateOrder(userId, 'AIRTIME', dto.billersCode, amount);
+
+    // 5. Lock wallet
+    await this.lockWalletForTransaction(userId);
+
+    try {
+      // 6. Generate reference
+      const reference = this.generateReference('AIRTIME');
+
+      // 7. Create order
+      const order = await this.prisma.vTUOrder.create({
+        data: {
+          reference,
+          userId,
+          serviceType: 'AIRTIME',
+          provider: `INTL_${dto.countryCode}`,
+          recipient: dto.billersCode,
+          productCode: dto.variationCode,
+          productName: product.name,
+          amount: new Decimal(amount),
+          status: 'PENDING',
+        },
+      });
+
+      // 8. Get wallet balance before transaction
+      const wallet = await this.prisma.wallet.findUnique({
+        where: { userId },
+      });
+      const balanceBefore = wallet!.balance;
+      const balanceAfter = new Decimal(balanceBefore).minus(new Decimal(total));
+
+      // 9. Debit wallet and create transaction
+      await this.prisma.$transaction([
+        this.prisma.wallet.update({
+          where: { userId },
+          data: {
+            balance: { decrement: new Decimal(total) },
+            ledgerBalance: { decrement: new Decimal(total) },
+          },
+        }),
+        this.prisma.transaction.create({
+          data: {
+            reference,
+            userId,
+            type: 'VTU_AIRTIME',
+            amount: new Decimal(amount),
+            fee: new Decimal(fee),
+            totalAmount: new Decimal(total),
+            balanceBefore,
+            balanceAfter,
+            status: 'COMPLETED',
+            description: `International Airtime - ${dto.countryCode} - ${dto.billersCode}`,
+            metadata: {
+              serviceType: 'INTERNATIONAL_AIRTIME',
+              countryCode: dto.countryCode,
+              operatorId: dto.operatorId,
+              productTypeId: dto.productTypeId,
+              recipient: dto.billersCode,
+              orderId: order.id,
+            },
+          },
+        }),
+      ]);
+
+      // 10. Call VTPass API
+      let vtpassResult: VTPassPurchaseResult;
+      try {
+        vtpassResult = await this.vtpassService.purchaseInternationalAirtime({
+          billersCode: dto.billersCode,
+          variationCode: dto.variationCode,
+          operatorId: dto.operatorId,
+          countryCode: dto.countryCode,
+          productTypeId: dto.productTypeId,
+          email: dto.email || user.email,
+          phone: dto.phone,
+          reference,
+          amount,
+        });
+      } catch (error) {
+        this.logger.error('[International] VTPass API failed:', error);
+        await this.prisma.vTUOrder.update({
+          where: { id: order.id },
+          data: {
+            status: 'FAILED',
+            providerResponse: { error: 'VTPass API error' },
+          },
+        });
+
+        await this.refundFailedOrder(order.id);
+
+        throw new BadRequestException(
+          'Failed to process international airtime purchase. Your wallet has been refunded.',
+        );
+      }
+
+      // 11. Update order
+      await this.prisma.vTUOrder.update({
+        where: { id: order.id },
+        data: {
+          status: vtpassResult.status === 'success' ? 'COMPLETED' : 'FAILED',
+          providerRef: vtpassResult.transactionId,
+          providerToken: vtpassResult.token,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          providerResponse: JSON.parse(JSON.stringify(vtpassResult)),
+          completedAt:
+            vtpassResult.status === 'success' ? new Date() : undefined,
+        },
+      });
+
+      // 12. If failed, refund
+      if (vtpassResult.status !== 'success') {
+        await this.refundFailedOrder(order.id);
+      }
+
+      return {
+        reference,
+        orderId: order.id,
+        status: vtpassResult.status === 'success' ? 'COMPLETED' : 'FAILED',
+        amount,
+        fee,
+        totalAmount: total,
+        provider: `INTL_${dto.countryCode}`,
+        recipient: dto.billersCode,
+        message:
+          vtpassResult.status === 'success'
+            ? 'International airtime purchased successfully'
+            : 'International airtime purchase failed. Wallet refunded.',
       };
     } finally {
       await this.unlockWalletForTransaction(userId);
