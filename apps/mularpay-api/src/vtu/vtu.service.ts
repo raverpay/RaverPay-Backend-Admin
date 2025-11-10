@@ -26,6 +26,7 @@ interface VTPassPurchaseResult {
   amount?: number;
   commission?: number;
   meterToken?: string;
+  [key: string]: unknown;
 }
 
 @Injectable()
@@ -340,7 +341,8 @@ export class VTUService {
           status: vtpassResult.status === 'success' ? 'COMPLETED' : 'FAILED',
           providerRef: vtpassResult.transactionId,
           providerToken: vtpassResult.token,
-          providerResponse: vtpassResult,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          providerResponse: JSON.parse(JSON.stringify(vtpassResult)),
           completedAt:
             vtpassResult.status === 'success' ? new Date() : undefined,
         },
@@ -497,7 +499,8 @@ export class VTUService {
           status: vtpassResult.status === 'success' ? 'COMPLETED' : 'FAILED',
           providerRef: vtpassResult.transactionId,
           providerToken: vtpassResult.token,
-          providerResponse: vtpassResult,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          providerResponse: JSON.parse(JSON.stringify(vtpassResult)),
           completedAt:
             vtpassResult.status === 'success' ? new Date() : undefined,
         },
@@ -657,7 +660,8 @@ export class VTUService {
           status: vtpassResult.status === 'success' ? 'COMPLETED' : 'FAILED',
           providerRef: vtpassResult.transactionId,
           providerToken: vtpassResult.token,
-          providerResponse: vtpassResult,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          providerResponse: JSON.parse(JSON.stringify(vtpassResult)),
           completedAt:
             vtpassResult.status === 'success' ? new Date() : undefined,
         },
@@ -806,7 +810,8 @@ export class VTUService {
           status: vtpassResult.status === 'success' ? 'COMPLETED' : 'FAILED',
           providerRef: vtpassResult.transactionId,
           providerToken: vtpassResult.token || vtpassResult.meterToken,
-          providerResponse: vtpassResult,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          providerResponse: JSON.parse(JSON.stringify(vtpassResult)),
           completedAt:
             vtpassResult.status === 'success' ? new Date() : undefined,
         },

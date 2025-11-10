@@ -1,5 +1,7 @@
 MulahPay Fintech App
 
+NGROK - https://c9d6c6155a5a.ngrok-free.app/api
+
 start build this, i have create the following credentials. ✅ Supabase (2 projects):
 
 Production database connection string
@@ -33,7 +35,7 @@ Database: PostgreSQL (Supabase)
 Cache/Queue: Redis (Upstash)
 Storage: Cloudinary
 Hosting: Railway (backend), Vercel (web)
-Monitoring: Sentry  This is the stack i use for my mobile app development so you can remove or recommend more to use. expo react native typescript tanstack react query v5 zustand nativewind v5 tailwindcss expo router reanimated v5 base64-arraybuffer react-native-toast-message zod @expo-google-fonts/urbanist @expo/vector-icons  All the apps should have dark and light mode integrated.
+Monitoring: Sentry This is the stack i use for my mobile app development so you can remove or recommend more to use.expo react native typescript tanstack react query v5 zustand nativewind v5 tailwindcss expo router reanimated v5 base64-arraybuffer react-native-toast-message zod @expo-google-fonts/urbanist @expo/vector-iconsAll the apps should have dark and light mode integrated.
 Repository Structure: Monorepo with separate apps for API, mobile, web, and admin Your Responsibilities
 
 Architecture Decisions: Make and explain all technical architecture choices
@@ -133,7 +135,7 @@ Cost is a concern, so recommend free/cheap alternatives when possible
 Focus on MVP first, then iterate
 Security and reliability are more important than fancy features
 Nigerian market has unique challenges (poor network, device variety)
-Assume I will deploy frequently (CI/CD from day 1)  Questions to Ask Me Before we begin, please ask me:
+Assume I will deploy frequently (CI/CD from day 1) Questions to Ask Me Before we begin, please ask me:
 Do I have accounts created for: GitHub, Railway, Supabase, Cloudinary, Upstash?
 What is my preferred package manager? (npm, yarn, pnpm)
 Do I want to use a monorepo tool (Turborepo/Nx) or manual setup?
