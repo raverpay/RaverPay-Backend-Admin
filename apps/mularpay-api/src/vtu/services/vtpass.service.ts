@@ -11,9 +11,9 @@ interface VTPassConfig {
 }
 
 interface VTPassResponse<T = unknown> {
-  code: string;
+  code?: string; // POST endpoints use 'code'
+  response_description: string; // GET endpoints use this as status code
   content: T;
-  response_description: string;
   requestId?: string;
   amount?: string;
   transaction_date?: {
@@ -114,7 +114,9 @@ export class VTPassService {
 
       const result = (await response.json()) as VTPassResponse<T>;
 
-      if (result.code !== '000') {
+      // Check for success: POST endpoints use 'code', GET endpoints use 'response_description'
+      const statusCode = result.code || result.response_description;
+      if (statusCode !== '000') {
         this.logger.error(`[VTPass] API error: ${result.response_description}`);
         throw new BadRequestException(
           result.response_description || 'VTPass API error',
@@ -138,10 +140,10 @@ export class VTPassService {
 
   async getServiceVariations(serviceId: string): Promise<ServiceVariation[]> {
     const response = await this.makeRequest<{
-      varations: ServiceVariation[];
+      variations: ServiceVariation[];
     }>(`/service-variations?serviceID=${serviceId}`);
 
-    return response.content.varations || [];
+    return response.content.variations || [];
   }
 
   getAirtimeProducts() {
@@ -154,7 +156,7 @@ export class VTPassService {
   }
 
   async getDataProducts(network: string): Promise<ServiceVariation[]> {
-    const serviceId = `${network.toLowerCase()}-data`;
+    const serviceId = `${this.mapNetworkToServiceId(network)}-data`;
     return this.getServiceVariations(serviceId);
   }
 
@@ -233,6 +235,18 @@ export class VTPassService {
     return this.verifyCustomer(meterNumber, serviceId);
   }
 
+  // ==================== Service ID Mapping ====================
+
+  private mapNetworkToServiceId(network: string): string {
+    const mapping: Record<string, string> = {
+      mtn: 'mtn',
+      glo: 'glo',
+      airtel: 'airtel',
+      '9mobile': 'etisalat', // VTPass uses old brand name
+    };
+    return mapping[network.toLowerCase()] || network.toLowerCase();
+  }
+
   // ==================== Purchases ====================
 
   async purchaseAirtime(data: {
@@ -246,7 +260,7 @@ export class VTPassService {
       'POST',
       {
         request_id: data.reference,
-        serviceID: data.network.toLowerCase(),
+        serviceID: this.mapNetworkToServiceId(data.network),
         amount: data.amount,
         phone: data.phone,
       },
@@ -277,7 +291,7 @@ export class VTPassService {
       'POST',
       {
         request_id: data.reference,
-        serviceID: `${data.network.toLowerCase()}-data`,
+        serviceID: `${this.mapNetworkToServiceId(data.network)}-data`,
         billersCode: data.phone,
         variation_code: data.productCode,
         amount: data.amount,
