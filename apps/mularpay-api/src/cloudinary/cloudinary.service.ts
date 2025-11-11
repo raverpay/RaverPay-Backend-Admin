@@ -31,7 +31,11 @@ export class CloudinaryService {
         (error, result) => {
           if (error) {
             this.logger.error('Cloudinary upload error:', error);
-            return reject(new Error(`Cloudinary upload failed: ${error.message || 'Unknown error'}`));
+            return reject(
+              new Error(
+                `Cloudinary upload failed: ${error.message || 'Unknown error'}`,
+              ),
+            );
           }
           if (!result) {
             return reject(new Error('Cloudinary upload result is undefined'));

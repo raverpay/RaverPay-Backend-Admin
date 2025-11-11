@@ -68,6 +68,7 @@ model User {
   virtualAccounts VirtualAccount[]
   notifications   Notification[]
   auditLogs       AuditLog[]
+  refreshTokens   RefreshToken[]
 
   @@index([email])
   @@index([phone])
@@ -99,6 +100,27 @@ enum Gender {
   MALE
   FEMALE
   OTHER
+}
+
+// ============================================
+// REFRESH TOKEN MANAGEMENT
+// ============================================
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  token     String   @unique
+  isRevoked Boolean  @default(false)
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
 }
 
 // ============================================

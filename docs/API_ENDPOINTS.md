@@ -160,6 +160,40 @@ GET /api/auth/me
 
 ---
 
+### Logout
+```http
+POST /api/auth/logout
+```
+
+**Authentication:** Required (JWT)
+
+**Description:** Revokes refresh tokens to prevent further use. Supports single-session logout (revoke specific token) or all-sessions logout (revoke all tokens for user).
+
+**Request Body (Optional):**
+```json
+{
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Note:** If no `refreshToken` is provided in the body, all refresh tokens for the user will be revoked.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Logged out successfully"
+}
+```
+
+**Security Notes:**
+- Access tokens remain valid until expiry (15 minutes max)
+- Refresh tokens are immediately revoked and cannot be reused
+- Use single-session logout to keep other devices logged in
+- Use all-sessions logout for security (e.g., after password change)
+
+---
+
 ## Users
 
 **Base Path:** `/api/users`

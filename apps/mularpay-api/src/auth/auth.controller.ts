@@ -123,4 +123,18 @@ export class AuthController {
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto.resetToken, dto.newPassword);
   }
+
+  /**
+   * Logout user by revoking refresh token
+   *
+   * @param user - Authenticated user from JWT
+   * @param dto - Optional refresh token to revoke (revokes all if not provided)
+   * @returns Success message
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(@GetUser('id') userId: string, @Body() dto?: RefreshTokenDto) {
+    return this.authService.logout(userId, dto?.refreshToken);
+  }
 }

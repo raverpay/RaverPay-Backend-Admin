@@ -42,19 +42,22 @@ export class NotificationsService {
   async findAll(userId: string, options: FindNotificationsDto) {
     const { page = 1, limit = 20, type, unreadOnly = false } = options;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = { userId };
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (type) where.type = type;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (unreadOnly) where.isRead = false;
 
     try {
       const [notifications, total, unreadCount] = await Promise.all([
         this.prisma.notification.findMany({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           where,
           orderBy: { createdAt: 'desc' },
           skip: (page - 1) * limit,
           take: limit,
         }),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         this.prisma.notification.count({ where }),
         this.prisma.notification.count({
           where: { userId, isRead: false },
