@@ -16,7 +16,10 @@
 6. [VTU Services](#vtu-services)
 7. [VTU Webhooks](#vtu-webhooks)
 8. [Health Check](#health-check)
-9. [Missing Endpoints](#missing-endpoints)
+9. [Transaction PIN Management](#transaction-pin-management)
+10. [Password Reset Flow](#password-reset-flow)
+11. [Profile Picture Management](#profile-picture-management)
+12. [Notifications System](#notifications-system)
 
 ---
 
@@ -1990,30 +1993,42 @@ X-RateLimit-Reset: 1699876543
 
 **Total: 65 endpoints** (52 existing + 13 new)
 
-- Authentication: 4 endpoints
-- Users: 8 endpoints
+- Authentication: 7 endpoints (4 original + 3 password reset)
+- Users: 13 endpoints (8 original + 3 PIN + 2 avatar)
 - Wallet: 6 endpoints
 - Transactions: 6 endpoints
 - Payments Webhooks: 1 endpoint
 - VTU Services: 24 endpoints
 - VTU Webhooks: 1 endpoint
 - Health: 2 endpoints
+- Notifications: 5 endpoints (NEW)
 
-### Missing Endpoints: ❌
+### New Phase 3 Endpoints: ✅
 
-**Total: 13 endpoints (MUST be implemented)**
+**All 13 endpoints have been implemented!**
 
-1. Transaction PIN: 3 endpoints (set, verify, change)
-2. Password Reset: 3 endpoints (forgot, verify, reset)
-3. Profile Picture: 2 endpoints (upload, delete)
-4. Notifications: 5 endpoints (list, mark read, mark all read, delete, get unread count)
+1. ✅ **Transaction PIN System** - 3 endpoints
+   - POST /api/users/set-pin
+   - POST /api/users/verify-pin
+   - POST /api/users/change-pin
 
-1. ✅ **Transaction PIN System** - 3 endpoints (set, verify, change)
-2. ✅ **Password Reset Flow** - 3 endpoints (forgot, verify-code, reset)
-3. ✅ **Profile Picture Upload** - 2 endpoints (upload, delete) with Cloudinary
-4. ✅ **Notifications System** - 5 endpoints (list, mark read, mark all read, delete, triggers)
+2. ✅ **Password Reset Flow** - 3 endpoints
+   - POST /api/auth/forgot-password
+   - POST /api/auth/verify-reset-code
+   - POST /api/auth/reset-password
 
-### Additional Security Features
+3. ✅ **Profile Picture Upload** - 2 endpoints
+   - POST /api/users/upload-avatar (Cloudinary)
+   - DELETE /api/users/avatar
+
+4. ✅ **Notifications System** - 5 endpoints
+   - GET /api/notifications
+   - PUT /api/notifications/:id/read
+   - PUT /api/notifications/read-all
+   - DELETE /api/notifications/:id
+   - Auto-triggers on wallet credit & VTU purchases
+
+### Additional Security Features (Phase 3)
 
 All withdrawal and VTU purchase endpoints now require PIN verification:
 - `POST /api/transactions/withdraw` - Requires `pin` field
