@@ -164,7 +164,7 @@ export function welcomeEmailTemplate(firstName: string): {
                     <p style="margin: 0; color: #999999; font-size: 12px;">
                       <a href="#" style="color: #667eea; text-decoration: none; margin: 0 10px;">Privacy Policy</a>
                       <a href="#" style="color: #667eea; text-decoration: none; margin: 0 10px;">Terms of Service</a>
-                      <a href="mailto:support@audaciashippingholding.nl" style="color: #667eea; text-decoration: none; margin: 0 10px;">Contact Support</a>
+                      <a href="mailto:support@expertvetteddigital.tech" style="color: #667eea; text-decoration: none; margin: 0 10px;">Contact Support</a>
                     </p>
                   </td>
                 </tr>

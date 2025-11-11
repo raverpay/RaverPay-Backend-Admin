@@ -12,7 +12,7 @@
 
 ```bash
 RESEND_API_KEY=re_xxxxxxxxxxxxx
-RESEND_FROM_EMAIL=noreply@audaciashippingholding.nl
+RESEND_FROM_EMAIL=noreply@expertvetteddigital.tech
 RESEND_FROM_NAME=MularPay
 
 VTPASS_MESSAGING_PUBLIC_KEY=VT_PK_xxxxxxxxxxxxx

@@ -105,7 +105,7 @@ export function verificationCodeTemplate(
                 <tr>
                   <td style="text-align: center; padding: 0 20px;">
                     <p style="margin: 0; color: #999999; font-size: 12px;">
-                      Need help? Contact us at <a href="mailto:support@audaciashippingholding.nl" style="color: #667eea; text-decoration: none;">support@audaciashippingholding.nl</a>
+                      Need help? Contact us at <a href="mailto:support@expertvetteddigital.tech" style="color: #667eea; text-decoration: none;">support@mularpay.com</a>
                     </p>
                   </td>
                 </tr>

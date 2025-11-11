@@ -125,7 +125,7 @@
 ```bash
 # Resend (Email)
 RESEND_API_KEY=re_xxxxxxxxxxxxx
-RESEND_FROM_EMAIL=noreply@audaciashippingholding.nl
+RESEND_FROM_EMAIL=noreply@expertvetteddigital.tech
 RESEND_FROM_NAME=MularPay
 
 # VTPass Messaging (SMS)
@@ -379,7 +379,7 @@ apps/mularpay-api/src/
 
 ## 📝 Important Notes
 
-1. **Domain Verification:** Ensure `audaciashippingholding.nl` is verified on Resend
+1. **Domain Verification:** Ensure `expertvetteddigital.tech` is verified on Resend
 2. **Sender ID:** `MularPay` needs VTPass approval (24-48 hours)
 3. **Mock Mode:** Services work without API keys (logs only)
 4. **Phone Format:** Automatically formats to international (234...)

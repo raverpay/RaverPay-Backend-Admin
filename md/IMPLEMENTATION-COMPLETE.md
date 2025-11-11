@@ -48,7 +48,7 @@ I've successfully implemented **production-ready email and SMS verification** fo
 #### **A. Resend (Email)** - https://resend.com
 
 1. Sign up/login
-2. Add domain: `audaciashippingholding.nl`
+2. Add domain: `expertvetteddigital.tech`
 3. Add DNS records to Namecheap (takes 15-60 mins)
 4. Create API key
 5. Copy the key (starts with `re_`)
@@ -72,7 +72,7 @@ Open `/Users/joseph/Desktop/mularpay/apps/mularpay-api/.env` and add:
 ```bash
 # Resend (Email)
 RESEND_API_KEY=re_xxxxxxxxxxxxx
-RESEND_FROM_EMAIL=noreply@audaciashippingholding.nl
+RESEND_FROM_EMAIL=noreply@expertvetteddigital.tech
 RESEND_FROM_NAME=MularPay
 
 # VTPass Messaging (SMS)

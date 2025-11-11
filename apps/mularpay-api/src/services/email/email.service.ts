@@ -16,7 +16,7 @@ export class EmailService {
     const apiKey = this.configService.get<string>('RESEND_API_KEY');
     this.fromEmail =
       this.configService.get<string>('RESEND_FROM_EMAIL') ||
-      'noreply@audaciashippingholding.nl';
+      'noreply@expertvetteddigital.tech';
     this.fromName =
       this.configService.get<string>('RESEND_FROM_NAME') || 'MularPay';
     this.enabled =

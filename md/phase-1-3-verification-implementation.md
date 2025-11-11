@@ -7,7 +7,8 @@
 ## 📋 Overview
 
 Implementing production-ready email and SMS verification using:
-- ✅ **Resend** for email (using audaciashippingholding.nl)
+
+- ✅ **Resend** for email (using expertvetteddigital.tech)
 - ✅ **VTPass Messaging** for SMS (already have VTPass account)
 - ⏸️ **BVN/NIN** verification (paused for later)
 
@@ -18,19 +19,22 @@ Implementing production-ready email and SMS verification using:
 ### **Part 1: Resend Email Setup** ✉️
 
 #### Step 1: Domain Verification on Resend
+
 1. Go to https://resend.com and sign up/login
 2. Navigate to **Domains** section
 3. Click **"Add Domain"**
-4. Enter: `audaciashippingholding.nl`
+4. Enter: `expertvetteddigital.tech`
 5. Resend will provide DNS records to add
 
 #### Step 2: Add DNS Records to Namecheap
+
 You'll need to add these DNS records (Resend will give you exact values):
 
 **Records to add in Namecheap DNS:**
+
 ```
 Type: TXT
-Host: @ (or audaciashippingholding.nl)
+Host: @ (or expertvetteddigital.tech)
 Value: [Resend verification code]
 TTL: Automatic
 
@@ -42,7 +46,7 @@ TTL: Automatic
 
 Type: TXT
 Host: _dmarc
-Value: v=DMARC1; p=none; rg=your-email@audaciashippingholding.nl
+Value: v=DMARC1; p=none; rg=your-email@expertvetteddigital.tech
 TTL: Automatic
 
 Type: TXT (SPF)
@@ -57,12 +61,14 @@ TTL: Automatic
 ```
 
 #### Step 3: Verify Domain
+
 1. After adding DNS records, wait 5-15 minutes
 2. Go back to Resend dashboard
 3. Click **"Verify Domain"**
 4. Status should change to ✅ **Verified**
 
 #### Step 4: Get API Key
+
 1. In Resend dashboard, go to **API Keys**
 2. Click **"Create API Key"**
 3. Name it: `MularPay Production`
@@ -70,15 +76,17 @@ TTL: Automatic
 5. Save it securely!
 
 #### Step 5: Configure Sending Email
-- **From Email:** `noreply@audaciashippingholding.nl`
+
+- **From Email:** `noreply@expertvetteddigital.tech`
 - **From Name:** `MularPay`
-- **Reply-To:** `support@audaciashippingholding.nl` (optional)
+- **Reply-To:** `support@expertvetteddigital.tech` (optional)
 
 ---
 
 ### **Part 2: VTPass SMS Setup** 📱
 
 #### Step 1: Get VTPass Messaging Credentials
+
 1. Login to https://vtpass.com
 2. Navigate to **Messaging Dashboard**
 3. Find your **Public Key (X-Token)** and **Secret Key (X-Secret)**
@@ -86,6 +94,7 @@ TTL: Automatic
 5. Copy both keys
 
 #### Step 2: Register Sender ID
+
 1. In VTPass Messaging Dashboard
 2. Go to **Sender IDs**
 3. Register: `MularPay` (your app name)
@@ -93,6 +102,7 @@ TTL: Automatic
 5. Meanwhile, you can use `VTPass` as sender for testing
 
 #### Step 3: Check SMS Balance
+
 1. In VTPass Dashboard, check **SMS Units**
 2. Top up if needed (recommended: start with ₦5,000)
 3. 1 SMS page costs ~₦2-3
@@ -102,16 +112,18 @@ TTL: Automatic
 ### **Part 3: Backend Implementation** 🔧
 
 #### Step 1: Install Dependencies
+
 ```bash
 cd apps/mularpay-api
 pnpm add resend
 ```
 
 #### Step 2: Update Environment Variables
+
 ```bash
 # Add to .env
 RESEND_API_KEY=re_xxxxxxxxxxxxx
-RESEND_FROM_EMAIL=noreply@audaciashippingholding.nl
+RESEND_FROM_EMAIL=noreply@expertvetteddigital.tech
 RESEND_FROM_NAME=MularPay
 
 # VTPass Messaging
@@ -125,6 +137,7 @@ MAX_VERIFICATION_ATTEMPTS=3
 ```
 
 #### Step 3: Create Services Structure
+
 ```
 apps/mularpay-api/src/
 ├── services/
@@ -146,6 +159,7 @@ apps/mularpay-api/src/
 ### **Part 4: Code Implementation** 💻
 
 We'll create:
+
 1. ✅ Email Service (Resend integration)
 2. ✅ SMS Service (VTPass integration)
 3. ✅ Email Templates
@@ -159,16 +173,19 @@ We'll create:
 ## 📊 Cost Estimates
 
 ### Resend Email
+
 - **Free Tier:** 3,000 emails/month
 - **Paid:** $20/month for 50,000 emails
 - **Cost per email:** ~$0.0004
 
 ### VTPass SMS
+
 - **Normal Route:** ₦2-3 per SMS
 - **DND Route:** ₦5-6 per SMS (for DND numbers)
 - **Recommended:** Start with ₦5,000 (~2,000 SMS)
 
 ### Total Monthly (1,000 users)
+
 - Email: Free (< 3,000 emails)
 - SMS: ₦3,000 (~1,000 SMS × ₦3)
 - **Total: ~₦3,000/month** (~$4)
@@ -194,6 +211,7 @@ We'll create:
 ## ✅ Testing Checklist
 
 After implementation, test:
+
 - [ ] Send email verification code
 - [ ] Receive email in inbox (check spam!)
 - [ ] Verify email code works
@@ -210,6 +228,7 @@ After implementation, test:
 ## 🎯 Next Steps After This
 
 Once email/SMS verification works:
+
 1. ✅ Start building mobile app
 2. ✅ Users can register and verify
 3. ✅ Fund wallet and use VTU services
@@ -220,6 +239,7 @@ Once email/SMS verification works:
 ## 🚀 Why VTPass SMS vs Termii?
 
 ### **VTPass SMS (Recommended)**
+
 - ✅ Already using VTPass for VTU
 - ✅ Single vendor (simpler)
 - ✅ Combined billing
@@ -228,6 +248,7 @@ Once email/SMS verification works:
 - ✅ No extra onboarding needed
 
 ### **Termii** (Alternative)
+
 - ✅ Nigerian company
 - ✅ Specialized in messaging
 - ✅ Better analytics dashboard
@@ -241,8 +262,8 @@ Once email/SMS verification works:
 ## 📝 Important Notes
 
 1. **Domain Email:**
-   - Don't use `storage@audaciashippingholding.nl` for sending
-   - Use `noreply@audaciashippingholding.nl` instead
+   - Don't use `storage@expertvetteddigital.tech` for sending
+   - Use `noreply@expertvetteddigital.tech` instead
    - Keeps mailbox clean
 
 2. **DNS Propagation:**
@@ -268,4 +289,3 @@ Once email/SMS verification works:
 ---
 
 **Ready to implement?** Let me know and I'll start with the code! 🚀
-

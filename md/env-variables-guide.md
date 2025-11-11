@@ -15,7 +15,7 @@ VTPASS_USE_DND_ROUTE=false
 # RESEND (Email) - NEW!
 # ==============================================
 RESEND_API_KEY=re_xxxxxxxxxxxxx
-RESEND_FROM_EMAIL=noreply@audaciashippingholding.nl
+RESEND_FROM_EMAIL=noreply@expertvetteddigital.tech
 RESEND_FROM_NAME=MularPay
 
 # ==============================================
@@ -47,7 +47,7 @@ SMS_VERIFICATION_RATE_LIMIT=3
 ### **2. Resend (Email)**
 
 1. Go to https://resend.com
-2. Add your domain: `audaciashippingholding.nl`
+2. Add your domain: `expertvetteddigital.tech`
 3. Verify DNS records
 4. Go to **API Keys**
 5. Create new API key
