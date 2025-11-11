@@ -10,6 +10,9 @@ import {
 } from '@nestjs/common';
 import { VTPassService } from './services/vtpass.service';
 import { VTUService } from './vtu.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 interface VTPassWebhookPayload {
   event: string;
@@ -28,6 +31,8 @@ export class VTUWebhooksController {
   constructor(
     private readonly vtpassService: VTPassService,
     private readonly vtuService: VTUService,
+    private readonly notificationsService: NotificationsService,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Post('vtpass')
@@ -70,6 +75,26 @@ export class VTUWebhooksController {
     this.logger.log(`[VTPassWebhook] Transaction success: ${data.reference}`);
 
     await this.vtuService.updateTransactionStatus(data.reference, 'COMPLETED');
+
+    // Get order to retrieve userId and details
+    const order = await this.prisma.vTUOrder.findUnique({
+      where: { reference: data.reference },
+    });
+
+    if (order && order.status === 'COMPLETED') {
+      // Create notification for successful purchase
+      await this.notificationsService.createNotification({
+        userId: order.userId,
+        type: NotificationType.TRANSACTION,
+        title: 'Purchase Successful',
+        message: `${order.serviceType} purchase completed successfully`,
+        data: {
+          orderId: order.id,
+          serviceType: order.serviceType,
+          amount: order.amount.toString(),
+        },
+      });
+    }
   }
 
   private async handleTransactionFailed(data: VTPassWebhookPayload['data']) {

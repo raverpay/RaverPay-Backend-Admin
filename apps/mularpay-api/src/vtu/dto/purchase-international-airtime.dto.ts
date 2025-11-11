@@ -1,4 +1,4 @@
-import { IsString, IsEmail } from 'class-validator';
+import { IsString, IsEmail, Length, Matches } from 'class-validator';
 
 export class PurchaseInternationalAirtimeDto {
   @IsString()
@@ -21,4 +21,9 @@ export class PurchaseInternationalAirtimeDto {
 
   @IsString()
   phone: string; // Nigerian customer phone number
+
+  @IsString()
+  @Length(4, 4, { message: 'PIN must be exactly 4 digits' })
+  @Matches(/^\d{4}$/, { message: 'PIN must contain only digits' })
+  pin: string;
 }

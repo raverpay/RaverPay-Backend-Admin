@@ -6,9 +6,17 @@ import { VTUService } from './vtu.service';
 import { VTPassService } from './services/vtpass.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { WalletModule } from '../wallet/wallet.module';
+import { UsersModule } from '../users/users.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [ConfigModule, PrismaModule, WalletModule],
+  imports: [
+    ConfigModule,
+    PrismaModule,
+    WalletModule,
+    UsersModule,
+    NotificationsModule,
+  ],
   controllers: [VTUController, VTUWebhooksController],
   providers: [VTUService, VTPassService],
   exports: [VTUService],

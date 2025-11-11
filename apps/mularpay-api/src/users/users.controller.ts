@@ -3,11 +3,16 @@ import {
   Get,
   Put,
   Post,
+  Delete,
   Body,
   UseGuards,
   HttpCode,
   HttpStatus,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
@@ -19,6 +24,9 @@ import {
   VerifyEmailDto,
   VerifyPhoneDto,
 } from './dto';
+import { SetPinDto } from './dto/set-pin.dto';
+import { VerifyPinDto } from './dto/verify-pin.dto';
+import { ChangePinDto } from './dto/change-pin.dto';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -129,5 +137,78 @@ export class UsersController {
     @Body() verifyPhoneDto: VerifyPhoneDto,
   ) {
     return this.usersService.verifyPhone(userId, verifyPhoneDto.code);
+  }
+
+  /**
+   * Set transaction PIN (first time)
+   * POST /api/users/set-pin
+   */
+  @Post('set-pin')
+  @HttpCode(HttpStatus.OK)
+  async setPin(@GetUser('id') userId: string, @Body() setPinDto: SetPinDto) {
+    return this.usersService.setPin(
+      userId,
+      setPinDto.pin,
+      setPinDto.confirmPin,
+    );
+  }
+
+  /**
+   * Verify transaction PIN
+   * POST /api/users/verify-pin
+   */
+  @Post('verify-pin')
+  @HttpCode(HttpStatus.OK)
+  async verifyPin(
+    @GetUser('id') userId: string,
+    @Body() verifyPinDto: VerifyPinDto,
+  ) {
+    const isValid = await this.usersService.verifyPin(userId, verifyPinDto.pin);
+    return { valid: isValid };
+  }
+
+  /**
+   * Change transaction PIN
+   * POST /api/users/change-pin
+   */
+  @Post('change-pin')
+  @HttpCode(HttpStatus.OK)
+  async changePin(
+    @GetUser('id') userId: string,
+    @Body() changePinDto: ChangePinDto,
+  ) {
+    return this.usersService.changePin(
+      userId,
+      changePinDto.currentPin,
+      changePinDto.newPin,
+      changePinDto.confirmNewPin,
+    );
+  }
+
+  /**
+   * Upload user avatar
+   * POST /api/users/upload-avatar
+   */
+  @Post('upload-avatar')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadAvatar(
+    @GetUser('id') userId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+    return this.usersService.uploadAvatar(userId, file);
+  }
+
+  /**
+   * Delete user avatar
+   * DELETE /api/users/avatar
+   */
+  @Delete('avatar')
+  @HttpCode(HttpStatus.OK)
+  async deleteAvatar(@GetUser('id') userId: string) {
+    return this.usersService.deleteAvatar(userId);
   }
 }

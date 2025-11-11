@@ -304,4 +304,184 @@ export class AuthService {
       return false;
     }
   }
+
+  /**
+   * Initiate password reset process
+   *
+   * @param email - User's email address
+   * @returns Success message
+   */
+  async forgotPassword(email: string) {
+    // Find user by email
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+
+    // Don't reveal if user exists (security best practice)
+    if (!user) {
+      return {
+        success: true,
+        message:
+          'If an account exists with this email, a reset code has been sent',
+      };
+    }
+
+    // Generate 6-digit code
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store in SystemConfig (same pattern as email verification)
+    await this.prisma.systemConfig.upsert({
+      where: { key: `password_reset_${user.id}` },
+      create: {
+        key: `password_reset_${user.id}`,
+        value: {
+          code: resetCode,
+          expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+          attempts: 0,
+        },
+      },
+      update: {
+        value: {
+          code: resetCode,
+          expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+          attempts: 0,
+        },
+      },
+    });
+
+    // Send email via users service
+    this.usersService
+      .sendPasswordResetEmail(user.id, resetCode)
+      .catch((error) => {
+        this.logger.error(
+          `Failed to send password reset email for ${user.email}`,
+          error,
+        );
+      });
+
+    this.logger.log(`Password reset requested for: ${user.email}`);
+
+    return {
+      success: true,
+      message:
+        'If an account exists with this email, a reset code has been sent',
+    };
+  }
+
+  /**
+   * Verify password reset code
+   *
+   * @param email - User's email address
+   * @param code - 6-digit verification code
+   * @returns Reset token (JWT valid for 15 minutes)
+   */
+  async verifyResetCode(email: string, code: string) {
+    // Find user
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid or expired reset code');
+    }
+
+    // Get stored code
+    const config = await this.prisma.systemConfig.findUnique({
+      where: { key: `password_reset_${user.id}` },
+    });
+
+    if (!config) {
+      throw new BadRequestException('No reset request found');
+    }
+
+    const storedData = config.value as any;
+
+    // Check expiry
+    if (new Date(storedData.expiresAt) < new Date()) {
+      await this.prisma.systemConfig.delete({
+        where: { key: `password_reset_${user.id}` },
+      });
+      throw new BadRequestException('Reset code expired');
+    }
+
+    // Check attempts
+    if (storedData.attempts >= 5) {
+      throw new BadRequestException('Too many failed attempts');
+    }
+
+    // Verify code
+    if (storedData.code !== code) {
+      // Increment attempts
+      await this.prisma.systemConfig.update({
+        where: { key: `password_reset_${user.id}` },
+        data: {
+          value: {
+            ...storedData,
+            attempts: storedData.attempts + 1,
+          },
+        },
+      });
+      throw new BadRequestException('Invalid reset code');
+    }
+
+    // Generate reset token (short-lived JWT)
+    const resetToken = await this.jwtService.signAsync(
+      { sub: user.id, type: 'password_reset' },
+      { secret: process.env.JWT_SECRET, expiresIn: '15m' },
+    );
+
+    // Delete code (single use)
+    await this.prisma.systemConfig.delete({
+      where: { key: `password_reset_${user.id}` },
+    });
+
+    this.logger.log(`Password reset code verified for: ${user.email}`);
+
+    return { success: true, resetToken };
+  }
+
+  /**
+   * Reset password using reset token
+   *
+   * @param resetToken - JWT token from verifyResetCode
+   * @param newPassword - New password
+   * @returns Success message
+   */
+  async resetPassword(resetToken: string, newPassword: string) {
+    // Verify reset token
+    let payload: any;
+    try {
+      payload = this.jwtService.verify(resetToken, {
+        secret: process.env.JWT_SECRET,
+      });
+    } catch {
+      throw new UnauthorizedException('Invalid or expired reset token');
+    }
+
+    // Check token type
+    if (payload.type !== 'password_reset') {
+      throw new UnauthorizedException('Invalid token type');
+    }
+
+    // Validate new password (same rules as registration)
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[\d\W]).{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      throw new BadRequestException(
+        'Password must be at least 8 characters with uppercase, lowercase, and number/special character',
+      );
+    }
+
+    // Hash new password
+    const hashedPassword = await this.hashPassword(newPassword);
+
+    // Update password
+    await this.prisma.user.update({
+      where: { id: payload.sub },
+      data: { password: hashedPassword },
+    });
+
+    this.logger.log(`Password reset completed for user: ${payload.sub}`);
+
+    return { success: true, message: 'Password reset successfully' };
+  }
 }

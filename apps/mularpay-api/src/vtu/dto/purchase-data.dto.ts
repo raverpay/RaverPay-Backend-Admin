@@ -1,4 +1,10 @@
-import { IsString, Matches, IsOptional, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  Matches,
+  IsOptional,
+  IsBoolean,
+  Length,
+} from 'class-validator';
 
 export class PurchaseDataDto {
   @IsString()
@@ -19,4 +25,9 @@ export class PurchaseDataDto {
   @IsOptional()
   @IsBoolean()
   isSME?: boolean; // Optional flag to use SME data (only for GLO currently)
+
+  @IsString()
+  @Length(4, 4, { message: 'PIN must be exactly 4 digits' })
+  @Matches(/^\d{4}$/, { message: 'PIN must contain only digits' })
+  pin: string;
 }

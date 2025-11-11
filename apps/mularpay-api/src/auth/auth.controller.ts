@@ -8,7 +8,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, RefreshTokenDto } from './dto';
+import {
+  RegisterDto,
+  LoginDto,
+  RefreshTokenDto,
+  ForgotPasswordDto,
+  VerifyResetCodeDto,
+  ResetPasswordDto,
+} from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GetUser, Public } from './decorators';
 
@@ -76,5 +83,44 @@ export class AuthController {
     return {
       user,
     };
+  }
+
+  /**
+   * Request password reset
+   *
+   * @param dto - Email address
+   * @returns Success message
+   */
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto.email);
+  }
+
+  /**
+   * Verify password reset code
+   *
+   * @param dto - Email and verification code
+   * @returns Reset token
+   */
+  @Public()
+  @Post('verify-reset-code')
+  @HttpCode(HttpStatus.OK)
+  async verifyResetCode(@Body() dto: VerifyResetCodeDto) {
+    return this.authService.verifyResetCode(dto.email, dto.code);
+  }
+
+  /**
+   * Reset password
+   *
+   * @param dto - Reset token and new password
+   * @returns Success message
+   */
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto.resetToken, dto.newPassword);
   }
 }

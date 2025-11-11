@@ -1,4 +1,4 @@
-import { IsString, Matches } from 'class-validator';
+import { IsString, Matches, Length } from 'class-validator';
 
 export class PayShowmaxDto {
   @IsString()
@@ -9,4 +9,9 @@ export class PayShowmaxDto {
 
   @IsString()
   productCode: string; // e.g., "full_3"
+
+  @IsString()
+  @Length(4, 4, { message: 'PIN must be exactly 4 digits' })
+  @Matches(/^\d{4}$/, { message: 'PIN must contain only digits' })
+  pin: string;
 }

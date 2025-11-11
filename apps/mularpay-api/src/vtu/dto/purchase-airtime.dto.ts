@@ -1,4 +1,4 @@
-import { IsString, IsNumber, Min, Max, Matches } from 'class-validator';
+import { IsString, IsNumber, Min, Max, Matches, Length } from 'class-validator';
 
 export class PurchaseAirtimeDto {
   @IsString()
@@ -17,4 +17,9 @@ export class PurchaseAirtimeDto {
   @Min(50, { message: 'Minimum airtime is ₦50' })
   @Max(50000, { message: 'Maximum airtime is ₦50,000' })
   amount: number;
+
+  @IsString()
+  @Length(4, 4, { message: 'PIN must be exactly 4 digits' })
+  @Matches(/^\d{4}$/, { message: 'PIN must contain only digits' })
+  pin: string;
 }

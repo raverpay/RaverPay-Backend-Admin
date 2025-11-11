@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaystackService } from '../payments/paystack.service';
+import { UsersService } from '../users/users.service';
 import { TransactionType, TransactionStatus, KYCTier } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import {
@@ -24,6 +25,7 @@ export class TransactionsService {
   constructor(
     private prisma: PrismaService,
     private paystackService: PaystackService,
+    private usersService: UsersService,
   ) {}
 
   /**
@@ -400,8 +402,12 @@ export class TransactionsService {
     accountNumber: string,
     accountName: string,
     bankCode: string,
+    pin: string,
     narration?: string,
   ): Promise<WithdrawalResponse> {
+    // Verify PIN
+    await this.usersService.verifyPin(userId, pin);
+
     // Get user and wallet
     const user = await this.prisma.user.findUnique({
       where: { id: userId },

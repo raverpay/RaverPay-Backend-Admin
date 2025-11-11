@@ -4,6 +4,8 @@ import {
   BadRequestException,
   ConflictException,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { KYCTier } from '@prisma/client';
@@ -16,6 +18,7 @@ import {
 } from './dto';
 import { EmailService } from '../services/email/email.service';
 import { SmsService } from '../services/sms/sms.service';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 /**
  * User profile response type with wallet
@@ -65,6 +68,8 @@ export class UsersService {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly smsService: SmsService,
+    @Inject(forwardRef(() => CloudinaryService))
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   /**
@@ -852,5 +857,416 @@ export class UsersService {
     // For testing: Accept any 11-digit NIN
     // In production, integrate with NIMC API
     return nin.length === 11 && /^\d+$/.test(nin);
+  }
+
+  /**
+   * Set transaction PIN (first time)
+   * @param userId - User ID
+   * @param pin - 4-digit PIN
+   * @param confirmPin - Confirmation PIN
+   * @returns Success message
+   */
+  async setPin(userId: string, pin: string, confirmPin: string) {
+    // Check if PIN already exists
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { pin: true },
+    });
+
+    if (user?.pin) {
+      throw new BadRequestException(
+        'PIN already set. Use change-pin endpoint instead',
+      );
+    }
+
+    // Validate PINs match
+    if (pin !== confirmPin) {
+      throw new BadRequestException('PIN and confirmation do not match');
+    }
+
+    // Check for weak PINs
+    const weakPins = [
+      '0000',
+      '1111',
+      '2222',
+      '3333',
+      '4444',
+      '5555',
+      '6666',
+      '7777',
+      '8888',
+      '9999',
+      '1234',
+      '4321',
+    ];
+    if (weakPins.includes(pin)) {
+      throw new BadRequestException(
+        'PIN is too weak. Please choose a more secure PIN',
+      );
+    }
+
+    // Hash PIN
+    const hashedPin = await argon2.hash(pin);
+
+    // Save PIN
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        pin: hashedPin,
+        pinSetAt: new Date(),
+      },
+    });
+
+    // Audit log
+    await this.prisma.auditLog.create({
+      data: {
+        userId,
+        action: 'PIN_SET',
+        resource: 'USER',
+        resourceId: userId,
+      },
+    });
+
+    this.logger.log(`Transaction PIN set for user ${userId}`);
+
+    return {
+      success: true,
+      message: 'Transaction PIN set successfully',
+      pinSetAt: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Verify transaction PIN
+   * @param userId - User ID
+   * @param pin - 4-digit PIN
+   * @returns Boolean indicating if PIN is valid
+   */
+  async verifyPin(userId: string, pin: string): Promise<boolean> {
+    // Get user's PIN
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, pin: true },
+    });
+
+    if (!user?.pin) {
+      throw new BadRequestException('PIN not set. Please set a PIN first');
+    }
+
+    // Check rate limiting (prevent brute force)
+    const attemptKey = `pin_attempts_${userId}`;
+    const config = await this.prisma.systemConfig.findUnique({
+      where: { key: attemptKey },
+    });
+
+    const attempts = config
+      ? JSON.parse(config.value as string).attempts || 0
+      : 0;
+
+    if (attempts >= 5) {
+      throw new BadRequestException(
+        'Too many failed attempts. Try again in 30 minutes',
+      );
+    }
+
+    // Verify PIN
+    const isValid = await argon2.verify(user.pin, pin);
+
+    if (!isValid) {
+      // Increment failed attempts
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 30); // 30 min lockout
+
+      await this.prisma.systemConfig.upsert({
+        where: { key: attemptKey },
+        create: {
+          key: attemptKey,
+          value: JSON.stringify({
+            attempts: attempts + 1,
+            expiresAt: expiresAt.toISOString(),
+          }),
+        },
+        update: {
+          value: JSON.stringify({
+            attempts: attempts + 1,
+            expiresAt: expiresAt.toISOString(),
+          }),
+        },
+      });
+
+      // Audit log
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          action: 'PIN_VERIFICATION_FAILED',
+          resource: 'USER',
+          resourceId: userId,
+        },
+      });
+
+      throw new BadRequestException(
+        `Invalid PIN. ${5 - (attempts + 1)} attempts remaining`,
+      );
+    }
+
+    // Reset attempts on success
+    if (config) {
+      await this.prisma.systemConfig.delete({
+        where: { key: attemptKey },
+      });
+    }
+
+    return true;
+  }
+
+  /**
+   * Change transaction PIN
+   * @param userId - User ID
+   * @param currentPin - Current PIN
+   * @param newPin - New PIN
+   * @param confirmNewPin - Confirmation of new PIN
+   * @returns Success message
+   */
+  async changePin(
+    userId: string,
+    currentPin: string,
+    newPin: string,
+    confirmNewPin: string,
+  ) {
+    // Verify current PIN
+    await this.verifyPin(userId, currentPin);
+
+    // Validate new PIN and confirmation match
+    if (newPin !== confirmNewPin) {
+      throw new BadRequestException('New PIN and confirmation do not match');
+    }
+
+    // Check if new PIN is same as current
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { pin: true },
+    });
+
+    if (!user || !user.pin) {
+      throw new BadRequestException('User or PIN not found');
+    }
+
+    const isSamePin = await argon2.verify(user.pin, newPin);
+    if (isSamePin) {
+      throw new BadRequestException(
+        'New PIN must be different from current PIN',
+      );
+    }
+
+    // Check for weak PINs
+    const weakPins = [
+      '0000',
+      '1111',
+      '2222',
+      '3333',
+      '4444',
+      '5555',
+      '6666',
+      '7777',
+      '8888',
+      '9999',
+      '1234',
+      '4321',
+    ];
+    if (weakPins.includes(newPin)) {
+      throw new BadRequestException(
+        'PIN is too weak. Please choose a more secure PIN',
+      );
+    }
+
+    // Hash new PIN
+    const hashedPin = await argon2.hash(newPin);
+
+    // Update PIN
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        pin: hashedPin,
+        pinSetAt: new Date(),
+      },
+    });
+
+    // Audit log
+    await this.prisma.auditLog.create({
+      data: {
+        userId,
+        action: 'PIN_CHANGED',
+        resource: 'USER',
+        resourceId: userId,
+      },
+    });
+
+    this.logger.log(`Transaction PIN changed for user ${userId}`);
+
+    return {
+      success: true,
+      message: 'PIN changed successfully',
+    };
+  }
+
+  /**
+   * Upload user avatar
+   * @param userId - User ID
+   * @param file - Image file
+   * @returns Avatar URL
+   */
+  async uploadAvatar(userId: string, file: Express.Multer.File) {
+    // Validate file type
+    const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedMimes.includes(file.mimetype)) {
+      throw new BadRequestException(
+        'Only image files are allowed (JPEG, JPG, PNG, WebP)',
+      );
+    }
+
+    // Validate file size (5MB max)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      throw new BadRequestException('File size must not exceed 5MB');
+    }
+
+    // Get current user
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatar: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Delete old avatar if exists
+    if (user.avatar) {
+      const publicId = this.cloudinaryService.extractPublicId(user.avatar);
+      if (publicId) {
+        try {
+          await this.cloudinaryService.deleteImage(publicId);
+        } catch (error) {
+          this.logger.warn(`Failed to delete old avatar: ${error.message}`);
+        }
+      }
+    }
+
+    // Upload new avatar to Cloudinary
+    const avatarUrl = await this.cloudinaryService.uploadImage(file, 'avatars');
+
+    // Update user
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { avatar: avatarUrl },
+    });
+
+    // Audit log
+    await this.prisma.auditLog.create({
+      data: {
+        userId,
+        action: 'AVATAR_UPLOADED',
+        resource: 'USER',
+        resourceId: userId,
+      },
+    });
+
+    this.logger.log(`Avatar uploaded for user ${userId}`);
+
+    return {
+      success: true,
+      avatarUrl,
+    };
+  }
+
+  /**
+   * Delete user avatar
+   * @param userId - User ID
+   * @returns Success message
+   */
+  async deleteAvatar(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatar: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.avatar) {
+      throw new BadRequestException('No avatar to delete');
+    }
+
+    // Delete from Cloudinary
+    const publicId = this.cloudinaryService.extractPublicId(user.avatar);
+    if (publicId) {
+      try {
+        await this.cloudinaryService.deleteImage(publicId);
+      } catch (error) {
+        this.logger.warn(
+          `Failed to delete avatar from Cloudinary: ${error.message}`,
+        );
+      }
+    }
+
+    // Remove from database
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { avatar: null },
+    });
+
+    // Audit log
+    await this.prisma.auditLog.create({
+      data: {
+        userId,
+        action: 'AVATAR_DELETED',
+        resource: 'USER',
+        resourceId: userId,
+      },
+    });
+
+    this.logger.log(`Avatar deleted for user ${userId}`);
+
+    return {
+      success: true,
+      message: 'Avatar deleted successfully',
+    };
+  }
+
+  /**
+   * Send password reset email
+   * @param userId - User ID
+   * @param resetCode - 6-digit reset code
+   * @returns Success indicator
+   */
+  async sendPasswordResetEmail(userId: string, resetCode: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, firstName: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    this.logger.log(
+      `Sending password reset email to ${user.email} with code ${resetCode}`,
+    );
+
+    // Send email via email service
+    const emailSent = await this.emailService.sendPasswordResetEmail(
+      user.email,
+      user.firstName,
+      resetCode,
+    );
+
+    if (!emailSent) {
+      this.logger.warn(
+        `Failed to send password reset email to ${user.email}, but code is stored`,
+      );
+    }
+
+    return emailSent;
   }
 }

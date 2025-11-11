@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { VTPassService } from './services/vtpass.service';
 import { WalletService } from '../wallet/wallet.service';
+import { UsersService } from '../users/users.service';
 import {
   PurchaseAirtimeDto,
   PurchaseDataDto,
@@ -49,6 +50,7 @@ export class VTUService {
     private readonly prisma: PrismaService,
     private readonly vtpassService: VTPassService,
     private readonly walletService: WalletService,
+    private readonly usersService: UsersService,
   ) {}
 
   // ==================== Product Catalog ====================
@@ -277,27 +279,30 @@ export class VTUService {
       `[Airtime] Purchase request: ${dto.network} - ${dto.phone} - ₦${dto.amount}`,
     );
 
-    // 1. Validate phone
+    // 1. Verify PIN
+    await this.usersService.verifyPin(userId, dto.pin);
+
+    // 2. Validate phone
     this.validatePhone(dto.phone);
 
-    // 2. Calculate total
+    // 3. Calculate total
     const fee = this.calculateFee(dto.amount, 'AIRTIME');
     const total = dto.amount + fee;
 
-    // 3. Check balance
+    // 4. Check balance
     await this.checkWalletBalance(userId, total);
 
-    // 4. Check duplicate
+    // 5. Check duplicate
     await this.checkDuplicateOrder(userId, 'AIRTIME', dto.phone, dto.amount);
 
-    // 5. Lock wallet
+    // 6. Lock wallet
     await this.lockWalletForTransaction(userId);
 
     try {
-      // 6. Generate reference
+      // 7. Generate reference
       const reference = this.generateReference('AIRTIME');
 
-      // 7. Create order
+      // 8. Create order
       const order = await this.prisma.vTUOrder.create({
         data: {
           reference,
@@ -312,7 +317,7 @@ export class VTUService {
         },
       });
 
-      // 8. Get wallet balance before transaction
+      // 9. Get wallet balance before transaction
       const wallet = await this.prisma.wallet.findUnique({
         where: { userId },
       });
@@ -425,7 +430,10 @@ export class VTUService {
       `[${serviceLabel}] Purchase request: ${dto.network} - ${dto.phone} - ${dto.productCode}`,
     );
 
-    // 1. Validate phone
+    // 1. Verify PIN
+    await this.usersService.verifyPin(userId, dto.pin);
+
+    // 2. Validate phone
     this.validatePhone(dto.phone);
 
     // 2. Get product details from VTPass (SME or regular)
@@ -590,7 +598,10 @@ export class VTUService {
       `[Cable TV] ${subscriptionLabel}: ${dto.provider} - ${dto.smartcardNumber}`,
     );
 
-    // 1. Determine amount based on subscription type
+    // 1. Verify PIN
+    await this.usersService.verifyPin(userId, dto.pin);
+
+    // 2. Determine amount based on subscription type
     let amount: number;
     let productName: string;
 
@@ -786,7 +797,10 @@ export class VTUService {
       `[Showmax] Payment request: ${dto.phoneNumber} - ${dto.productCode}`,
     );
 
-    // 1. Get product details
+    // 1. Verify PIN
+    await this.usersService.verifyPin(userId, dto.pin);
+
+    // 2. Get product details
     const plans = await this.vtpassService.getServiceVariations('showmax');
     const product = plans.find((p) => p.variation_code === dto.productCode);
 
@@ -941,7 +955,10 @@ export class VTUService {
       `[Electricity] Payment request: ${dto.disco} - ${dto.meterNumber} - ₦${dto.amount}`,
     );
 
-    // 1. Calculate total
+    // 1. Verify PIN
+    await this.usersService.verifyPin(userId, dto.pin);
+
+    // 2. Calculate total
     const fee = this.calculateFee(dto.amount, 'ELECTRICITY');
     const total = dto.amount + fee;
 
@@ -1105,7 +1122,10 @@ export class VTUService {
       `[International] Purchase request: ${dto.countryCode} - ${dto.billersCode} - ${dto.variationCode}`,
     );
 
-    // 1. Get user details for email if not provided
+    // 1. Verify PIN
+    await this.usersService.verifyPin(userId, dto.pin);
+
+    // 2. Get user details for email if not provided
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });

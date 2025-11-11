@@ -46,6 +46,8 @@ model User {
   pinSetAt  DateTime?
   twoFactorEnabled Boolean @default(false)
   twoFactorSecret  String?
+  passwordResetAt  DateTime? // Track when password was last reset
+  lastPasswordChange DateTime? // Track when password was last changed
 
   // Timestamps
   emailVerified Boolean @default(false)

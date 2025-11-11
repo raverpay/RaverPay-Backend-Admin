@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsNumber,
   Min,
+  Length,
 } from 'class-validator';
 
 enum CableTVProvider {
@@ -45,4 +46,9 @@ export class PayCableTVDto {
     message: 'Invalid Nigerian phone number',
   })
   phone: string;
+
+  @IsString()
+  @Length(4, 4, { message: 'PIN must be exactly 4 digits' })
+  @Matches(/^\d{4}$/, { message: 'PIN must contain only digits' })
+  pin: string;
 }

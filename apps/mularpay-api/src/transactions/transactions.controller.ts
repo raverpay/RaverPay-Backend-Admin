@@ -81,6 +81,7 @@ export class TransactionsController {
       dto.accountNumber,
       dto.accountName,
       dto.bankCode,
+      dto.pin,
       dto.narration,
     );
   }

@@ -11,6 +11,8 @@ import type { RawBodyRequest } from '@nestjs/common';
 import type { Request } from 'express';
 import { PaystackService } from './paystack.service';
 import { TransactionsService } from '../transactions/transactions.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '@prisma/client';
 
 interface PaystackWebhookPayload {
   event: string;
@@ -45,6 +47,7 @@ export class PaymentsController {
   constructor(
     private readonly paystackService: PaystackService,
     private readonly transactionsService: TransactionsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -136,6 +139,28 @@ export class PaymentsController {
           accountNumber,
         );
         this.logger.log(`Virtual account credited: ${reference}`);
+
+        // Get transaction to retrieve userId
+        const transaction = await this.transactionsService[
+          'prisma'
+        ].transaction.findUnique({
+          where: { reference },
+        });
+
+        if (transaction) {
+          // Create notification for wallet funding
+          await this.notificationsService.createNotification({
+            userId: transaction.userId,
+            type: NotificationType.TRANSACTION,
+            title: 'Wallet Credited',
+            message: `Your wallet has been credited with ₦${amountInNaira.toLocaleString()}`,
+            data: {
+              transactionId: transaction.id,
+              amount: amountInNaira,
+              type: 'DEPOSIT',
+            },
+          });
+        }
       } else {
         // Regular card payment - will be verified by user calling /verify endpoint
         this.logger.log(`Card payment successful: ${reference}`);
