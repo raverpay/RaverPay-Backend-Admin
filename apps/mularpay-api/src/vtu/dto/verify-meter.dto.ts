@@ -1,4 +1,4 @@
-import { IsString, IsEnum } from 'class-validator';
+import { IsString, IsEnum, Matches } from 'class-validator';
 
 enum MeterType {
   PREPAID = 'prepaid',
@@ -10,6 +10,9 @@ export class VerifyMeterDto {
   disco: string;
 
   @IsString()
+  @Matches(/^\d{10,13}$/, {
+    message: 'Meter number must be 10-13 digits',
+  })
   meterNumber: string;
 
   @IsEnum(MeterType)

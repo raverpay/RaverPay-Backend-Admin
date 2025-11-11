@@ -10,6 +10,9 @@ export class PayElectricityDto {
   disco: string; // e.g., "ikeja-electric", "eko-electric"
 
   @IsString()
+  @Matches(/^\d{10,13}$/, {
+    message: 'Meter number must be 10-13 digits',
+  })
   meterNumber: string;
 
   @IsEnum(MeterType)

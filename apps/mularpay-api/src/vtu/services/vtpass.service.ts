@@ -15,11 +15,27 @@ interface VTPassResponse<T = unknown> {
   response_description: string; // GET endpoints use this as status code
   content: T;
   requestId?: string;
-  amount?: string;
+  amount?: string | number;
   transaction_date?: {
     date: string;
   };
   purchased_code?: string;
+  // Electricity-specific fields (prepaid)
+  token?: string;
+  units?: string;
+  tokenAmount?: number;
+  exchangeReference?: string;
+  resetToken?: string;
+  configureToken?: string;
+  tariff?: string;
+  taxAmount?: number;
+  debtAmount?: number;
+  customerName?: string;
+  customerAddress?: string;
+  meterNumber?: string;
+  // Electricity-specific fields (postpaid)
+  utilityName?: string;
+  balance?: number;
 }
 
 export interface ServiceVariation {
@@ -31,12 +47,21 @@ export interface ServiceVariation {
 
 interface VerifyCustomerResponse {
   Customer_Name: string;
-  Status: string;
+  Status?: string;
   Due_Date?: string;
-  Customer_Number: string;
+  Customer_Number?: string;
   Customer_Type?: string;
   Address?: string;
   Minimum_Purchase_Amount?: string;
+  // Electricity-specific fields
+  Meter_Number?: string;
+  Customer_Arrears?: string;
+  Min_Purchase_Amount?: string;
+  Customer_Account_Type?: string;
+  Meter_Type?: string;
+  Can_Vend?: string;
+  Business_Unit?: string;
+  WrongBillersCode?: boolean;
 }
 
 interface TransactionContent {
@@ -208,6 +233,7 @@ export class VTPassService {
   async verifyCustomer(
     billersCode: string,
     serviceId: string,
+    additionalParams?: Record<string, unknown>,
   ): Promise<VerifyCustomerResponse> {
     const response = await this.makeRequest<VerifyCustomerResponse>(
       '/merchant-verify',
@@ -215,6 +241,7 @@ export class VTPassService {
       {
         billersCode,
         serviceID: serviceId,
+        ...additionalParams,
       },
     );
 
@@ -231,8 +258,12 @@ export class VTPassService {
     disco: string,
     meterType: 'prepaid' | 'postpaid',
   ) {
-    const serviceId = `${disco.toLowerCase()}-${meterType}`;
-    return this.verifyCustomer(meterNumber, serviceId);
+    // Per VTPass docs: serviceID should be just the disco name (e.g., "ikeja-electric")
+    // and type should be passed as a separate parameter
+    const serviceId = disco.toLowerCase();
+    return this.verifyCustomer(meterNumber, serviceId, {
+      type: meterType,
+    });
   }
 
   // ==================== Service ID Mapping ====================
@@ -431,7 +462,9 @@ export class VTPassService {
     phone: string;
     reference: string;
   }) {
-    const serviceId = `${data.disco.toLowerCase()}-${data.meterType}`;
+    // Per VTPass docs: serviceID should be just the disco name (e.g., "ikeja-electric")
+    // variation_code should be the meter type ("prepaid" or "postpaid")
+    const serviceId = data.disco.toLowerCase();
 
     const response = await this.makeRequest<TransactionContent>(
       '/pay',
@@ -456,7 +489,18 @@ export class VTPassService {
       productName: response.content.transactions.product_name,
       amount: response.content.transactions.amount,
       commission: response.content.transactions.commission,
-      meterToken: response.purchased_code || undefined,
+      // Electricity-specific fields
+      meterToken: response.purchased_code || response.token,
+      units: response.units,
+      tokenAmount: response.tokenAmount,
+      tariff: response.tariff,
+      customerName: response.customerName,
+      customerAddress: response.customerAddress,
+      meterNumber: response.meterNumber,
+      // Postpaid-specific
+      utilityName: response.utilityName,
+      exchangeReference: response.exchangeReference,
+      balance: response.balance,
     };
   }
 

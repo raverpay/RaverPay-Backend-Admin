@@ -27,7 +27,17 @@ interface VTPassPurchaseResult {
   productName?: string;
   amount?: number;
   commission?: number;
+  // Electricity-specific fields
   meterToken?: string;
+  units?: string;
+  tokenAmount?: number;
+  tariff?: string;
+  customerName?: string;
+  customerAddress?: string;
+  meterNumber?: string;
+  utilityName?: string;
+  exchangeReference?: string;
+  balance?: number;
   [key: string]: unknown;
 }
 
@@ -131,8 +141,12 @@ export class VTUService {
         valid: true,
         customerName: result.Customer_Name,
         address: result.Address,
-        customerType: result.Customer_Type,
-        minimumAmount: result.Minimum_Purchase_Amount,
+        meterNumber: result.Meter_Number || meterNumber,
+        customerType: result.Customer_Account_Type || result.Customer_Type,
+        meterType: result.Meter_Type || meterType.toUpperCase(),
+        minimumAmount:
+          result.Min_Purchase_Amount || result.Minimum_Purchase_Amount,
+        customerArrears: result.Customer_Arrears,
       };
     } catch {
       throw new BadRequestException(
@@ -1059,7 +1073,18 @@ export class VTUService {
         totalAmount: total,
         provider: dto.disco.toUpperCase(),
         recipient: dto.meterNumber,
+        // Electricity-specific fields
         meterToken: vtpassResult.meterToken,
+        units: vtpassResult.units,
+        tokenAmount: vtpassResult.tokenAmount,
+        tariff: vtpassResult.tariff,
+        customerName: vtpassResult.customerName,
+        customerAddress: vtpassResult.customerAddress,
+        meterNumber: vtpassResult.meterNumber,
+        // Postpaid-specific
+        utilityName: vtpassResult.utilityName,
+        exchangeReference: vtpassResult.exchangeReference,
+        balance: vtpassResult.balance,
         message:
           vtpassResult.status === 'success'
             ? 'Electricity payment successful'

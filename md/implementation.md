@@ -142,3 +142,11 @@ Do I want to use a monorepo tool (Turborepo/Nx) or manual setup?
 Should we set up staging and production environments from the start?
 What's my experience level with NestJS, React Native, and Next.js?
 Let's build this! Start with Phase 0 setup questions.
+
+PROMPT INSTRUCTION.
+
+I am currently in my phase 2 implementing @mularpay-api and I want to implement @electricity.md nestJS code so please start that. also before you start, start by stating what you will implement first like @phase-2-vtu-services.md but don't include code. also when done, you will creating something like this. @phase-2-testing-guide.md a testing guide with CURL. You will create two curl under what to test for each. One with localhost 3001 and also one with production url. our production url is running on mularpaymularpay-api-production.up.railway.app but instead of hardcoding this. use {{URL}} and also for the token {{ACCESSTOKEN}}.
+
+Our server is running on 3001 and using pnpm.
+
+after all is done, you will run pnpm run lint, build it and if both Successful then you will commit and push to github.
