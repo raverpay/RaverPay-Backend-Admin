@@ -149,7 +149,7 @@ export class EmailService {
     }
 
     try {
-      const { html, subject } = verificationCodeTemplate(code, firstName, true);
+      const { html, subject } = verificationCodeTemplate(firstName, code, true);
 
       const result = await this.resend.emails.send({
         from: `${this.fromName} <${this.fromEmail}>`,
