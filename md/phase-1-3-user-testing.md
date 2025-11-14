@@ -54,10 +54,10 @@ First, register or login to get an access token:
 curl -X POST http://localhost:3001/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "testuser@mularpay.com",
-    "phone": "08012345678",
+    "email": "archjo6@gmail.com",
+    "phone": "08168787584",
     "password": "Test@123",
-    "firstName": "Test",
+    "firstName": "Joseph",
     "lastName": "User"
   }'
 

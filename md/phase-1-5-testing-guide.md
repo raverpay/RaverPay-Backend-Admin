@@ -96,12 +96,12 @@ curl -X GET {{URL}}/transactions/virtual-account \
 Fund wallet using a debit/credit card.
 
 ```bash
-curl -X POST {{URL}}/transactions/fund/card \
-  -H "Authorization: Bearer {{ACCESSTOKEN}}" \
+curl -X POST http://localhost:3001/api/transactions/fund/card \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlNDg3M2RlZi03NTA4LTQ2YjYtOGM2My0yYjE4MTI1ZDEzZmMiLCJlbWFpbCI6ImNvZGVzd2l0aGpvc2VwaEBnbWFpbC5jb20iLCJwaG9uZSI6IjA4MTY4Nzg3NTg0Iiwicm9sZSI6IlVTRVIiLCJpYXQiOjE3NjMwOTgzMjYsImV4cCI6MTc2MzA5OTIyNn0.OFq19Hk6KUx3y4CvZFfd0sk9oag1zbqBZxr6OjZbPLk" \
   -H "Content-Type: application/json" \
   -d '{
-    "amount": 5000,
-    "callbackUrl": "http://localhost:3000/funding/callback"
+    "amount": 15000,
+    "callbackUrl": "https://d6b4fcddc441.ngrok-free.app/funding/callback"
   }'
 ```
 
@@ -130,8 +130,8 @@ curl -X POST {{URL}}/transactions/fund/card \
 After completing payment on Paystack, verify and credit wallet.
 
 ```bash
-curl -X GET {{URL}}/transactions/verify/TXN_DEP_17627123451234 \
-  -H "Authorization: Bearer {{ACCESSTOKEN}}"
+curl -X GET http://localhost:3001/api/transactions/verify/TXN_DEP_17630989709757841 \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlNDg3M2RlZi03NTA4LTQ2YjYtOGM2My0yYjE4MTI1ZDEzZmMiLCJlbWFpbCI6ImNvZGVzd2l0aGpvc2VwaEBnbWFpbC5jb20iLCJwaG9uZSI6IjA4MTY4Nzg3NTg0Iiwicm9sZSI6IlVTRVIiLCJpYXQiOjE3NjMwOTgzMjYsImV4cCI6MTc2MzA5OTIyNn0.OFq19Hk6KUx3y4CvZFfd0sk9oag1zbqBZxr6OjZbPLk"
 ```
 
 **Expected Response (Success):**
@@ -169,8 +169,8 @@ curl -X GET {{URL}}/transactions/verify/TXN_DEP_17627123451234 \
 Verify funds were credited.
 
 ```bash
-curl -X GET {{URL}}/wallet \
-  -H "Authorization: Bearer {{ACCESSTOKEN}}"
+curl -X GET http://localhost:3001/api/wallet \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlNDg3M2RlZi03NTA4LTQ2YjYtOGM2My0yYjE4MTI1ZDEzZmMiLCJlbWFpbCI6ImNvZGVzd2l0aGpvc2VwaEBnbWFpbC5jb20iLCJwaG9uZSI6IjA4MTY4Nzg3NTg0Iiwicm9sZSI6IlVTRVIiLCJpYXQiOjE3NjMwOTgzMjYsImV4cCI6MTc2MzA5OTIyNn0.OFq19Hk6KUx3y4CvZFfd0sk9oag1zbqBZxr6OjZbPLk"
 ```
 
 **Expected Response:**

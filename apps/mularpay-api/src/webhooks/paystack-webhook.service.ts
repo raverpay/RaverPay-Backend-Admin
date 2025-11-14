@@ -66,14 +66,32 @@ export class PaystackWebhookService {
     try {
       // Credit user's wallet using a transaction
       await this.prisma.$transaction(async (tx) => {
+        // Get current wallet balance
+        const wallet = await tx.wallet.findUnique({
+          where: { userId: virtualAccount.userId },
+        });
+
+        if (!wallet) {
+          throw new Error(`Wallet not found for user ${virtualAccount.userId}`);
+        }
+
+        const balanceBefore = Number(wallet.balance);
+        const fee = 0; // No fee for deposits
+        const totalAmount = amountInNaira + fee;
+        const balanceAfter = balanceBefore + amountInNaira;
+
         // Create transaction record
         await tx.transaction.create({
           data: {
             userId: virtualAccount.userId,
             type: 'DEPOSIT',
             amount: amountInNaira,
+            fee,
+            totalAmount,
+            balanceBefore,
+            balanceAfter,
             currency: 'NGN',
-            status: 'SUCCESS',
+            status: 'COMPLETED',
             reference,
             description: 'Wallet funding via bank transfer',
             channel: 'BANK_TRANSFER',

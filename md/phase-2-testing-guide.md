@@ -30,19 +30,19 @@ pnpm run start:dev
 curl -X POST http://localhost:3001/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "identifier": "ngrok.test@mularpay.com",
-    "password": "Test@12345"
+    "identifier": "codeswithjoseph@gmail.com",
+    "password": "joseph6thbornM$"
   }'
 
 # Export token
-export TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjZmJhYTM1Mi02ZmIxLTQzOWYtODgxMS01ZmNmZDQyYzZiNjEiLCJlbWFpbCI6Im5ncm9rLnRlc3RAbXVsYXJwYXkuY29tIiwicGhvbmUiOiIwODAxMTIyMzM0NCIsInJvbGUiOiJVU0VSIiwiaWF0IjoxNzYyNzg2NjU0LCJleHAiOjE3NjI3ODc1NTR9.KZH1-gLJjnwFT3vVH1khVYbaemQ4RUp118I9qrRylSc"
+export TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlNDg3M2RlZi03NTA4LTQ2YjYtOGM2My0yYjE4MTI1ZDEzZmMiLCJlbWFpbCI6ImNvZGVzd2l0aGpvc2VwaEBnbWFpbC5jb20iLCJwaG9uZSI6IjA4MTY4Nzg3NTg0Iiwicm9sZSI6IlVTRVIiLCJpYXQiOjE3NjMwOTgzMjYsImV4cCI6MTc2MzA5OTIyNn0.OFq19Hk6KUx3y4CvZFfd0sk9oag1zbqBZxr6OjZbPLk"
 ```
 
 ### 3. Check Wallet Balance
 
 ```bash
 curl -X GET http://localhost:3001/api/wallet \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjZmJhYTM1Mi02ZmIxLTQzOWYtODgxMS01ZmNmZDQyYzZiNjEiLCJlbWFpbCI6Im5ncm9rLnRlc3RAbXVsYXJwYXkuY29tIiwicGhvbmUiOiIwODAxMTIyMzM0NCIsInJvbGUiOiJVU0VSIiwiaWF0IjoxNzYyNzg1MDI0LCJleHAiOjE3NjI3ODU5MjR9.jhT2dJmXsneRpTU6KyDgUZGsRIvmL3wuAdq417FH19U" | python3 -m json.tool
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlNDg3M2RlZi03NTA4LTQ2YjYtOGM2My0yYjE4MTI1ZDEzZmMiLCJlbWFpbCI6ImNvZGVzd2l0aGpvc2VwaEBnbWFpbC5jb20iLCJwaG9uZSI6IjA4MTY4Nzg3NTg0Iiwicm9sZSI6IlVTRVIiLCJpYXQiOjE3NjMwOTgzMjYsImV4cCI6MTc2MzA5OTIyNn0.OFq19Hk6KUx3y4CvZFfd0sk9oag1zbqBZxr6OjZbPLk" | python3 -m json.tool
 ```
 
 **Expected:**
@@ -63,7 +63,7 @@ curl -X GET http://localhost:3001/api/wallet \
 
 ```bash
 curl -X GET http://localhost:3001/api/vtu/airtime/providers \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjZmJhYTM1Mi02ZmIxLTQzOWYtODgxMS01ZmNmZDQyYzZiNjEiLCJlbWFpbCI6Im5ncm9rLnRlc3RAbXVsYXJwYXkuY29tIiwicGhvbmUiOiIwODAxMTIyMzM0NCIsInJvbGUiOiJVU0VSIiwiaWF0IjoxNzYyNzg1MDI0LCJleHAiOjE3NjI3ODU5MjR9.jhT2dJmXsneRpTU6KyDgUZGsRIvmL3wuAdq417FH19U" | python3 -m json.tool
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlNDg3M2RlZi03NTA4LTQ2YjYtOGM2My0yYjE4MTI1ZDEzZmMiLCJlbWFpbCI6ImNvZGVzd2l0aGpvc2VwaEBnbWFpbC5jb20iLCJwaG9uZSI6IjA4MTY4Nzg3NTg0Iiwicm9sZSI6IlVTRVIiLCJpYXQiOjE3NjMwOTkyMDIsImV4cCI6MTc2MzEwMDEwMn0.HKHwNScVSZNbgmdaoir4SwiU5rSo4qPPyEeLao_gP_U" | python3 -m json.tool
 ```
 
 **Expected response:**
@@ -81,12 +81,13 @@ curl -X GET http://localhost:3001/api/vtu/airtime/providers \
 
 ```bash
 curl -X POST http://localhost:3001/api/vtu/airtime/purchase \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjZmJhYTM1Mi02ZmIxLTQzOWYtODgxMS01ZmNmZDQyYzZiNjEiLCJlbWFpbCI6Im5ncm9rLnRlc3RAbXVsYXJwYXkuY29tIiwicGhvbmUiOiIwODAxMTIyMzM0NCIsInJvbGUiOiJVU0VSIiwiaWF0IjoxNzYyNzg2NjU0LCJleHAiOjE3NjI3ODc1NTR9.KZH1-gLJjnwFT3vVH1khVYbaemQ4RUp118I9qrRylSc" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlNDg3M2RlZi03NTA4LTQ2YjYtOGM2My0yYjE4MTI1ZDEzZmMiLCJlbWFpbCI6ImNvZGVzd2l0aGpvc2VwaEBnbWFpbC5jb20iLCJwaG9uZSI6IjA4MTY4Nzg3NTg0Iiwicm9sZSI6IlVTRVIiLCJpYXQiOjE3NjMwOTkyMDIsImV4cCI6MTc2MzEwMDEwMn0.HKHwNScVSZNbgmdaoir4SwiU5rSo4qPPyEeLao_gP_U" \
   -H "Content-Type: application/json" \
   -d '{
     "network": "mtn",
     "phone": "08011111111",
-    "amount": 500
+    "amount": 500,
+    "pin" : "1234"
   }' | python3 -m json.tool
 ```
 
@@ -135,7 +136,7 @@ curl -X GET http://localhost:3001/api/wallet \
 
 ```bash
 curl -X GET http://localhost:3001/api/vtu/data/plans/MTN \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjZmJhYTM1Mi02ZmIxLTQzOWYtODgxMS01ZmNmZDQyYzZiNjEiLCJlbWFpbCI6Im5ncm9rLnRlc3RAbXVsYXJwYXkuY29tIiwicGhvbmUiOiIwODAxMTIyMzM0NCIsInJvbGUiOiJVU0VSIiwiaWF0IjoxNzYyNzg2NjU0LCJleHAiOjE3NjI3ODc1NTR9.KZH1-gLJjnwFT3vVH1khVYbaemQ4RUp118I9qrRylSc" | python3 -m json.tool
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlNDg3M2RlZi03NTA4LTQ2YjYtOGM2My0yYjE4MTI1ZDEzZmMiLCJlbWFpbCI6ImNvZGVzd2l0aGpvc2VwaEBnbWFpbC5jb20iLCJwaG9uZSI6IjA4MTY4Nzg3NTg0Iiwicm9sZSI6IlVTRVIiLCJpYXQiOjE3NjMwMzE4ODksImV4cCI6MTc2MzAzMjc4OX0.32A94u-OoZGCDjtzUwNto5HB3tmRqxDEAcJbdR4QdFY" | python3 -m json.tool
 ```
 
 **Expected response:**

@@ -5,9 +5,9 @@ import {
   Headers,
   Logger,
   BadRequestException,
-  RawBodyRequest,
   Req,
 } from '@nestjs/common';
+import type { RawBodyRequest } from '@nestjs/common';
 import { Request } from 'express';
 import { PaystackWebhookService } from './paystack-webhook.service';
 import { PaystackService } from '../payments/paystack.service';
