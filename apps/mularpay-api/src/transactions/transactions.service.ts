@@ -48,14 +48,21 @@ export class TransactionsService {
     let fee = 0;
 
     if (type === 'deposit') {
-      // Card funding fees (Paystack charges 1.5% + ₦100, capped at ₦2,000)
+      // Paystack card funding fees:
+      // - Under ₦2,500: Only 1.5% (₦100 flat fee waived)
+      // - ₦2,500+: 1.5% + ₦100
+      // - All fees capped at ₦2,000
       if (amount < 2500) {
-        fee = 50;
+        // ₦100 fee waived, only charge 1.5%
+        fee = amount * 0.015;
       } else {
-        fee = Math.min(amount * 0.02, 2000);
+        // Full fee: 1.5% + ₦100
+        const paystackFee = amount * 0.015 + 100;
+        // Cap at ₦2,000
+        fee = Math.min(paystackFee, 2000);
       }
     } else {
-      // Withdrawal fees
+      // Withdrawal fees (customize based on your business model)
       if (amount < 5000) {
         fee = 10;
       } else if (amount <= 50000) {
