@@ -1035,6 +1035,10 @@ export class VTUService {
               recipient: dto.meterNumber,
               meterType: dto.meterType,
               orderId: order.id,
+              // NOTE: meterToken will be updated after VTPass API call
+              meterToken: null,
+              customerName: null,
+              units: null,
             },
           },
         }),
@@ -1082,7 +1086,29 @@ export class VTUService {
         },
       });
 
-      // 10. If failed, refund
+      // 10. Update transaction metadata with electricity token
+      if (vtpassResult.status === 'success' && vtpassResult.meterToken) {
+        await this.prisma.transaction.update({
+          where: { reference },
+          data: {
+            metadata: {
+              serviceType: 'ELECTRICITY',
+              provider: dto.disco.toUpperCase(),
+              recipient: dto.meterNumber,
+              meterType: dto.meterType,
+              orderId: order.id,
+              meterToken: vtpassResult.meterToken,
+              customerName: vtpassResult.customerName,
+              units: vtpassResult.units,
+              tokenAmount: vtpassResult.tokenAmount,
+              tariff: vtpassResult.tariff,
+              customerAddress: vtpassResult.customerAddress,
+            },
+          },
+        });
+      }
+
+      // 11. If failed, refund
       if (vtpassResult.status !== 'success') {
         await this.refundFailedOrder(order.id);
       }

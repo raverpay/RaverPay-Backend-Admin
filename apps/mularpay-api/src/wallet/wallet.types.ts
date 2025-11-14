@@ -24,6 +24,7 @@ export interface WalletBalanceResponse {
   monthlyLimit: string;
   dailyRemaining: string;
   monthlyRemaining: string;
+  singleTransactionLimit: string;
   isLocked: boolean;
   lockedReason: string | null;
   kycTier: KYCTier;

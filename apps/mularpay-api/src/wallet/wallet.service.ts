@@ -73,6 +73,7 @@ export class WalletService {
       monthlyLimit: limits.monthlyLimit,
       dailyRemaining,
       monthlyRemaining,
+      singleTransactionLimit: limits.singleTransactionLimit,
       isLocked: wallet.isLocked,
       lockedReason: wallet.lockedReason,
       kycTier,
@@ -253,8 +254,37 @@ export class WalletService {
       userId,
     };
 
+    // Map DEBIT/CREDIT to actual transaction types
     if (type) {
-      where.type = type;
+      // Use string comparison to avoid enum type mismatch
+      const typeValue = type.toString();
+
+      if (typeValue === 'CREDIT') {
+        // Money IN: DEPOSIT, REFUND, GIFTCARD_SELL, CRYPTO_SELL
+        where.type = {
+          in: [
+            PrismaTransactionType.DEPOSIT,
+            PrismaTransactionType.REFUND,
+            PrismaTransactionType.GIFTCARD_SELL,
+            PrismaTransactionType.CRYPTO_SELL,
+          ],
+        };
+      } else if (typeValue === 'DEBIT') {
+        // Money OUT: WITHDRAWAL, TRANSFER, VTU_*, GIFTCARD_BUY, CRYPTO_BUY, FEE
+        where.type = {
+          in: [
+            PrismaTransactionType.WITHDRAWAL,
+            PrismaTransactionType.TRANSFER,
+            PrismaTransactionType.VTU_AIRTIME,
+            PrismaTransactionType.VTU_DATA,
+            PrismaTransactionType.VTU_CABLE,
+            PrismaTransactionType.VTU_ELECTRICITY,
+            PrismaTransactionType.GIFTCARD_BUY,
+            PrismaTransactionType.CRYPTO_BUY,
+            PrismaTransactionType.FEE,
+          ],
+        };
+      }
     }
 
     if (status) {
