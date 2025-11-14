@@ -595,7 +595,10 @@ export class PaystackService {
         },
       );
 
-      const data = (await response.json()) as { status: boolean; message: string };
+      const data = (await response.json()) as {
+        status: boolean;
+        message: string;
+      };
 
       if (!data.status) {
         throw new BadRequestException(data.message);

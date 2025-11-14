@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { WalletService } from '../wallet/wallet.service';
 
 /**
  * Paystack Webhook Service
@@ -13,7 +14,10 @@ import { PrismaService } from '../prisma/prisma.service';
 export class PaystackWebhookService {
   private readonly logger = new Logger(PaystackWebhookService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly walletService: WalletService,
+  ) {}
 
   /**
    * Handle successful payment via Dedicated Virtual Account
@@ -118,6 +122,12 @@ export class PaystackWebhookService {
           },
         });
       });
+
+      // Invalidate wallet and transaction caches
+      await this.walletService.invalidateWalletCache(virtualAccount.userId);
+      await this.walletService.invalidateTransactionCache(
+        virtualAccount.userId,
+      );
 
       this.logger.log(
         `✅ Wallet credited: User ${virtualAccount.userId} - ₦${amountInNaira}`,
@@ -235,9 +245,7 @@ export class PaystackWebhookService {
 
       if (user) {
         // TODO: Send notification to user about failed DVA creation
-        this.logger.log(
-          `Notifying user ${user.id} about DVA creation failure`,
-        );
+        this.logger.log(`Notifying user ${user.id} about DVA creation failure`);
       }
     }
   }

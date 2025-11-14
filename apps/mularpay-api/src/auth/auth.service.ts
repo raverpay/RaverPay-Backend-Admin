@@ -439,7 +439,7 @@ export class AuthService {
         where: { key: `password_reset_${user.id}` },
         data: {
           value: {
-            ...storedData, // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+            ...storedData,
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
             attempts: storedData.attempts + 1,
           },
@@ -473,7 +473,7 @@ export class AuthService {
    */
   async resetPassword(resetToken: string, newPassword: string) {
     // Verify reset token
-    let payload: any; // eslint-disable-line @typescript-eslint/no-unsafe-assignment
+    let payload: any;
     try {
       payload = this.jwtService.verify(resetToken, {
         secret: process.env.JWT_SECRET,

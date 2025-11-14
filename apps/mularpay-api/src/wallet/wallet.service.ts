@@ -19,10 +19,14 @@ import {
   TransactionSummary,
 } from './wallet.types';
 import { GetTransactionsDto, TransactionStatus } from './dto';
+import { RedisService } from '../cache/redis.service';
 
 @Injectable()
 export class WalletService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   /**
    * Get wallet balance and details
@@ -30,6 +34,15 @@ export class WalletService {
    * @returns Wallet balance response
    */
   async getWalletBalance(userId: string): Promise<WalletBalanceResponse> {
+    // Try to get from cache first
+    const cacheKey = `wallet:${userId}`;
+    const cached = await this.redis.get<WalletBalanceResponse>(cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+
+    // Cache miss - fetch from database
     const wallet = await this.prisma.wallet.findUnique({
       where: { userId },
       include: {
@@ -62,7 +75,7 @@ export class WalletService {
       monthlySpent,
     );
 
-    return {
+    const response: WalletBalanceResponse = {
       id: wallet.id,
       balance: wallet.balance.toString(),
       ledgerBalance: wallet.ledgerBalance.toString(),
@@ -79,6 +92,20 @@ export class WalletService {
       kycTier,
       lastResetAt: wallet.lastResetAt,
     };
+
+    // Cache for 60 seconds
+    await this.redis.set(cacheKey, response, 60);
+
+    return response;
+  }
+
+  /**
+   * Invalidate wallet cache
+   * Call this after any transaction that updates wallet balance
+   * @param userId - User ID
+   */
+  async invalidateWalletCache(userId: string): Promise<void> {
+    await this.redis.del(`wallet:${userId}`);
   }
 
   /**
@@ -249,6 +276,15 @@ export class WalletService {
   ): Promise<TransactionHistoryResponse> {
     const { page = 1, limit = 20, type, status, startDate, endDate } = dto;
 
+    // Build cache key based on filters
+    const cacheKey = `transactions:${userId}:page:${page}:limit:${limit}:type:${type || 'all'}:status:${status || 'all'}:start:${startDate || 'none'}:end:${endDate || 'none'}`;
+
+    // Try cache first
+    const cached = await this.redis.get<TransactionHistoryResponse>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     // Build where clause
     const where: Record<string, unknown> = {
       userId,
@@ -345,11 +381,25 @@ export class WalletService {
       };
     });
 
-    return {
+    const response: TransactionHistoryResponse = {
       data,
       pagination,
       summary,
     };
+
+    // Cache for 2 minutes
+    await this.redis.set(cacheKey, response, 120);
+
+    return response;
+  }
+
+  /**
+   * Invalidate transaction cache for user
+   * Call this after any new transaction
+   * @param userId - User ID
+   */
+  async invalidateTransactionCache(userId: string): Promise<void> {
+    await this.redis.delPattern(`transactions:${userId}:*`);
   }
 
   /**
@@ -362,6 +412,13 @@ export class WalletService {
     userId: string,
     transactionId: string,
   ): Promise<TransactionResponse> {
+    // Try cache first
+    const cacheKey = `transaction:${transactionId}`;
+    const cached = await this.redis.get<TransactionResponse>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const transaction = await this.prisma.transaction.findFirst({
       where: {
         id: transactionId,
@@ -373,7 +430,7 @@ export class WalletService {
       throw new NotFoundException('Transaction not found');
     }
 
-    return {
+    const response: TransactionResponse = {
       id: transaction.id,
       reference: transaction.reference,
       type: transaction.type,
@@ -388,6 +445,11 @@ export class WalletService {
       createdAt: transaction.createdAt,
       completedAt: transaction.completedAt,
     };
+
+    // Cache for 10 minutes (transactions don't change often)
+    await this.redis.set(cacheKey, response, 600);
+
+    return response;
   }
 
   /**

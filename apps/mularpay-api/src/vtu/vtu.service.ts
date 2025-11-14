@@ -402,6 +402,10 @@ export class VTUService {
         await this.refundFailedOrder(order.id);
       }
 
+      // 12. Invalidate wallet and transaction caches
+      await this.walletService.invalidateWalletCache(userId);
+      await this.walletService.invalidateTransactionCache(userId);
+
       return {
         reference,
         orderId: order.id,
@@ -566,6 +570,10 @@ export class VTUService {
       if (vtpassResult.status !== 'success') {
         await this.refundFailedOrder(order.id);
       }
+
+      // 13. Invalidate wallet and transaction caches
+      await this.walletService.invalidateWalletCache(userId);
+      await this.walletService.invalidateTransactionCache(userId);
 
       return {
         reference,
@@ -770,6 +778,10 @@ export class VTUService {
         await this.refundFailedOrder(order.id);
       }
 
+      // 12. Invalidate wallet and transaction caches
+      await this.walletService.invalidateWalletCache(userId);
+      await this.walletService.invalidateTransactionCache(userId);
+
       return {
         reference,
         orderId: order.id,
@@ -932,6 +944,10 @@ export class VTUService {
       if (vtpassResult.status !== 'success') {
         await this.refundFailedOrder(order.id);
       }
+
+      // 13. Invalidate wallet and transaction caches
+      await this.walletService.invalidateWalletCache(userId);
+      await this.walletService.invalidateTransactionCache(userId);
 
       return {
         reference,
@@ -1112,6 +1128,10 @@ export class VTUService {
       if (vtpassResult.status !== 'success') {
         await this.refundFailedOrder(order.id);
       }
+
+      // 12. Invalidate wallet and transaction caches
+      await this.walletService.invalidateWalletCache(userId);
+      await this.walletService.invalidateTransactionCache(userId);
 
       return {
         reference,
@@ -1301,6 +1321,10 @@ export class VTUService {
       if (vtpassResult.status !== 'success') {
         await this.refundFailedOrder(order.id);
       }
+
+      // 13. Invalidate wallet and transaction caches
+      await this.walletService.invalidateWalletCache(userId);
+      await this.walletService.invalidateTransactionCache(userId);
 
       return {
         reference,

@@ -12,9 +12,11 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { VTUModule } from './vtu/vtu.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { CacheModule } from './cache/cache.module';
 
 @Module({
   imports: [
+    CacheModule, // Add cache module first for global availability
     PrismaModule,
     AuthModule,
     UsersModule,
