@@ -72,8 +72,10 @@ export class TransactionsService {
       }
     }
 
-    const netAmount = type === 'deposit' ? amount : amount;
-    const totalAmount = type === 'deposit' ? amount : amount + fee;
+    // For deposits: user pays (amount + fee), receives (amount)
+    // For withdrawals: user receives (amount), we deduct (amount + fee) from wallet
+    const netAmount = amount;
+    const totalAmount = amount + fee;
 
     return {
       amount,
@@ -153,8 +155,11 @@ export class TransactionsService {
     // Generate reference
     const reference = this.generateReference('deposit');
 
-    // Calculate fee
+    // Calculate fee (Paystack charges us, we pass to customer)
     const feeCalc = this.calculateFee(amount, 'deposit');
+
+    // Total amount customer will pay = desired amount + fee
+    const totalToCharge = amount + feeCalc.fee;
 
     // Create pending transaction
     await this.prisma.transaction.create({
@@ -163,24 +168,29 @@ export class TransactionsService {
         userId: user.id,
         type: TransactionType.DEPOSIT,
         status: TransactionStatus.PENDING,
-        amount: new Decimal(amount),
-        fee: new Decimal(feeCalc.fee),
-        totalAmount: new Decimal(feeCalc.totalAmount),
+        amount: new Decimal(amount), // Amount user wants in wallet
+        fee: new Decimal(feeCalc.fee), // Paystack fee
+        totalAmount: new Decimal(totalToCharge), // Total charged to customer
         balanceBefore: user.wallet.balance,
         balanceAfter: user.wallet.balance,
         currency: 'NGN',
-        description: `Card deposit of ₦${amount.toLocaleString()}`,
+        description: `Card deposit of ₦${amount.toLocaleString()} (₦${feeCalc.fee.toLocaleString()} fee)`,
         metadata: {
           paymentMethod: 'card',
           provider: 'paystack',
+          requestedAmount: amount,
+          processingFee: feeCalc.fee,
         },
       },
     });
 
-    // Initialize Paystack payment
+    // Initialize Paystack payment with TOTAL amount (amount + fee)
+    // Customer pays: amount + fee
+    // Paystack deducts their fee from this total
+    // We receive: amount (which we credit to wallet)
     const payment = await this.paystackService.initializePayment(
       user.email,
-      amount,
+      totalToCharge, // Changed from 'amount' to 'totalToCharge'
       reference,
       callbackUrl,
     );
