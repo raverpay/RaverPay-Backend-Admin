@@ -146,9 +146,12 @@ export class PaystackWebhookService {
    *
    * Webhook event: customeridentification.success
    * Triggered when BVN validation succeeds
+   *
+   * This webhook is sent when Paystack validates a customer's BVN during DVA creation.
+   * We automatically upgrade the user to TIER_2 since their BVN has been verified.
    */
   async handleCustomerIdentificationSuccess(data: any) {
-    const { customer_code, email } = data;
+    const { customer_code, email, identification } = data;
 
     this.logger.log(`✅ Customer validated successfully: ${email}`);
 
@@ -157,19 +160,62 @@ export class PaystackWebhookService {
       where: { email },
     });
 
-    if (user) {
-      // TODO: Update user KYC status when fields are added to User model
-      // await this.prisma.user.update({
-      //   where: { id: user.id },
-      //   data: {
-      //     kycVerified: true,
-      //     bvnVerified: true,
-      //     paystackCustomerCode: customer_code,
-      //   },
-      // });
+    if (!user) {
+      this.logger.warn(`User not found for email: ${email}`);
+      return;
+    }
 
-      this.logger.log(`User ${user.id} KYC status updated`);
-      // TODO: Send notification to user about successful verification
+    // Check if user already has BVN verified
+    if (user.bvnVerified) {
+      this.logger.log(`User ${user.id} already has verified BVN`);
+      return;
+    }
+
+    try {
+      // Extract BVN from identification data
+      const bvn = identification?.bvn;
+
+      // Update user with verified BVN and upgrade to TIER_2
+      const updatedUser = await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          bvnVerified: true,
+          bvn: bvn || user.bvn, // Use BVN from webhook or keep existing
+          kycTier: 'TIER_2', // Auto-upgrade to TIER_2
+          paystackCustomerCode: customer_code,
+          status: user.emailVerified && user.phoneVerified ? 'ACTIVE' : user.status,
+        },
+      });
+
+      // Create audit log for KYC upgrade
+      await this.prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'BVN_VERIFIED_VIA_DVA',
+          resource: 'USER',
+          resourceId: user.id,
+          ipAddress: '0.0.0.0',
+          userAgent: 'Paystack Webhook',
+          metadata: {
+            kycTier: 'TIER_2',
+            previousTier: user.kycTier,
+            paystackCustomerCode: customer_code,
+            verificationMethod: 'DVA_BVN_VALIDATION',
+          },
+        },
+      });
+
+      this.logger.log(
+        `✅ User ${user.id} upgraded to TIER_2 via DVA BVN verification (${user.kycTier} -> TIER_2)`,
+      );
+
+      // TODO: Send notification to user about successful verification and tier upgrade
+      // Example: "Your BVN has been verified! Your account has been upgraded to TIER_2 with increased limits."
+    } catch (error) {
+      this.logger.error(
+        `Failed to upgrade user ${user.id} after BVN verification`,
+        error,
+      );
     }
   }
 

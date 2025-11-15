@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { VirtualAccountsService } from './virtual-accounts.service';
+import { RequestVirtualAccountDto } from './dto';
 
 /**
  * Virtual Accounts Controller
@@ -26,19 +27,26 @@ export class VirtualAccountsController {
    * Request virtual account creation (user-initiated with consent)
    * POST /virtual-accounts/request
    *
-   * Body (optional):
+   * Body:
    * {
-   *   "preferred_bank": "wema-bank"
+   *   "preferred_bank": "wema-bank",
+   *   "bvn": "22222222222",
+   *   "date_of_birth": "1990-01-01",
+   *   "first_name": "John",
+   *   "last_name": "Doe",
+   *   "phone": "08012345678",
+   *   "account_number": "0123456789",
+   *   "bank_code": "011"
    * }
    */
   @Post('request')
   async requestVirtualAccount(
     @Request() req,
-    @Body('preferred_bank') preferredBank?: string,
+    @Body() dto: RequestVirtualAccountDto,
   ) {
     return this.virtualAccountsService.requestVirtualAccount(
       req.user.id,
-      preferredBank,
+      dto,
     );
   }
 

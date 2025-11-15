@@ -1,6 +1,7 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaystackService } from '../payments/paystack.service';
+import { RequestVirtualAccountDto } from './dto';
 
 @Injectable()
 export class VirtualAccountsService {
@@ -13,11 +14,18 @@ export class VirtualAccountsService {
 
   /**
    * Request virtual account creation (user-initiated with consent)
-   * Requires user to have completed KYC verification for Financial Services
+   * Requires BVN or NIN for customer validation (Nigerian Financial Services requirement)
+   *
+   * Flow:
+   * 1. Validate user doesn't already have a DVA
+   * 2. Create/get Paystack customer
+   * 3. If BVN provided, validate customer identity (triggers async webhook)
+   * 4. Create dedicated virtual account
+   * 5. Wait for customeridentification.success webhook to upgrade user to TIER_2
    */
   async requestVirtualAccount(
     userId: string,
-    preferredBank?: string,
+    dto: RequestVirtualAccountDto,
   ): Promise<{
     success: boolean;
     message: string;
@@ -25,6 +33,7 @@ export class VirtualAccountsService {
       accountNumber: string;
       accountName: string;
       bankName: string;
+      status: string;
     };
   }> {
     // Check if user already has a virtual account
@@ -40,6 +49,7 @@ export class VirtualAccountsService {
           accountNumber: existing.accountNumber,
           accountName: existing.accountName,
           bankName: existing.bankName,
+          status: 'active',
         },
       };
     }
@@ -53,43 +63,80 @@ export class VirtualAccountsService {
       throw new BadRequestException('User not found');
     }
 
-    // TODO: Check if user has completed KYC verification
-    // For Nigerian Financial Services, BVN validation is required
-    // Uncomment when KYC fields are added to User model
-    // if (!user.kycVerified || !user.bvnVerified) {
-    //   throw new BadRequestException(
-    //     'Please complete KYC and BVN verification before requesting a virtual account'
-    //   );
-    // }
+    // Validate that either BVN or NIN is provided for Financial Services compliance
+    if (!dto.bvn && !dto.nin && !user.bvnVerified && !user.ninVerified) {
+      throw new BadRequestException(
+        'BVN or NIN is required for dedicated virtual account creation',
+      );
+    }
 
     try {
       // Step 1: Create or get Paystack customer
-      const customer = await this.paystackService.createCustomer(
-        user.email,
-        user.firstName,
-        user.lastName,
-        user.phone,
-      );
+      let customerCode = user.paystackCustomerCode;
 
-      this.logger.log(
-        `Paystack customer created for user ${userId}: ${customer.customer_code}`,
-      );
+      if (!customerCode) {
+        const customer = await this.paystackService.createCustomer(
+          user.email,
+          dto.first_name || user.firstName,
+          dto.last_name || user.lastName,
+          dto.phone || user.phone,
+        );
 
-      // TODO: Store customer code when field is added to User model
-      // await this.prisma.user.update({
-      //   where: { id: userId },
-      //   data: { paystackCustomerCode: customer.customer_code },
-      // });
+        customerCode = customer.customer_code;
 
-      // Step 2: Create dedicated virtual account
-      const defaultBank = preferredBank || 'wema-bank';
+        this.logger.log(
+          `Paystack customer created for user ${userId}: ${customerCode}`,
+        );
+
+        // Store customer code
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { paystackCustomerCode: customerCode },
+        });
+      }
+
+      // Step 2: Validate customer identity if BVN is provided
+      // This triggers an async webhook: customeridentification.success/failed
+      // The webhook handler will automatically upgrade user to TIER_2 on success
+      if (dto.bvn && dto.account_number && dto.bank_code) {
+        this.logger.log(
+          `Initiating BVN validation for user ${userId} (customer: ${customerCode})`,
+        );
+
+        // Store BVN temporarily for webhook processing
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: {
+            bvn: dto.bvn,
+            dateOfBirth: dto.date_of_birth
+              ? new Date(dto.date_of_birth)
+              : user.dateOfBirth,
+          },
+        });
+
+        await this.paystackService.validateCustomer(
+          customerCode,
+          dto.first_name || user.firstName,
+          dto.last_name || user.lastName,
+          dto.account_number,
+          dto.bvn,
+          dto.bank_code,
+        );
+
+        this.logger.log(
+          `BVN validation initiated. Will receive webhook with results.`,
+        );
+      }
+
+      // Step 3: Create dedicated virtual account
+      const defaultBank = dto.preferred_bank || 'wema-bank';
       const virtualAccount =
         await this.paystackService.createDedicatedVirtualAccount(
-          customer.customer_code,
+          customerCode,
           defaultBank,
         );
 
-      // Step 3: Save to database
+      // Step 4: Save to database
       await this.prisma.virtualAccount.create({
         data: {
           userId: user.id,
@@ -104,16 +151,19 @@ export class VirtualAccountsService {
       });
 
       this.logger.log(
-        `Virtual account created for user ${userId}: ${virtualAccount.account_number}`,
+        `✅ Virtual account created for user ${userId}: ${virtualAccount.account_number}`,
       );
 
       return {
         success: true,
-        message: 'Virtual account created successfully',
+        message: dto.bvn
+          ? 'Virtual account created. BVN verification in progress - you will be upgraded to TIER_2 once verified.'
+          : 'Virtual account created successfully',
         data: {
           accountNumber: virtualAccount.account_number,
           accountName: virtualAccount.account_name,
           bankName: virtualAccount.bank.name,
+          status: dto.bvn ? 'pending_verification' : 'active',
         },
       };
     } catch (error) {
