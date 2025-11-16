@@ -280,4 +280,87 @@ export class EmailService {
       return false;
     }
   }
+
+  /**
+   * Send generic notification email (used by NotificationDispatcher)
+   */
+  async sendGenericNotification(
+    email: string,
+    firstName: string,
+    title: string,
+    message: string,
+    data?: any,
+  ): Promise<boolean> {
+    if (!this.enabled) {
+      this.logger.log(`📧 [MOCK] Generic notification to ${email}: ${title}`);
+      return true;
+    }
+
+    if (!this.resend) {
+      this.logger.warn(
+        `📧 [MOCK] Would send notification to ${email}: ${title}`,
+      );
+      return true;
+    }
+
+    try {
+      const html = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+              <h1 style="margin: 0; font-size: 24px;">MularPay</h1>
+              <p style="margin: 10px 0 0 0; opacity: 0.9;">${title}</p>
+            </div>
+
+            <div style="background: white; padding: 30px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
+              <p>Hi <strong>${firstName}</strong>,</p>
+
+              <p>${message}</p>
+
+              ${data ? `<div style="background: #f7f7f7; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                ${Object.entries(data).map(([key, value]) => `
+                  <p style="margin: 5px 0;"><strong>${key}:</strong> ${value}</p>
+                `).join('')}
+              </div>` : ''}
+
+              <p style="color: #666; font-size: 14px;">If you have any questions, please contact our support team.</p>
+
+              <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center; color: #999; font-size: 12px;">
+                <p>MularPay - Your Trusted Fintech Partner</p>
+                <p>This is an automated email, please do not reply.</p>
+              </div>
+            </div>
+          </body>
+        </html>
+      `;
+
+      const result = await this.resend.emails.send({
+        from: `${this.fromName} <${this.fromEmail}>`,
+        to: [email],
+        subject: title,
+        html,
+      });
+
+      if (result.error) {
+        this.logger.error(
+          `Failed to send notification to ${email}:`,
+          result.error,
+        );
+        return false;
+      }
+
+      this.logger.log(
+        `✅ Notification email sent to ${email} (ID: ${result.data?.id})`,
+      );
+      return true;
+    } catch (error) {
+      this.logger.error(`Error sending notification to ${email}:`, error);
+      return false;
+    }
+  }
 }

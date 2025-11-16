@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
+import { NotificationDispatcherService } from '../notifications/notification-dispatcher.service';
 
 /**
  * Paystack Webhook Service
@@ -17,6 +18,7 @@ export class PaystackWebhookService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly walletService: WalletService,
+    private readonly notificationDispatcher: NotificationDispatcherService,
   ) {}
 
   /**
@@ -132,6 +134,31 @@ export class PaystackWebhookService {
       this.logger.log(
         `✅ Wallet credited: User ${virtualAccount.userId} - ₦${amountInNaira}`,
       );
+
+      // Send transaction notification
+      try {
+        await this.notificationDispatcher.sendNotification({
+          userId: virtualAccount.userId,
+          eventType: 'deposit_success',
+          category: 'TRANSACTION',
+          channels: ['EMAIL', 'SMS', 'IN_APP'],
+          title: 'Wallet Funded Successfully',
+          message: `Your wallet has been credited with ₦${amountInNaira.toLocaleString()} via bank transfer.`,
+          data: {
+            amount: amountInNaira,
+            reference,
+            channel: 'BANK_TRANSFER',
+            accountNumber,
+          },
+        });
+        this.logger.log(`📬 Deposit notification sent for user ${virtualAccount.userId}`);
+      } catch (notifError) {
+        this.logger.error(
+          `Failed to send deposit notification to user ${virtualAccount.userId}`,
+          notifError,
+        );
+        // Don't fail the webhook if notification fails
+      }
     } catch (error) {
       this.logger.error(
         `Failed to credit wallet for transaction ${reference}`,
@@ -209,8 +236,29 @@ export class PaystackWebhookService {
         `✅ User ${user.id} upgraded to TIER_2 via DVA BVN verification (${user.kycTier} -> TIER_2)`,
       );
 
-      // TODO: Send notification to user about successful verification and tier upgrade
-      // Example: "Your BVN has been verified! Your account has been upgraded to TIER_2 with increased limits."
+      // Send multi-channel notification about successful verification and tier upgrade
+      try {
+        await this.notificationDispatcher.sendNotification({
+          userId: user.id,
+          eventType: 'bvn_verified',
+          category: 'KYC',
+          channels: ['EMAIL', 'SMS', 'IN_APP'],
+          title: 'BVN Verification Successful',
+          message: `Your BVN has been verified! Your account has been upgraded to TIER_2 with increased transaction limits.`,
+          data: {
+            previousTier: user.kycTier,
+            newTier: 'TIER_2',
+            verificationMethod: 'DVA_BVN_VALIDATION',
+          },
+        });
+        this.logger.log(`📬 Notification sent for BVN verification: ${user.id}`);
+      } catch (notifError) {
+        this.logger.error(
+          `Failed to send BVN verification notification to user ${user.id}`,
+          notifError,
+        );
+        // Don't fail the webhook if notification fails
+      }
     } catch (error) {
       this.logger.error(
         `Failed to upgrade user ${user.id} after BVN verification`,
@@ -236,9 +284,26 @@ export class PaystackWebhookService {
     });
 
     if (user) {
-      // TODO: Store validation failure reason
-      // TODO: Send notification to user about failed verification with reason
-      this.logger.log(`Notifying user ${user.id} about validation failure`);
+      // Send notification to user about failed verification
+      try {
+        await this.notificationDispatcher.sendNotification({
+          userId: user.id,
+          eventType: 'bvn_verification_failed',
+          category: 'KYC',
+          channels: ['EMAIL', 'SMS', 'IN_APP'],
+          title: 'BVN Verification Failed',
+          message: `We couldn't verify your BVN. ${reason || 'Please check your details and try again.'}`,
+          data: {
+            reason: reason || 'Unknown error',
+          },
+        });
+        this.logger.log(`📬 BVN failure notification sent to user ${user.id}`);
+      } catch (notifError) {
+        this.logger.error(
+          `Failed to send BVN failure notification to user ${user.id}`,
+          notifError,
+        );
+      }
     }
   }
 
@@ -266,7 +331,35 @@ export class PaystackWebhookService {
 
     if (updated.count > 0) {
       this.logger.log(`Virtual account ${account_number} status updated`);
-      // TODO: Send notification to user about successful DVA creation
+
+      // Find the user to send notification
+      const virtualAccount = await this.prisma.virtualAccount.findFirst({
+        where: { accountNumber: account_number },
+      });
+
+      if (virtualAccount) {
+        try {
+          await this.notificationDispatcher.sendNotification({
+            userId: virtualAccount.userId,
+            eventType: 'dva_created',
+            category: 'ACCOUNT',
+            channels: ['EMAIL', 'SMS', 'IN_APP'],
+            title: 'Virtual Account Ready',
+            message: `Your dedicated virtual account has been created successfully. Account: ${account_number} (${bank?.name || 'Bank'})`,
+            data: {
+              accountNumber: account_number,
+              accountName: account_name,
+              bankName: bank?.name,
+            },
+          });
+          this.logger.log(`📬 DVA creation notification sent for user ${virtualAccount.userId}`);
+        } catch (notifError) {
+          this.logger.error(
+            `Failed to send DVA creation notification to user ${virtualAccount.userId}`,
+            notifError,
+          );
+        }
+      }
     }
   }
 
