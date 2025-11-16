@@ -444,7 +444,7 @@ model Notification {
 
   // Notification classification
   type      NotificationType
-  eventType String // "deposit", "withdrawal", "bvn_verified", etc.
+  eventType String? // "deposit", "withdrawal", "bvn_verified", etc.
   category  NotificationCategory @default(SYSTEM)
 
   // Content

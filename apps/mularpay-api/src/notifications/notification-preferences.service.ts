@@ -54,7 +54,7 @@ export class NotificationPreferencesService {
 
     const updated = await this.prisma.notificationPreference.update({
       where: { userId },
-      data: dto,
+      data: dto as any, // DTO validation ensures correct types
     });
 
     this.logger.log(`Preferences updated for user ${userId}`);
