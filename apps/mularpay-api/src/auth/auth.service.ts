@@ -271,7 +271,7 @@ export class AuthService {
       // Access token (15 minutes)
       this.jwtService.signAsync(payload, {
         secret: process.env.JWT_SECRET,
-        expiresIn: '15m',
+        expiresIn: '5m',
       }),
       // Refresh token (7 days)
       this.jwtService.signAsync(payload, {
