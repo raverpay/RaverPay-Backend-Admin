@@ -101,10 +101,7 @@ export class NotificationPreferencesController {
    * @returns Updated preferences with OneSignal token
    */
   @Post('onesignal')
-  async updateOneSignalToken(
-    @Request() req,
-    @Body() dto: UpdateOneSignalDto,
-  ) {
+  async updateOneSignalToken(@Request() req, @Body() dto: UpdateOneSignalDto) {
     return this.preferencesService.updateOneSignalToken(
       req.user.id,
       dto.oneSignalPlayerId,

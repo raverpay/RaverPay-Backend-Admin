@@ -419,28 +419,36 @@ export class VTUService {
         await this.walletService.invalidateWalletCache(userId);
         await this.walletService.invalidateTransactionCache(userId);
       } catch (error) {
-        this.logger.warn('Failed to invalidate cache (non-critical)', error.message);
+        this.logger.warn(
+          'Failed to invalidate cache (non-critical)',
+          error.message,
+        );
       }
 
       // 14. Send notification asynchronously (don't block response)
       if (vtpassResult.status === 'success') {
         // Fire and forget - don't await
-        this.notificationDispatcher.sendNotification({
-          userId,
-          eventType: 'airtime_purchase_success',
-          category: 'TRANSACTION',
-          channels: ['PUSH', 'IN_APP'],
-          title: 'Airtime Purchase Successful',
-          message: `₦${dto.amount.toLocaleString()} ${dto.network.toUpperCase()} airtime sent to ${dto.phone}`,
-          data: {
-            amount: dto.amount,
-            provider: dto.network.toUpperCase(),
-            recipient: dto.phone,
-            reference,
-          },
-        }).catch(error => {
-          this.logger.error('Failed to send airtime purchase notification', error);
-        });
+        this.notificationDispatcher
+          .sendNotification({
+            userId,
+            eventType: 'airtime_purchase_success',
+            category: 'TRANSACTION',
+            channels: ['PUSH', 'IN_APP'],
+            title: 'Airtime Purchase Successful',
+            message: `₦${dto.amount.toLocaleString()} ${dto.network.toUpperCase()} airtime sent to ${dto.phone}`,
+            data: {
+              amount: dto.amount,
+              provider: dto.network.toUpperCase(),
+              recipient: dto.phone,
+              reference,
+            },
+          })
+          .catch((error) => {
+            this.logger.error(
+              'Failed to send airtime purchase notification',
+              error,
+            );
+          });
       }
 
       return {
@@ -623,29 +631,37 @@ export class VTUService {
         await this.walletService.invalidateWalletCache(userId);
         await this.walletService.invalidateTransactionCache(userId);
       } catch (error) {
-        this.logger.warn('Failed to invalidate cache (non-critical)', error.message);
+        this.logger.warn(
+          'Failed to invalidate cache (non-critical)',
+          error.message,
+        );
       }
 
       // 15. Send notification asynchronously (don't block response)
       if (vtpassResult.status === 'success') {
         // Fire and forget - don't await
-        this.notificationDispatcher.sendNotification({
-          userId,
-          eventType: 'data_purchase_success',
-          category: 'TRANSACTION',
-          channels: ['PUSH', 'IN_APP'],
-          title: 'Data Purchase Successful',
-          message: `${product.name} sent to ${dto.phone}`,
-          data: {
-            amount,
-            provider: dto.network.toUpperCase(),
-            recipient: dto.phone,
-            productName: product.name,
-            reference,
-          },
-        }).catch(error => {
-          this.logger.error('Failed to send data purchase notification', error);
-        });
+        this.notificationDispatcher
+          .sendNotification({
+            userId,
+            eventType: 'data_purchase_success',
+            category: 'TRANSACTION',
+            channels: ['PUSH', 'IN_APP'],
+            title: 'Data Purchase Successful',
+            message: `${product.name} sent to ${dto.phone}`,
+            data: {
+              amount,
+              provider: dto.network.toUpperCase(),
+              recipient: dto.phone,
+              productName: product.name,
+              reference,
+            },
+          })
+          .catch((error) => {
+            this.logger.error(
+              'Failed to send data purchase notification',
+              error,
+            );
+          });
       }
 
       return {
@@ -1699,10 +1715,7 @@ export class VTUService {
       );
     } catch (error) {
       // Don't fail the transaction if saving recipient fails
-      this.logger.error(
-        `[SavedRecipient] Failed to save recipient:`,
-        error,
-      );
+      this.logger.error(`[SavedRecipient] Failed to save recipient:`, error);
     }
   }
 
@@ -1711,9 +1724,7 @@ export class VTUService {
    * Returns most recently used recipients first
    */
   async getSavedRecipients(userId: string, serviceType?: VTUServiceType) {
-    const where = serviceType
-      ? { userId, serviceType }
-      : { userId };
+    const where = serviceType ? { userId, serviceType } : { userId };
 
     const recipients = await this.prisma.savedRecipient.findMany({
       where,
