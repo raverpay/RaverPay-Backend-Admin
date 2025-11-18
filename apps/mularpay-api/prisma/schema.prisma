@@ -52,6 +52,14 @@ model User {
   passwordResetAt    DateTime? // Track when password was last reset
   lastPasswordChange DateTime? // Track when password was last changed
 
+  // Account Deletion
+  deletionRequested   Boolean   @default(false)
+  deletionRequestedAt DateTime?
+
+  // Profile Edit Tracking
+  profileEditedOnce Boolean   @default(false)
+  profileEditedAt   DateTime?
+
   // Timestamps
   emailVerified   Boolean   @default(false)
   emailVerifiedAt DateTime?
@@ -76,6 +84,7 @@ model User {
   auditLogs              AuditLog[]
   refreshTokens          RefreshToken[]
   savedRecipients        SavedRecipient[]
+  deletionRequests       AccountDeletionRequest[]
 
   @@index([email])
   @@index([phone])
@@ -94,6 +103,7 @@ enum UserStatus {
   SUSPENDED
   BANNED
   PENDING_VERIFICATION
+  PENDING_DELETION
 }
 
 enum KYCTier {
@@ -547,9 +557,9 @@ model NotificationPreference {
   optOutCategories String[] @default([]) // Categories user opted out of
 
   // OneSignal Push Notification Tokens
-  oneSignalPlayerId     String?   // OneSignal subscription/player ID
-  oneSignalExternalId   String?   // External user ID (should match userId)
-  lastPushTokenUpdate   DateTime? // Last time push token was updated
+  oneSignalPlayerId   String? // OneSignal subscription/player ID
+  oneSignalExternalId String? // External user ID (should match userId)
+  lastPushTokenUpdate DateTime? // Last time push token was updated
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -760,6 +770,53 @@ model SavedRecipient {
   @@index([userId, serviceType])
   @@index([lastUsedAt])
   @@map("saved_recipients")
+}
+
+// ============================================
+// ACCOUNT DELETION REQUESTS
+// ============================================
+
+model AccountDeletionRequest {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Request details
+  reason       String
+  customReason String? // If user selects "Other"
+
+  // Verification
+  passwordVerified Boolean @default(true)
+
+  // Status tracking
+  status DeletionRequestStatus @default(PENDING)
+
+  // Admin review
+  reviewedBy      String? // Admin user ID
+  reviewedAt      DateTime?
+  reviewNotes     String?
+  rejectionReason String?
+
+  // Timestamps
+  requestedAt  DateTime  @default(now())
+  scheduledFor DateTime? // When deletion should occur
+  deletedAt    DateTime? // When actually deleted
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([requestedAt])
+  @@map("account_deletion_requests")
+}
+
+enum DeletionRequestStatus {
+  PENDING // Waiting for admin review
+  APPROVED // Admin approved, scheduled for deletion
+  REJECTED // Admin rejected the request
+  COMPLETED // Account deleted
+  CANCELLED // User cancelled the request
 }
 
 // ============================================

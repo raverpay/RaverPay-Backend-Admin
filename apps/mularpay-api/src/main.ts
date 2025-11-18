@@ -33,7 +33,7 @@ async function bootstrap() {
   const port = process.env.PORT || 3001;
   await app.listen(port);
 
-  logger.log(`🚀 MularPay API running on http://localhost:${port}`);
+  logger.log(`🚀 RaverPay API running on http://localhost:${port}`);
   logger.log(`📚 API endpoints available at http://localhost:${port}/api`);
 }
 

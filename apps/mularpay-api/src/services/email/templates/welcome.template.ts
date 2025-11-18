@@ -5,7 +5,7 @@ export function welcomeEmailTemplate(firstName: string): {
   html: string;
   subject: string;
 } {
-  const subject = 'Welcome to MularPay! 🎉';
+  const subject = 'Welcome to RaverPay! 🎉';
 
   const html = `
     <!DOCTYPE html>
@@ -13,7 +13,7 @@ export function welcomeEmailTemplate(firstName: string): {
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Welcome to MularPay</title>
+        <title>Welcome to RaverPay</title>
       </head>
       <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
         <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f5f5f5;" cellpadding="0" cellspacing="0">
@@ -30,7 +30,7 @@ export function welcomeEmailTemplate(firstName: string): {
                       🎉
                     </h1>
                     <h2 style="margin: 15px 0 0 0; color: #ffffff; font-size: 24px; font-weight: 700;">
-                      Welcome to MularPay!
+                      Welcome to RaverPay!
                     </h2>
                     <p style="margin: 10px 0 0 0; color: rgba(255, 255, 255, 0.9); font-size: 16px;">
                       Your journey to seamless payments starts now
@@ -46,7 +46,7 @@ export function welcomeEmailTemplate(firstName: string): {
                     </p>
                     
                     <p style="margin: 0 0 25px 0; font-size: 16px; color: #666666; line-height: 1.6;">
-                      Thank you for joining MularPay! We're excited to have you on board. Your account has been successfully verified and you're ready to start using our services.
+                      Thank you for joining RaverPay! We're excited to have you on board. Your account has been successfully verified and you're ready to start using our services.
                     </p>
                     
                     <!-- Features Grid -->
@@ -105,8 +105,8 @@ export function welcomeEmailTemplate(firstName: string): {
                       <p style="margin: 0 0 15px 0; color: #ffffff; font-size: 18px; font-weight: 600;">
                         Ready to get started?
                       </p>
-                      <a href="https://mularpay.com" style="display: inline-block; background: #ffffff; color: #667eea; text-decoration: none; padding: 14px 40px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
-                        Open MularPay App
+                      <a href="https://RaverPay.com" style="display: inline-block; background: #ffffff; color: #667eea; text-decoration: none; padding: 14px 40px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+                        Open RaverPay App
                       </a>
                     </div>
                     
@@ -127,7 +127,7 @@ export function welcomeEmailTemplate(firstName: string): {
                     
                     <p style="margin: 15px 0 0 0; font-size: 14px; color: #666666;">
                       Happy transacting! 🚀<br>
-                      <strong>The MularPay Team</strong>
+                      <strong>The RaverPay Team</strong>
                     </p>
                   </td>
                 </tr>
@@ -144,13 +144,13 @@ export function welcomeEmailTemplate(firstName: string): {
                       <a href="#" style="display: inline-block; margin: 0 10px; color: #667eea; text-decoration: none; font-size: 12px;">Facebook</a>
                     </p>
                     <p style="margin: 0 0 10px 0; color: #999999; font-size: 14px;">
-                      <strong>MularPay</strong>
+                      <strong>RaverPay</strong>
                     </p>
                     <p style="margin: 0 0 15px 0; color: #999999; font-size: 12px;">
                       Lagos, Nigeria 🇳🇬
                     </p>
                     <p style="margin: 0; color: #cccccc; font-size: 11px;">
-                      © 2025 MularPay. All rights reserved.
+                      © 2025 RaverPay. All rights reserved.
                     </p>
                   </td>
                 </tr>

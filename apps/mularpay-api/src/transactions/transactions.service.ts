@@ -546,7 +546,7 @@ export class TransactionsService {
         accountName,
         accountNumber,
         bankCode,
-        narration || `Withdrawal from MularPay`,
+        narration || `Withdrawal from RaverPay`,
         reference,
       );
 

@@ -23,6 +23,7 @@ import {
   ChangePasswordDto,
   VerifyEmailDto,
   VerifyPhoneDto,
+  RequestAccountDeletionDto,
 } from './dto';
 import { SetPinDto } from './dto/set-pin.dto';
 import { VerifyPinDto } from './dto/verify-pin.dto';
@@ -210,5 +211,21 @@ export class UsersController {
   @HttpCode(HttpStatus.OK)
   async deleteAvatar(@GetUser('id') userId: string) {
     return this.usersService.deleteAvatar(userId);
+  }
+
+  /**
+   * Request account deletion
+   * POST /api/users/request-account-deletion
+   */
+  @Post('request-account-deletion')
+  @HttpCode(HttpStatus.OK)
+  async requestAccountDeletion(
+    @GetUser('id') userId: string,
+    @Body() requestAccountDeletionDto: RequestAccountDeletionDto,
+  ) {
+    return this.usersService.requestAccountDeletion(
+      userId,
+      requestAccountDeletionDto,
+    );
   }
 }

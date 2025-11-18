@@ -18,7 +18,7 @@ export class EmailService {
       this.configService.get<string>('RESEND_FROM_EMAIL') ||
       'noreply@expertvetteddigital.tech';
     this.fromName =
-      this.configService.get<string>('RESEND_FROM_NAME') || 'MularPay';
+      this.configService.get<string>('RESEND_FROM_NAME') || 'RaverPay';
     this.enabled =
       this.configService.get<string>('ENABLE_EMAIL_VERIFICATION') === 'true';
 
@@ -212,7 +212,7 @@ export class EmailService {
           </head>
           <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-              <h1 style="margin: 0; font-size: 24px;">MularPay</h1>
+              <h1 style="margin: 0; font-size: 24px;">RaverPay</h1>
               <p style="margin: 10px 0 0 0; opacity: 0.9;">Transaction Receipt</p>
             </div>
             
@@ -245,7 +245,7 @@ export class EmailService {
               <p style="color: #666; font-size: 14px;">If you have any questions, please contact our support team.</p>
               
               <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center; color: #999; font-size: 12px;">
-                <p>MularPay - Your Trusted Fintech Partner</p>
+                <p>RaverPay - Your Trusted Fintech Partner</p>
                 <p>This is an automated email, please do not reply.</p>
               </div>
             </div>
@@ -313,7 +313,7 @@ export class EmailService {
           </head>
           <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-              <h1 style="margin: 0; font-size: 24px;">MularPay</h1>
+              <h1 style="margin: 0; font-size: 24px;">RaverPay</h1>
               <p style="margin: 10px 0 0 0; opacity: 0.9;">${title}</p>
             </div>
 
@@ -339,7 +339,7 @@ export class EmailService {
               <p style="color: #666; font-size: 14px;">If you have any questions, please contact our support team.</p>
 
               <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center; color: #999; font-size: 12px;">
-                <p>MularPay - Your Trusted Fintech Partner</p>
+                <p>RaverPay - Your Trusted Fintech Partner</p>
                 <p>This is an automated email, please do not reply.</p>
               </div>
             </div>

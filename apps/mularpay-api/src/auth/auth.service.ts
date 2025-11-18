@@ -142,6 +142,11 @@ export class AuthService {
         'Your account is suspended. Contact support.',
       );
     }
+    if (user.status === UserStatus.PENDING_DELETION) {
+      throw new UnauthorizedException(
+        'Your account deletion request is being processed. You cannot login at this time.',
+      );
+    }
 
     // Verify password
     const isPasswordValid = await this.verifyPassword(
@@ -242,7 +247,8 @@ export class AuthService {
     // Check account status
     if (
       user.status === UserStatus.BANNED ||
-      user.status === UserStatus.SUSPENDED
+      user.status === UserStatus.SUSPENDED ||
+      user.status === UserStatus.PENDING_DELETION
     ) {
       throw new UnauthorizedException('Account is not active');
     }
@@ -499,12 +505,15 @@ export class AuthService {
     // Hash new password
     const hashedPassword = await this.hashPassword(newPassword);
 
-    // Update password
+    // Update password and timestamp
 
     await this.prisma.user.update({
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       where: { id: payload.sub },
-      data: { password: hashedPassword },
+      data: {
+        password: hashedPassword,
+        passwordResetAt: new Date(),
+      },
     });
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

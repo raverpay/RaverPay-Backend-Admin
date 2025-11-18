@@ -106,9 +106,6 @@ export class SmsService {
     const truncatedMessage =
       message.length > 160 ? message.substring(0, 157) + '...' : message;
 
-    // Format: "Hi {name}! {message} - MularPay"
-    const smsText = `Hi ${firstName}! ${truncatedMessage} - MularPay`;
-
     this.logger.log(
       `Sending generic notification SMS to ${formattedPhone} via ${this.getProviderName()}`,
     );

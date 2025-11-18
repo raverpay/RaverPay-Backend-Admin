@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Logger,
   Inject,
   forwardRef,
@@ -15,6 +16,7 @@ import {
   VerifyBvnDto,
   VerifyNinDto,
   ChangePasswordDto,
+  RequestAccountDeletionDto,
 } from './dto';
 import { EmailService } from '../services/email/email.service';
 import { SmsService } from '../services/sms/sms.service';
@@ -184,11 +186,22 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
+    // Check if profile has already been edited (one-time edit enforcement)
+    if (user.profileEditedOnce) {
+      throw new ForbiddenException(
+        'Profile can only be edited once. Please contact support if you need to make changes.',
+      );
+    }
+
     // Convert dateOfBirth to Date object if provided
     const updateData: Record<string, any> = { ...updateProfileDto };
     if (updateProfileDto.dateOfBirth) {
       updateData.dateOfBirth = new Date(updateProfileDto.dateOfBirth);
     }
+
+    // Mark profile as edited
+    updateData.profileEditedOnce = true;
+    updateData.profileEditedAt = new Date();
 
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
@@ -213,6 +226,8 @@ export class UsersService {
         ninVerified: true,
         emailVerified: true,
         phoneVerified: true,
+        profileEditedOnce: true,
+        profileEditedAt: true,
         updatedAt: true,
       },
     });
@@ -260,11 +275,12 @@ export class UsersService {
     // Hash new password
     const hashedPassword = await argon2.hash(changePasswordDto.newPassword);
 
-    // Update password
+    // Update password and timestamp
     await this.prisma.user.update({
       where: { id: userId },
       data: {
         password: hashedPassword,
+        lastPasswordChange: new Date(),
       },
     });
 
@@ -1282,5 +1298,117 @@ export class UsersService {
     }
 
     return emailSent;
+  }
+
+  /**
+   * Request account deletion
+   * @param userId - User ID
+   * @param requestAccountDeletionDto - Deletion request details
+   * @returns Success message
+   */
+  async requestAccountDeletion(
+    userId: string,
+    requestAccountDeletionDto: RequestAccountDeletionDto,
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        wallet: {
+          select: {
+            balance: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if user already has a pending deletion request
+    if (user.deletionRequested) {
+      throw new ConflictException(
+        'Account deletion request already submitted. Please contact support.',
+      );
+    }
+
+    // Verify password
+    const isPasswordValid = await argon2.verify(
+      user.password,
+      requestAccountDeletionDto.password,
+    );
+
+    if (!isPasswordValid) {
+      throw new BadRequestException('Incorrect password');
+    }
+
+    // Check if wallet balance is zero
+    if (user.wallet && parseFloat(user.wallet.balance.toString()) > 0) {
+      throw new BadRequestException(
+        'Please withdraw all funds before requesting account deletion. Current balance: ₦' +
+          user.wallet.balance.toString(),
+      );
+    }
+
+    // Validate custom reason if reason is 'other'
+    if (
+      requestAccountDeletionDto.reason === 'other' &&
+      !requestAccountDeletionDto.customReason?.trim()
+    ) {
+      throw new BadRequestException(
+        'Please provide a reason for account deletion',
+      );
+    }
+
+    // Create account deletion request
+    const deletionRequest = await this.prisma.accountDeletionRequest.create({
+      data: {
+        userId,
+        reason: requestAccountDeletionDto.reason,
+        customReason: requestAccountDeletionDto.customReason,
+        passwordVerified: true,
+        status: 'PENDING',
+      },
+    });
+
+    // Update user status to PENDING_DELETION and set deletionRequested flag
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        status: 'PENDING_DELETION',
+        deletionRequested: true,
+        deletionRequestedAt: new Date(),
+      },
+    });
+
+    // Create audit log
+    await this.prisma.auditLog.create({
+      data: {
+        userId,
+        action: 'ACCOUNT_DELETION_REQUESTED',
+        resource: 'USER',
+        resourceId: userId,
+        metadata: {
+          reason: requestAccountDeletionDto.reason,
+          customReason: requestAccountDeletionDto.customReason,
+          deletionRequestId: deletionRequest.id,
+        },
+      },
+    });
+
+    this.logger.log(
+      `Account deletion requested for user ${userId} - Reason: ${requestAccountDeletionDto.reason}`,
+    );
+
+    // TODO: Send notification to admin about deletion request
+    // TODO: Send confirmation email to user
+
+    return {
+      success: true,
+      message:
+        'Account deletion request submitted successfully. You will be logged out now. An admin will review your request.',
+      deletionRequestId: deletionRequest.id,
+      requestedAt: deletionRequest.requestedAt,
+    };
   }
 }
