@@ -3,6 +3,7 @@ import {
   Get,
   Put,
   Post,
+  Patch,
   Delete,
   Body,
   UseGuards,
@@ -227,5 +228,18 @@ export class UsersController {
       userId,
       requestAccountDeletionDto,
     );
+  }
+
+  /**
+   * Update user's Expo push token
+   * PATCH /api/users/push-token
+   */
+  @Patch('push-token')
+  @HttpCode(HttpStatus.OK)
+  async updatePushToken(
+    @GetUser('id') userId: string,
+    @Body() dto: { pushToken: string },
+  ) {
+    return this.usersService.updatePushToken(userId, dto.pushToken);
   }
 }

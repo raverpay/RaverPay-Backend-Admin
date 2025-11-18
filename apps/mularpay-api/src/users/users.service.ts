@@ -1411,4 +1411,28 @@ export class UsersService {
       requestedAt: deletionRequest.requestedAt,
     };
   }
+
+  /**
+   * Update user's Expo push token
+   *
+   * @param userId - User ID
+   * @param pushToken - Expo push token
+   * @returns Success status
+   */
+  async updatePushToken(userId: string, pushToken: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        expoPushToken: pushToken,
+        lastPushTokenUpdate: new Date(),
+      },
+    });
+
+    this.logger.log(`Updated Expo push token for user ${userId}`);
+
+    return {
+      success: true,
+      message: 'Push token updated successfully',
+    };
+  }
 }

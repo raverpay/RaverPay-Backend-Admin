@@ -1,10 +1,10 @@
-# MularPay Fintech App
+# RaverPay Fintech App
 
 🇳🇬 Nigerian fintech super-app combining wallet system, VTU services, gift card trading, and crypto trading.
 
 ## 📋 Overview
 
-**MularPay Fintech** is a comprehensive fintech platform designed for the Nigerian market, offering:
+**RaverPay Fintech** is a comprehensive fintech platform designed for the Nigerian market, offering:
 
 - 💰 **Wallet System**: Fund wallet, withdraw, transfer
 - 📱 **VTU Services**: Airtime & Data purchase (MTN, Glo, Airtel, 9Mobile)
@@ -18,7 +18,7 @@
 This is a **monorepo** containing:
 
 ```
-MularPay-fintech/
+RaverPay-fintech/
 ├── apps/
 │   ├── api/          # NestJS backend API
 │   ├── mobile/       # React Native (Expo) mobile app
@@ -80,7 +80,7 @@ MularPay-fintech/
 
    ```bash
    git clone <repository-url>
-   cd -MularPay-fintech
+   cd -RaverPay-fintech
    ```
 
 2. **Install dependencies**
@@ -92,7 +92,6 @@ MularPay-fintech/
 3. **Set up environment variables**
 
    Copy `.env.example` files in each app and fill in your credentials:
-
    - `apps/api/.env`
    - `apps/mobile/.env`
    - `apps/web/.env`
@@ -181,10 +180,10 @@ See the [docs/](./docs) folder for detailed documentation:
 pnpm test
 
 # Run API tests
-pnpm --filter @MularPay/api test
+pnpm --filter @RaverPay/api test
 
 # Run with coverage
-pnpm --filter @MularPay/api test:cov
+pnpm --filter @RaverPay/api test:cov
 ```
 
 ## 🚢 Deployment
@@ -244,7 +243,7 @@ UNLICENSED - Private project
 
 ## 👨‍💻 Author
 
-** MularPay Fintech Team**
+** RaverPay Fintech Team**
 
 ---
 

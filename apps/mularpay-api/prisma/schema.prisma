@@ -60,6 +60,10 @@ model User {
   profileEditedOnce Boolean   @default(false)
   profileEditedAt   DateTime?
 
+  // Push Notifications
+  expoPushToken       String?   // Expo push notification token
+  lastPushTokenUpdate DateTime? // Last time push token was updated
+
   // Timestamps
   emailVerified   Boolean   @default(false)
   emailVerifiedAt DateTime?

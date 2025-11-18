@@ -6,7 +6,8 @@ import { NotificationPreferencesController } from './notification-preferences.co
 import { NotificationPreferencesService } from './notification-preferences.service';
 import { NotificationLogService } from './notification-log.service';
 import { NotificationDispatcherService } from './notification-dispatcher.service';
-import { OneSignalService } from './onesignal.service';
+import { ExpoPushService } from './expo-push.service';
+// import { OneSignalService } from './onesignal.service'; // Deprecated - replaced by Expo
 import { PrismaModule } from '../prisma/prisma.module';
 import { EmailService } from '../services/email/email.service';
 import { SmsService } from '../services/sms/sms.service';
@@ -19,7 +20,8 @@ import { SmsService } from '../services/sms/sms.service';
     NotificationPreferencesService,
     NotificationLogService,
     NotificationDispatcherService,
-    OneSignalService,
+    ExpoPushService,
+    // OneSignalService, // Deprecated
     EmailService,
     SmsService,
   ],
@@ -28,7 +30,7 @@ import { SmsService } from '../services/sms/sms.service';
     NotificationPreferencesService,
     NotificationLogService,
     NotificationDispatcherService,
-    OneSignalService,
+    ExpoPushService,
   ],
 })
 export class NotificationsModule {}

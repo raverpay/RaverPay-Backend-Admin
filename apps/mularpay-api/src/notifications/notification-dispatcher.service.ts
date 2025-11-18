@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from './notifications.service';
 import { NotificationPreferencesService } from './notification-preferences.service';
 import { NotificationLogService } from './notification-log.service';
-import { OneSignalService } from './onesignal.service';
+import { ExpoPushService } from './expo-push.service';
 import { EmailService } from '../services/email/email.service';
 import { SmsService } from '../services/sms/sms.service';
 
@@ -49,7 +49,7 @@ export class NotificationDispatcherService {
     private readonly logService: NotificationLogService,
     private readonly emailService: EmailService,
     private readonly smsService: SmsService,
-    private readonly oneSignalService: OneSignalService,
+    private readonly expoPushService: ExpoPushService,
   ) {}
 
   /**
@@ -84,14 +84,19 @@ export class NotificationDispatcherService {
         allowedChannels,
       );
 
-      // 3. Send via other channels (email, SMS, push)
-      await this.sendToChannels(notification.id, event, allowedChannels);
-
-      // 4. Update notification delivery status
-      await this.updateNotificationDeliveryStatus(notification.id);
+      // 3. Send via other channels (email, SMS, push) asynchronously
+      // Don't await - fire and forget to avoid blocking transaction responses
+      this.sendToChannelsAsync(notification.id, event, allowedChannels).catch(
+        (error) => {
+          this.logger.error(
+            `Error in async notification delivery for ${notification.id}`,
+            error,
+          );
+        },
+      );
 
       this.logger.log(
-        `Notification ${notification.id} dispatched to channels: ${allowedChannels.join(', ')}`,
+        `Notification ${notification.id} created, sending to channels: ${allowedChannels.join(', ')}`,
       );
 
       return notification;
@@ -169,13 +174,14 @@ export class NotificationDispatcherService {
   }
 
   /**
-   * Send notification to all allowed channels
+   * Send notification to all allowed channels asynchronously
+   * This method runs in the background and doesn't block the caller
    *
    * @param notificationId - Notification ID
    * @param event - Notification event
    * @param channels - Channels to send to
    */
-  private async sendToChannels(
+  private async sendToChannelsAsync(
     notificationId: string,
     event: NotificationEvent,
     channels: string[],
@@ -196,6 +202,13 @@ export class NotificationDispatcherService {
 
     // Send all channels in parallel
     await Promise.allSettled(sendPromises);
+
+    // Update notification delivery status after all channels complete
+    await this.updateNotificationDeliveryStatus(notificationId);
+
+    this.logger.log(
+      `Async notification delivery complete for ${notificationId}`,
+    );
   }
 
   /**
@@ -326,39 +339,65 @@ export class NotificationDispatcherService {
    */
   private async sendPush(notificationId: string, event: NotificationEvent) {
     try {
-      // Send push notification via OneSignal using external user ID
-      // No need to fetch player ID from database - OneSignal handles routing
-      await this.oneSignalService.sendToUser(event.userId, {
-        headings: { en: event.title },
-        contents: { en: event.message },
-        data: {
-          notificationId,
-          category: event.category,
-          eventType: event.eventType,
-          ...event.data,
+      // Get user's Expo push token
+      const user = await this.prisma.user.findUnique({
+        where: { id: event.userId },
+        select: { expoPushToken: true },
+      });
+
+      if (!user || !user.expoPushToken) {
+        this.logger.warn(
+          `No Expo push token for user ${event.userId}, skipping push notification`,
+        );
+        return;
+      }
+
+      // Send push notification via Expo
+      const success = await this.expoPushService.sendToToken(
+        user.expoPushToken,
+        {
+          title: event.title,
+          body: event.message,
+          data: {
+            notificationId,
+            category: event.category,
+            eventType: event.eventType,
+            ...event.data,
+          },
+          sound: 'default',
+          badge: 1,
+          priority: 'high',
         },
-        ios_badgeType: 'Increase',
-        ios_badgeCount: 1,
-      });
-
-      await this.logService.logDelivery({
-        notificationId,
-        userId: event.userId,
-        channel: 'PUSH',
-        status: 'SENT',
-        provider: 'onesignal',
-      });
-
-      this.logger.log(
-        `Push notification sent for notification ${notificationId}`,
       );
+
+      if (success) {
+        await this.logService.logDelivery({
+          notificationId,
+          userId: event.userId,
+          channel: 'PUSH',
+          status: 'SENT',
+          provider: 'expo',
+        });
+
+        this.logger.log(
+          `Push notification sent for notification ${notificationId}`,
+        );
+      } else {
+        await this.logService.logFailure({
+          notificationId,
+          userId: event.userId,
+          channel: 'PUSH',
+          failureReason: 'Failed to send via Expo',
+          provider: 'expo',
+        });
+      }
     } catch (error) {
       await this.logService.logFailure({
         notificationId,
         userId: event.userId,
         channel: 'PUSH',
         failureReason: error.message,
-        provider: 'onesignal',
+        provider: 'expo',
       });
 
       this.logger.error(
