@@ -54,7 +54,6 @@ export function welcomeEmailTemplate(firstName: string): {
                     <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 20px 0;" cellpadding="0" cellspacing="0">
                       <tr>
                         <td style="padding: 15px; background: #f8f9fa; border-radius: 8px; vertical-align: top;" width="48%">
-                          <p style="margin: 0 0 8px 0; font-size: 24px;">💰</p>
                           <p style="margin: 0 0 5px 0; font-size: 15px; color: #333333; font-weight: 600;">
                             Fund Your Wallet
                           </p>
@@ -64,7 +63,7 @@ export function welcomeEmailTemplate(firstName: string): {
                         </td>
                         <td width="4%"></td>
                         <td style="padding: 15px; background: #f8f9fa; border-radius: 8px; vertical-align: top;" width="48%">
-                          <p style="margin: 0 0 8px 0; font-size: 24px;">📱</p>
+                         
                           <p style="margin: 0 0 5px 0; font-size: 15px; color: #333333; font-weight: 600;">
                             Buy Airtime & Data
                           </p>
@@ -76,7 +75,7 @@ export function welcomeEmailTemplate(firstName: string): {
                       <tr><td colspan="3" style="height: 12px;"></td></tr>
                       <tr>
                         <td style="padding: 15px; background: #f8f9fa; border-radius: 8px; vertical-align: top;">
-                          <p style="margin: 0 0 8px 0; font-size: 24px;">📺</p>
+                        
                           <p style="margin: 0 0 5px 0; font-size: 15px; color: #333333; font-weight: 600;">
                             Pay Cable TV
                           </p>
@@ -86,7 +85,6 @@ export function welcomeEmailTemplate(firstName: string): {
                         </td>
                         <td width="4%"></td>
                         <td style="padding: 15px; background: #f8f9fa; border-radius: 8px; vertical-align: top;">
-                          <p style="margin: 0 0 8px 0; font-size: 24px;">⚡</p>
                           <p style="margin: 0 0 5px 0; font-size: 15px; color: #333333; font-weight: 600;">
                             Electricity Bills
                           </p>
@@ -98,11 +96,11 @@ export function welcomeEmailTemplate(firstName: string): {
                     </table>
                     
                     <!-- CTA Section -->
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; padding: 30px; text-align: center; margin: 30px 0;">
+                    <div style="background: #5b55f6; border-radius: 10px; padding: 30px; text-align: center; margin: 30px 0;">
                       <p style="margin: 0 0 15px 0; color: #ffffff; font-size: 18px; font-weight: 600;">
                         Ready to get started?
                       </p>
-                      <a href="https://RaverPay.com" style="display: inline-block; background: #ffffff; color: #667eea; text-decoration: none; padding: 14px 40px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+                      <a href="raverpay://app" style="display: inline-block; background: #ffffff; color: #667eea; text-decoration: none; padding: 14px 40px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
                         Open RaverPay App
                       </a>
                     </div>
@@ -110,7 +108,7 @@ export function welcomeEmailTemplate(firstName: string): {
                     <!-- Tips Section -->
                     <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; border-radius: 6px; margin: 30px 0;">
                       <p style="margin: 0 0 10px 0; font-size: 15px; color: #856404; font-weight: 600;">
-                        💡 Quick Tip
+                        Quick Tip
                       </p>
                       <p style="margin: 0; font-size: 14px; color: #856404; line-height: 1.5;">
                         Complete your KYC verification to increase your transaction limits and unlock more features!
@@ -123,7 +121,7 @@ export function welcomeEmailTemplate(firstName: string): {
                     </p>
                     
                     <p style="margin: 15px 0 0 0; font-size: 14px; color: #666666;">
-                      Happy transacting! 🚀<br>
+                      Happy transacting!<br>
                       <strong>The RaverPay Team</strong>
                     </p>
                   </td>
@@ -135,16 +133,16 @@ export function welcomeEmailTemplate(firstName: string): {
                     <p style="margin: 0 0 15px 0; color: #666666; font-size: 14px; font-weight: 600;">
                       Follow us on social media
                     </p>
-                    <p style="margin: 0 0 20px 0;">
-                      <a href="#" style="display: inline-block; margin: 0 10px; color: #667eea; text-decoration: none; font-size: 12px;">Twitter</a>
-                      <a href="#" style="display: inline-block; margin: 0 10px; color: #667eea; text-decoration: none; font-size: 12px;">Instagram</a>
-                      <a href="#" style="display: inline-block; margin: 0 10px; color: #667eea; text-decoration: none; font-size: 12px;">Facebook</a>
+                    <p style="margin: 0 0 20px 0;"> 
+                      <a href="https://x.com/useraverpay" style="display: inline-block; margin: 0 10px; color: #667eea; text-decoration: none; font-size: 12px;">Twitter</a>
+                      <a href="https://www.instagram.com/useraverpay" style="display: inline-block; margin: 0 10px; color: #667eea; text-decoration: none; font-size: 12px;">Instagram</a>
+                      <a href="https://www.facebook.com/useraverpay" style="display: inline-block; margin: 0 10px; color: #667eea; text-decoration: none; font-size: 12px;">Facebook</a>
                     </p>
                     <p style="margin: 0 0 10px 0; color: #999999; font-size: 14px;">
                       <strong>RaverPay</strong>
                     </p>
                     <p style="margin: 0 0 15px 0; color: #999999; font-size: 12px;">
-                      Lagos, Nigeria 🇳🇬
+                      Lagos, Nigeria
                     </p>
                     <p style="margin: 0; color: #cccccc; font-size: 11px;">
                       © 2025 RaverPay. All rights reserved.
@@ -159,9 +157,9 @@ export function welcomeEmailTemplate(firstName: string): {
                 <tr>
                   <td style="text-align: center; padding: 0 20px;">
                     <p style="margin: 0; color: #999999; font-size: 12px;">
-                      <a href="#" style="color: #667eea; text-decoration: none; margin: 0 10px;">Privacy Policy</a>
-                      <a href="#" style="color: #667eea; text-decoration: none; margin: 0 10px;">Terms of Service</a>
-                      <a href="mailto:support@expertvetteddigital.tech" style="color: #667eea; text-decoration: none; margin: 0 10px;">Contact Support</a>
+                      <a href="https://raverpay.expertvetteddigital.tech/privacy" style="color: #667eea; text-decoration: none; margin: 0 10px;">Privacy Policy</a>
+                      <a href="https://raverpay.expertvetteddigital.tech/tos" style="color: #667eea; text-decoration: none; margin: 0 10px;">Terms of Service</a>
+                      <a href="mailto:expertvetteddigital@gmail.com" style="color: #667eea; text-decoration: none; margin: 0 10px;">Contact Support</a>
                     </p>
                   </td>
                 </tr>
