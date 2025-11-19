@@ -65,6 +65,7 @@ export class TermiiProvider implements ISmsProvider {
     firstName: string,
   ): Promise<boolean> {
     if (!this.enabled) {
+      console.log('Is enabled: ', this.enabled);
       this.logger.log(
         `📱 [MOCK] [${this.getProviderName()}] Verification code SMS to ${phone}: ${code}`,
       );
@@ -91,7 +92,7 @@ export class TermiiProvider implements ISmsProvider {
         sms: message,
         type: 'plain',
         api_key: this.apiKey,
-        channel: 'dnd', // Use DND for transactional/OTP messages
+        channel: 'generic', // Use DND for transactional/OTP messages
       };
 
       const response = await this.client.post<TermiiSendResponse>(
@@ -114,6 +115,7 @@ export class TermiiProvider implements ISmsProvider {
     } catch (error) {
       this.logger.error(
         `[${this.getProviderName()}] Error sending verification SMS to ${phone}:`,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         error?.response?.data || error.message,
       );
       return false;
@@ -174,6 +176,7 @@ export class TermiiProvider implements ISmsProvider {
     } catch (error) {
       this.logger.error(
         `[${this.getProviderName()}] Error sending password reset SMS to ${phone}:`,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         error?.response?.data || error.message,
       );
       return false;
@@ -235,6 +238,7 @@ export class TermiiProvider implements ISmsProvider {
     } catch (error) {
       this.logger.error(
         `[${this.getProviderName()}] Error sending transaction alert SMS to ${phone}:`,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         error?.response?.data || error.message,
       );
       return false;
@@ -265,7 +269,8 @@ export class TermiiProvider implements ISmsProvider {
     } catch (error) {
       this.logger.error(
         `[${this.getProviderName()}] Error checking SMS balance:`,
-        error?.response?.data || error.message,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        error?.response?.data || error?.message,
       );
       return 0;
     }
