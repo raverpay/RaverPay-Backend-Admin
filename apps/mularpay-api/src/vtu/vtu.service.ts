@@ -117,6 +117,7 @@ export class VTUService {
         smartcard,
         provider,
       );
+
       return {
         valid: true,
         customerName: result.Customer_Name,
@@ -141,6 +142,8 @@ export class VTUService {
         disco,
         meterType,
       );
+
+      // console.log({ result });
       return {
         valid: true,
         customerName: result.Customer_Name,

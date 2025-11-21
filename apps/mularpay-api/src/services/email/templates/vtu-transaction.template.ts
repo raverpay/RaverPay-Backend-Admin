@@ -26,6 +26,14 @@ export function vtuTransactionEmailTemplate(details: VTUTransactionDetails): {
   const statusColor = isSuccess ? '#10b981' : '#ef4444';
   const statusText = isSuccess ? 'Successful' : 'Failed';
 
+  // Extract electricity token and units for prominent display
+  const electricityToken = details.additionalInfo?.find(
+    (info) => info.label === 'Token',
+  )?.value;
+  const electricityUnits = details.additionalInfo?.find(
+    (info) => info.label === 'Units',
+  )?.value;
+
   const subject = ` ${details.serviceType} ${statusText} - ${details.serviceName}`;
 
   const html = `
@@ -168,6 +176,33 @@ export function vtuTransactionEmailTemplate(details: VTUTransactionDetails): {
                         Your ${details.serviceType.toLowerCase()} has been processed successfully. You can view this transaction in your app history.
                       </p>
                     </div>
+                    ${
+                      details.serviceType === 'Electricity' && electricityToken
+                        ? `
+                    <!-- Electricity Token - Prominent Display -->
+                    <div style="background: #5b55f6; border-radius: 12px; padding: 30px; margin-bottom: 25px; text-align: center; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+                      <h3 style="margin: 0 0 15px 0; font-size: 16px; color: #ffffff; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">
+                        ⚡ Electricity Token
+                      </h3>
+                      <div style="background: #ffffff; border-radius: 8px; padding: 20px; margin-bottom: 15px;">
+                        <p style="margin: 0; font-family: 'Courier New', monospace; font-size: 24px; font-weight: 700; color: #333333; letter-spacing: 3px; word-break: break-all;">
+                          ${electricityToken}
+                        </p>
+                      </div>
+                      ${
+                        electricityUnits
+                          ? `<p style="margin: 0; font-size: 14px; color: rgba(255, 255, 255, 0.9);">
+                          Units: <strong>${electricityUnits}</strong>
+                        </p>`
+                          : ''
+                      }
+                      <p style="margin: 15px 0 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.8); line-height: 1.5;">
+                        Enter this token on your prepaid meter to recharge your electricity.
+                      </p>
+                    </div>
+                    `
+                        : ''
+                    }
                     `
                         : `
                     <!-- Error Message -->
@@ -182,7 +217,7 @@ export function vtuTransactionEmailTemplate(details: VTUTransactionDetails): {
 
                     <!-- CTA Button -->
                     <div style="text-align: center; margin: 30px 0;">
-                      <a href="raverpay://app/transactions" style="display: inline-block; background: #5B55F6; color: #ffffff; text-decoration: none; padding: 14px 35px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);">
+                      <a href="raverpay://app/transactions" style="display: inline-block; background: #5b55f6; color: #ffffff; text-decoration: none; padding: 14px 35px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);">
                         View Transaction History
                       </a>
                     </div>
