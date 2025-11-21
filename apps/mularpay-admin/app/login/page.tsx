@@ -28,7 +28,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword] = useState(false);
 
   const {
     register,

@@ -1,21 +1,21 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import Link from 'next/link'
-import { Search, Eye, Bitcoin, TrendingUp, Clock } from 'lucide-react'
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
+import { Search, Eye, Bitcoin, TrendingUp, Clock } from 'lucide-react';
 
-import { cryptoApi } from '@/lib/api/crypto'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { cryptoApi } from '@/lib/api/crypto';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -23,17 +23,17 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Pagination } from '@/components/ui/pagination'
-import { StatusBadge } from '@/components/ui/status-badge'
-import { formatDate, formatCurrency } from '@/lib/utils'
+} from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Pagination } from '@/components/ui/pagination';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { formatDate, formatCurrency } from '@/lib/utils';
 
 export default function CryptoPage() {
-  const [page, setPage] = useState(1)
-  const [search, setSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState<string>('all')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const { data: cryptoData, isLoading } = useQuery({
     queryKey: ['crypto', page, search, typeFilter, statusFilter],
@@ -47,12 +47,18 @@ export default function CryptoPage() {
         sortBy: 'createdAt',
         sortOrder: 'desc',
       }),
-  })
+  });
 
   const { data: stats } = useQuery({
     queryKey: ['crypto-stats'],
     queryFn: () => cryptoApi.getStatistics(),
-  })
+  });
+
+  // Calculate pending orders from byStatus array
+  const pendingOrders =
+    stats?.byStatus
+      ?.filter((s) => s.status === 'PENDING' || s.status === 'PROCESSING')
+      .reduce((sum, s) => sum + s.count, 0) || 0;
 
   return (
     <div className="space-y-6">
@@ -74,9 +80,7 @@ export default function CryptoPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {stats?.totalOrders?.toLocaleString() || '0'}
-            </div>
+            <div className="text-2xl font-bold">{stats?.totalCount?.toLocaleString() || '0'}</div>
           </CardContent>
         </Card>
 
@@ -91,7 +95,13 @@ export default function CryptoPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats?.totalVolume ? formatCurrency(parseFloat(stats.totalVolume)) : '₦0'}
+              {stats?.totalVolumeNGN
+                ? formatCurrency(
+                    typeof stats.totalVolumeNGN === 'string'
+                      ? parseFloat(stats.totalVolumeNGN)
+                      : stats.totalVolumeNGN,
+                  )
+                : '₦0'}
             </div>
           </CardContent>
         </Card>
@@ -107,7 +117,7 @@ export default function CryptoPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
-              {stats?.pendingOrders?.toLocaleString() || '0'}
+              {pendingOrders.toLocaleString()}
             </div>
           </CardContent>
         </Card>
@@ -214,18 +224,18 @@ export default function CryptoPage() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <p className="text-sm font-medium">{order.cryptoType || 'N/A'}</p>
+                          <p className="text-sm font-medium">
+                            {order.asset || order.type || 'N/A'}
+                          </p>
                           {order.network && (
                             <p className="text-xs text-muted-foreground">{order.network}</p>
                           )}
                         </TableCell>
                         <TableCell className="text-right font-mono">
-                          {order.cryptoAmount
-                            ? parseFloat(order.cryptoAmount).toFixed(8)
-                            : 'N/A'}
+                          {order.cryptoAmount ? parseFloat(order.cryptoAmount).toFixed(8) : 'N/A'}
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {formatCurrency(parseFloat(order.amount))}
+                          {order.nairaAmount ? formatCurrency(parseFloat(order.nairaAmount)) : '₦0'}
                         </TableCell>
                         <TableCell>
                           <StatusBadge status={order.status} />
@@ -267,5 +277,5 @@ export default function CryptoPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

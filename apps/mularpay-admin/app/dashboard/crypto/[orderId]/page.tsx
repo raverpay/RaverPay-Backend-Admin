@@ -1,63 +1,63 @@
-'use client'
+'use client';
 
-import { use, useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
-import { ArrowLeft, CheckCircle2, XCircle, User, Bitcoin, Image as ImageIcon } from 'lucide-react'
-import { toast } from 'sonner'
-import Link from 'next/link'
-import Image from 'next/image'
+import { use, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, CheckCircle2, XCircle, User, Bitcoin } from 'lucide-react';
+import { toast } from 'sonner';
+import Link from 'next/link';
+import Image from 'next/image';
 
-import { cryptoApi } from '@/lib/api/crypto'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { StatusBadge } from '@/components/ui/status-badge'
-import { Skeleton } from '@/components/ui/skeleton'
-import { formatDate, formatCurrency } from '@/lib/utils'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
+import { cryptoApi } from '@/lib/api/crypto';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatDate, formatCurrency, getApiErrorMessage } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 export default function CryptoDetailPage({ params }: { params: Promise<{ orderId: string }> }) {
-  const resolvedParams = use(params)
-  const router = useRouter()
-  const queryClient = useQueryClient()
-  const [approvalAmount, setApprovalAmount] = useState('')
-  const [rejectReason, setRejectReason] = useState('')
+  const resolvedParams = use(params);
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [approvalAmount, setApprovalAmount] = useState('');
+  const [rejectReason, setRejectReason] = useState('');
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['crypto-order', resolvedParams.orderId],
     queryFn: () => cryptoApi.getById(resolvedParams.orderId),
-  })
+  });
 
   const approveMutation = useMutation({
     mutationFn: (amount: number) => cryptoApi.approve(resolvedParams.orderId, amount),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['crypto-order', resolvedParams.orderId] })
-      queryClient.invalidateQueries({ queryKey: ['crypto'] })
-      toast.success('Crypto order approved successfully')
-      setApprovalAmount('')
+      queryClient.invalidateQueries({ queryKey: ['crypto-order', resolvedParams.orderId] });
+      queryClient.invalidateQueries({ queryKey: ['crypto'] });
+      toast.success('Crypto order approved successfully');
+      setApprovalAmount('');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Failed to approve order', {
-        description: error?.response?.data?.message || 'An error occurred',
-      })
+        description: getApiErrorMessage(error, 'Unable to approve order'),
+      });
     },
-  })
+  });
 
   const rejectMutation = useMutation({
     mutationFn: (reason: string) => cryptoApi.reject(resolvedParams.orderId, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['crypto-order', resolvedParams.orderId] })
-      queryClient.invalidateQueries({ queryKey: ['crypto'] })
-      toast.success('Crypto order rejected')
-      setRejectReason('')
+      queryClient.invalidateQueries({ queryKey: ['crypto-order', resolvedParams.orderId] });
+      queryClient.invalidateQueries({ queryKey: ['crypto'] });
+      toast.success('Crypto order rejected');
+      setRejectReason('');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Failed to reject order', {
-        description: error?.response?.data?.message || 'An error occurred',
-      })
+        description: getApiErrorMessage(error, 'Unable to reject order'),
+      });
     },
-  })
+  });
 
   if (isLoading) {
     return (
@@ -68,7 +68,7 @@ export default function CryptoDetailPage({ params }: { params: Promise<{ orderId
           <Skeleton className="h-[400px]" />
         </div>
       </div>
-    )
+    );
   }
 
   if (!order) {
@@ -79,10 +79,10 @@ export default function CryptoDetailPage({ params }: { params: Promise<{ orderId
           Go Back
         </Button>
       </div>
-    )
+    );
   }
 
-  const canApprove = order.status === 'PENDING' || order.status === 'PROCESSING'
+  const canApprove = order.status === 'PENDING' || order.status === 'PROCESSING';
 
   return (
     <div className="space-y-6">
@@ -128,7 +128,7 @@ export default function CryptoDetailPage({ params }: { params: Promise<{ orderId
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Cryptocurrency</p>
-                <p className="text-sm">{order.cryptoType || 'N/A'}</p>
+                <p className="text-sm">{order.asset || 'N/A'}</p>
               </div>
             </div>
 
@@ -146,7 +146,7 @@ export default function CryptoDetailPage({ params }: { params: Promise<{ orderId
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">NGN Amount</p>
-                <p className="text-lg font-bold">{formatCurrency(parseFloat(order.amount))}</p>
+                <p className="text-lg font-bold">{formatCurrency(parseFloat(order.nairaAmount))}</p>
               </div>
             </div>
 
@@ -191,10 +191,10 @@ export default function CryptoDetailPage({ params }: { params: Promise<{ orderId
               </div>
             )}
 
-            {order.rejectReason && (
+            {order.rejectionReason && (
               <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
                 <p className="text-sm font-medium text-destructive">Rejection Reason</p>
-                <p className="text-xs mt-1">{order.rejectReason}</p>
+                <p className="text-xs mt-1">{order.rejectionReason}</p>
               </div>
             )}
           </CardContent>
@@ -245,8 +245,8 @@ export default function CryptoDetailPage({ params }: { params: Promise<{ orderId
                         fill
                         className="object-cover"
                         onError={(e) => {
-                          const target = e.target as HTMLImageElement
-                          target.style.display = 'none'
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
                         }}
                       />
                     </div>
@@ -285,7 +285,7 @@ export default function CryptoDetailPage({ params }: { params: Promise<{ orderId
             <div className="space-y-3">
               <Label>Approve Order</Label>
               <p className="text-sm text-muted-foreground">
-                Enter the final amount to credit the user's wallet (in NGN)
+                Enter the final amount to credit the user&rsquo;s wallet (in NGN)
               </p>
               <div className="flex gap-2">
                 <Input
@@ -334,5 +334,5 @@ export default function CryptoDetailPage({ params }: { params: Promise<{ orderId
         </Card>
       )}
     </div>
-  )
+  );
 }

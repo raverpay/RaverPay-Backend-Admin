@@ -1,21 +1,21 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import Link from 'next/link'
-import { Search, Eye, Smartphone, Wifi, TrendingUp } from 'lucide-react'
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
+import { Search, Eye, Smartphone, Wifi, TrendingUp } from 'lucide-react';
 
-import { vtuApi } from '@/lib/api/vtu'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { vtuApi } from '@/lib/api/vtu';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -23,17 +23,17 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Pagination } from '@/components/ui/pagination'
-import { StatusBadge } from '@/components/ui/status-badge'
-import { formatDate, formatCurrency } from '@/lib/utils'
+} from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Pagination } from '@/components/ui/pagination';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { formatDate, formatCurrency } from '@/lib/utils';
 
 export default function VTUPage() {
-  const [page, setPage] = useState(1)
-  const [search, setSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState<string>('all')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const { data: vtuData, isLoading } = useQuery({
     queryKey: ['vtu', page, search, typeFilter, statusFilter],
@@ -47,12 +47,17 @@ export default function VTUPage() {
         sortBy: 'createdAt',
         sortOrder: 'desc',
       }),
-  })
+  });
 
   const { data: stats } = useQuery({
     queryKey: ['vtu-stats'],
     queryFn: () => vtuApi.getStatistics(),
-  })
+  });
+
+  const totalOrders = stats?.totalOrders ?? 0;
+  const totalVolume = Number(stats?.totalVolume ?? 0);
+  const successRate = stats?.successRate ?? '0';
+  const failedOrders = stats?.failedOrders ?? 0;
 
   return (
     <div className="space-y-6">
@@ -75,7 +80,7 @@ export default function VTUPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats?.totalOrders?.toLocaleString() || '0'}
+              {totalOrders ? totalOrders.toLocaleString() : '0'}
             </div>
           </CardContent>
         </Card>
@@ -91,7 +96,7 @@ export default function VTUPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats?.totalVolume ? formatCurrency(parseFloat(stats.totalVolume)) : '₦0'}
+              {totalVolume ? formatCurrency(totalVolume) : '₦0'}
             </div>
           </CardContent>
         </Card>
@@ -106,7 +111,7 @@ export default function VTUPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.successRate || '0'}%</div>
+            <div className="text-2xl font-bold">{successRate || '0'}%</div>
           </CardContent>
         </Card>
 
@@ -121,7 +126,7 @@ export default function VTUPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">
-              {stats?.failedOrders?.toLocaleString() || '0'}
+              {failedOrders ? failedOrders.toLocaleString() : '0'}
             </div>
           </CardContent>
         </Card>
@@ -260,5 +265,5 @@ export default function VTUPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

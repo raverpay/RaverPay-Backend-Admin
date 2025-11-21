@@ -1,63 +1,63 @@
-'use client'
+'use client';
 
-import { use, useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tantml:react-query'
-import { useRouter } from 'next/navigation'
-import { ArrowLeft, CheckCircle2, XCircle, User, Gift, Image as ImageIcon } from 'lucide-react'
-import { toast } from 'sonner'
-import Link from 'next/link'
-import Image from 'next/image'
+import { use, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, CheckCircle2, XCircle, User, Gift } from 'lucide-react';
+import { toast } from 'sonner';
+import Link from 'next/link';
+import Image from 'next/image';
 
-import { giftcardsApi } from '@/lib/api/giftcards'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { StatusBadge } from '@/components/ui/status-badge'
-import { Skeleton } from '@/components/ui/skeleton'
-import { formatDate, formatCurrency } from '@/lib/utils'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
+import { giftcardsApi } from '@/lib/api/giftcards';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatDate, formatCurrency, getApiErrorMessage } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 export default function GiftCardDetailPage({ params }: { params: Promise<{ orderId: string }> }) {
-  const resolvedParams = use(params)
-  const router = useRouter()
-  const queryClient = useQueryClient()
-  const [approvalAmount, setApprovalAmount] = useState('')
-  const [rejectReason, setRejectReason] = useState('')
+  const resolvedParams = use(params);
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [approvalAmount, setApprovalAmount] = useState('');
+  const [rejectReason, setRejectReason] = useState('');
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['giftcard-order', resolvedParams.orderId],
     queryFn: () => giftcardsApi.getById(resolvedParams.orderId),
-  })
+  });
 
   const approveMutation = useMutation({
     mutationFn: (amount: number) => giftcardsApi.approve(resolvedParams.orderId, amount),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['giftcard-order', resolvedParams.orderId] })
-      queryClient.invalidateQueries({ queryKey: ['giftcards'] })
-      toast.success('Gift card order approved successfully')
-      setApprovalAmount('')
+      queryClient.invalidateQueries({ queryKey: ['giftcard-order', resolvedParams.orderId] });
+      queryClient.invalidateQueries({ queryKey: ['giftcards'] });
+      toast.success('Gift card order approved successfully');
+      setApprovalAmount('');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Failed to approve order', {
-        description: error?.response?.data?.message || 'An error occurred',
-      })
+        description: getApiErrorMessage(error, 'Unable to approve order'),
+      });
     },
-  })
+  });
 
   const rejectMutation = useMutation({
     mutationFn: (reason: string) => giftcardsApi.reject(resolvedParams.orderId, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['giftcard-order', resolvedParams.orderId] })
-      queryClient.invalidateQueries({ queryKey: ['giftcards'] })
-      toast.success('Gift card order rejected')
-      setRejectReason('')
+      queryClient.invalidateQueries({ queryKey: ['giftcard-order', resolvedParams.orderId] });
+      queryClient.invalidateQueries({ queryKey: ['giftcards'] });
+      toast.success('Gift card order rejected');
+      setRejectReason('');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Failed to reject order', {
-        description: error?.response?.data?.message || 'An error occurred',
-      })
+        description: getApiErrorMessage(error, 'Unable to reject order'),
+      });
     },
-  })
+  });
 
   if (isLoading) {
     return (
@@ -68,7 +68,7 @@ export default function GiftCardDetailPage({ params }: { params: Promise<{ order
           <Skeleton className="h-[400px]" />
         </div>
       </div>
-    )
+    );
   }
 
   if (!order) {
@@ -79,10 +79,10 @@ export default function GiftCardDetailPage({ params }: { params: Promise<{ order
           Go Back
         </Button>
       </div>
-    )
+    );
   }
 
-  const canApprove = order.status === 'PENDING' || order.status === 'PROCESSING'
+  const canApprove = order.status === 'PENDING' || order.status === 'PROCESSING';
 
   return (
     <div className="space-y-6">
@@ -217,15 +217,18 @@ export default function GiftCardDetailPage({ params }: { params: Promise<{ order
                 <p className="text-sm font-medium text-muted-foreground mb-2">Card Images</p>
                 <div className="grid grid-cols-2 gap-2">
                   {order.cardImages.map((image, index) => (
-                    <div key={index} className="relative aspect-video rounded-lg overflow-hidden border">
+                    <div
+                      key={index}
+                      className="relative aspect-video rounded-lg overflow-hidden border"
+                    >
                       <Image
                         src={image}
                         alt={`Card image ${index + 1}`}
                         fill
                         className="object-cover"
                         onError={(e) => {
-                          const target = e.target as HTMLImageElement
-                          target.style.display = 'none'
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
                         }}
                       />
                     </div>
@@ -271,7 +274,7 @@ export default function GiftCardDetailPage({ params }: { params: Promise<{ order
             <div className="space-y-3">
               <Label>Approve Order</Label>
               <p className="text-sm text-muted-foreground">
-                Enter the final amount to credit the user's wallet (in NGN)
+                Enter the final amount to credit the user&rsquo;s wallet (in NGN)
               </p>
               <div className="flex gap-2">
                 <Input
@@ -320,5 +323,5 @@ export default function GiftCardDetailPage({ params }: { params: Promise<{ order
         </Card>
       )}
     </div>
-  )
+  );
 }

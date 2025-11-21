@@ -3,7 +3,7 @@
 import { use, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Snowflake, Unlock, XCircle, User, CreditCard } from 'lucide-react';
+import { ArrowLeft, Snowflake, Unlock, XCircle, User } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 
@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatDate } from '@/lib/utils';
+import { formatDate, getApiErrorMessage } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { VirtualAccount } from '@/types';
@@ -28,7 +28,7 @@ export default function VirtualAccountDetailPage({
   const [freezeReason, setFreezeReason] = useState('');
   const [closeReason, setCloseReason] = useState('');
 
-  const { data: account, isPending: isLoading } = useQuery({
+  const { data: account, isPending: isLoading } = useQuery<VirtualAccount | VirtualAccount[]>({
     queryKey: ['virtual-account', resolvedParams.accountId],
     queryFn: () => virtualAccountsApi.getById(resolvedParams.accountId),
   });
@@ -41,9 +41,9 @@ export default function VirtualAccountDetailPage({
       toast.success('Virtual account frozen successfully');
       setFreezeReason('');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Failed to freeze account', {
-        description: error?.response?.data?.message || 'An error occurred',
+        description: getApiErrorMessage(error, 'Unable to freeze account'),
       });
     },
   });
@@ -55,9 +55,9 @@ export default function VirtualAccountDetailPage({
       queryClient.invalidateQueries({ queryKey: ['virtual-accounts'] });
       toast.success('Virtual account unfrozen successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Failed to unfreeze account', {
-        description: error?.response?.data?.message || 'An error occurred',
+        description: getApiErrorMessage(error, 'Unable to unfreeze account'),
       });
     },
   });
@@ -70,9 +70,9 @@ export default function VirtualAccountDetailPage({
       toast.success('Virtual account closed successfully');
       setCloseReason('');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Failed to close account', {
-        description: error?.response?.data?.message || 'An error occurred',
+        description: getApiErrorMessage(error, 'Unable to close account'),
       });
     },
   });
@@ -100,6 +100,9 @@ export default function VirtualAccountDetailPage({
     );
   }
 
+  const accounts: VirtualAccount[] = Array.isArray(account) ? account : [account];
+  const primaryAccount = accounts[0];
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'ACTIVE':
@@ -120,11 +123,9 @@ export default function VirtualAccountDetailPage({
 
   // account is an array so adjust the below logic
   // Don't just pick the first account, check the status of all accounts
-  const canFreeze = account.some((account: { status: string }) => account.status === 'ACTIVE');
-  const canUnfreeze = account.some((account: { status: string }) => account.status === 'FROZEN');
-  const canClose =
-    account.some((account: { status: string }) => account.status === 'ACTIVE') ||
-    account.some((account: { status: string }) => account.status === 'FROZEN');
+  const canFreeze = accounts.some((item) => item.status === 'ACTIVE');
+  const canUnfreeze = accounts.some((item) => item.status === 'FROZEN');
+  const canClose = accounts.some((item) => item.status === 'ACTIVE' || item.status === 'FROZEN');
 
   return (
     <div className="space-y-6">
@@ -135,7 +136,7 @@ export default function VirtualAccountDetailPage({
         </Button>
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Virtual Account Details</h2>
-          <p className="text-muted-foreground font-mono">{account.accountNumber}</p>
+          <p className="text-muted-foreground font-mono">{primaryAccount?.accountNumber}</p>
         </div>
       </div>
 
@@ -147,100 +148,95 @@ export default function VirtualAccountDetailPage({
             <CardDescription>Virtual bank account details</CardDescription>
           </CardHeader>
 
-          {account &&
-            account.map((account: VirtualAccount) => (
-              <CardContent className="space-y-4" key={account.id}>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Account Number</p>
-                    <p className="text-lg font-mono font-bold">{account.accountNumber}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Status</p>
-                    <div className="mt-1">{getStatusBadge(account.status)}</div>
-                  </div>
-                </div>
-
+          {accounts.map((acct) => (
+            <CardContent className="space-y-4" key={acct.id}>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Account Name</p>
-                  <p className="text-sm">{account.accountName || 'N/A'}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Account Number</p>
+                  <p className="text-lg font-mono font-bold">{acct.accountNumber}</p>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Bank Name</p>
-                    <p className="text-sm">{account.bankName || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Provider</p>
-                    <p className="text-sm">{account.provider || 'N/A'}</p>
-                  </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Status</p>
+                  <div className="mt-1">{getStatusBadge(acct.status)}</div>
                 </div>
+              </div>
 
-                {account.bankCode && (
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Bank Code</p>
-                    <p className="text-sm font-mono">{account.bankCode}</p>
-                  </div>
-                )}
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Account Name</p>
+                <p className="text-sm">{acct.accountName || 'N/A'}</p>
+              </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Created</p>
-                    <p className="text-sm">{formatDate(account.createdAt)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Updated</p>
-                    <p className="text-sm">{formatDate(account.updatedAt)}</p>
-                  </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Bank Name</p>
+                  <p className="text-sm">{acct.bankName || 'N/A'}</p>
                 </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Provider</p>
+                  <p className="text-sm">{acct.provider || 'N/A'}</p>
+                </div>
+              </div>
 
-                {account.frozenAt && (
-                  <div className="rounded-lg border border-orange-500 bg-orange-50 dark:bg-orange-950/20 p-4">
-                    <p className="text-sm font-medium text-orange-600">Account Frozen</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {formatDate(account.frozenAt)}
-                    </p>
-                    {account.freezeReason && <p className="text-xs mt-2">{account.freezeReason}</p>}
-                  </div>
-                )}
+              {acct.bankCode && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Bank Code</p>
+                  <p className="text-sm font-mono">{acct.bankCode}</p>
+                </div>
+              )}
 
-                {account.closedAt && (
-                  <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
-                    <p className="text-sm font-medium text-destructive">Account Closed</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {formatDate(account.closedAt)}
-                    </p>
-                    {account.closeReason && <p className="text-xs mt-2">{account.closeReason}</p>}
-                  </div>
-                )}
-              </CardContent>
-            ))}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Created</p>
+                  <p className="text-sm">{formatDate(acct.createdAt)}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Updated</p>
+                  <p className="text-sm">{formatDate(acct.updatedAt)}</p>
+                </div>
+              </div>
+
+              {acct.frozenAt && (
+                <div className="rounded-lg border border-orange-500 bg-orange-50 dark:bg-orange-950/20 p-4">
+                  <p className="text-sm font-medium text-orange-600">Account Frozen</p>
+                  <p className="text-xs text-muted-foreground mt-1">{formatDate(acct.frozenAt)}</p>
+                  {acct.freezeReason && <p className="text-xs mt-2">{acct.freezeReason}</p>}
+                </div>
+              )}
+
+              {acct.closedAt && (
+                <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
+                  <p className="text-sm font-medium text-destructive">Account Closed</p>
+                  <p className="text-xs text-muted-foreground mt-1">{formatDate(acct.closedAt)}</p>
+                  {acct.closeReason && <p className="text-xs mt-2">{acct.closeReason}</p>}
+                </div>
+              )}
+            </CardContent>
+          ))}
         </Card>
 
         {/* User Information */}
-        {account && account.length > 0 && (
+        {primaryAccount && accounts.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>User Information</CardTitle>
               <CardDescription>Account owner details</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {account.map(
-                (account: VirtualAccount) =>
-                  account.user && (
+              {accounts.map(
+                (acct) =>
+                  acct.user && (
                     <>
                       <div>
                         <p className="text-sm font-medium text-muted-foreground mb-2">User</p>
                         <div className="flex items-center justify-between p-3 rounded-lg border">
                           <div>
                             <p className="font-medium">
-                              {account.user.firstName} {account.user.lastName}
+                              {acct.user.firstName} {acct.user.lastName}
                             </p>
-                            <p className="text-sm text-muted-foreground">{account.user.email}</p>
-                            <p className="text-xs text-muted-foreground">{account.user.phone}</p>
+                            <p className="text-sm text-muted-foreground">{acct.user.email}</p>
+                            <p className="text-xs text-muted-foreground">{acct.user.phone}</p>
                           </div>
-                          <Link href={`/dashboard/users/${account.user.id}`}>
+                          <Link href={`/dashboard/users/${acct.user.id}`}>
                             <Button variant="outline" size="sm" className="gap-2">
                               <User className="h-4 w-4" />
                               View
@@ -253,9 +249,9 @@ export default function VirtualAccountDetailPage({
                         <p className="text-sm font-medium text-muted-foreground">Account Status</p>
                         <div className="mt-1">
                           <Badge
-                            variant={account.user.status === 'ACTIVE' ? 'success' : 'destructive'}
+                            variant={acct.user.status === 'ACTIVE' ? 'success' : 'destructive'}
                           >
-                            {account.user.status}
+                            {acct.user.status}
                           </Badge>
                         </div>
                       </div>
@@ -263,11 +259,11 @@ export default function VirtualAccountDetailPage({
                   ),
               )}
 
-              {account.metadata && Object.keys(account.metadata).length > 0 && (
+              {primaryAccount?.metadata && Object.keys(primaryAccount.metadata).length > 0 && (
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-2">Metadata</p>
                   <pre className="text-xs bg-muted p-3 rounded-lg overflow-auto max-h-40">
-                    {JSON.stringify(account.metadata, null, 2)}
+                    {JSON.stringify(primaryAccount.metadata, null, 2)}
                   </pre>
                 </div>
               )}

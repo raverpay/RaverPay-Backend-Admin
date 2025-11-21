@@ -1,5 +1,3 @@
-import { JSX } from 'react/jsx-runtime';
-
 // User Types
 export type UserRole = 'USER' | 'SUPPORT' | 'ADMIN' | 'SUPER_ADMIN';
 export type UserStatus = 'ACTIVE' | 'SUSPENDED' | 'BANNED' | 'PENDING_VERIFICATION' | 'DEACTIVATED';
@@ -64,7 +62,13 @@ export type TransactionType =
   | 'REVERSAL'
   | 'ADJUSTMENT';
 
-export type TransactionStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'REVERSED';
+export type TransactionStatus =
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'CANCELLED'
+  | 'REVERSED';
 
 export interface Transaction {
   id: string;
@@ -82,7 +86,7 @@ export interface Transaction {
   provider?: string | null;
   providerReference?: string | null;
   channel?: string | null;
-  metadata?: Record<string, any> | null;
+  metadata?: Record<string, unknown> | null;
   reversedAt?: string | null;
   reversedBy?: string | null;
   reverseReason?: string | null;
@@ -98,15 +102,24 @@ export interface VTUOrder {
   id: string;
   userId: string;
   serviceType: VTUServiceType;
+  type?: VTUServiceType;
   provider: string;
   productCode: string;
   amount: string;
   recipient: string;
+  phoneNumber?: string | null;
   reference: string;
   status: TransactionStatus;
+  network?: string | null;
+  dataBundle?: string | null;
   providerReference?: string | null;
-  providerResponse?: Record<string, any> | null;
+  providerResponse?: Record<string, unknown> | null;
   transactionId?: string | null;
+  completedAt?: string | null;
+  refundedAt?: string | null;
+  refundReason?: string | null;
+  failureReason?: string | null;
+  metadata?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
   user?: User;
@@ -125,17 +138,25 @@ export interface GiftCardOrder {
   faceValue: string;
   rate: string;
   amount: string;
+  cardCategory?: string | null;
+  cardName?: string | null;
+  cardValue?: string | null;
   cardNumber?: string | null;
   cardPin?: string | null;
   cardImages?: string[] | null;
+  cardCode?: string | null;
   reference: string;
   status: TransactionStatus;
   reviewedBy?: string | null;
   reviewedAt?: string | null;
   rejectionReason?: string | null;
+  rejectReason?: string | null;
   transactionId?: string | null;
   createdAt: string;
   updatedAt: string;
+  completedAt?: string | null;
+  notes?: string | null;
+  metadata?: Record<string, unknown> | null;
   user?: User;
   transaction?: Transaction;
 }
@@ -164,19 +185,25 @@ export interface CryptoOrder {
   transactionId?: string | null;
   createdAt: string;
   updatedAt: string;
+  completedAt?: string | null;
   user?: User;
   transaction?: Transaction;
+  // Additional fields that may be returned by the API
+  proofImages?: string[] | null;
+  notes?: string | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 // Virtual Account Types
+export type VirtualAccountStatus = 'ACTIVE' | 'FROZEN' | 'CLOSED' | 'INACTIVE';
+
 export interface VirtualAccount {
-  [x: string]: any;
   bankCode: string;
   frozenAt: string | null;
   freezeReason: string | null;
   closedAt: string | null;
   closeReason: string | null;
-  status: TransactionStatus;
+  status: VirtualAccountStatus;
   id: string;
   userId: string;
   provider: string;
@@ -185,7 +212,7 @@ export interface VirtualAccount {
   bankName: string;
   isActive: boolean;
   providerReference?: string | null;
-  metadata?: Record<string, any> | null;
+  metadata?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
   user?: User;
@@ -229,7 +256,7 @@ export interface Notification {
   message: string;
   isRead: boolean;
   readAt?: string | null;
-  metadata?: Record<string, any> | null;
+  metadata?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
   user?: User;
@@ -242,8 +269,8 @@ export interface AuditLog {
   action: string;
   resource: string;
   resourceId: string;
-  changes?: Record<string, any> | null;
-  metadata?: Record<string, any> | null;
+  changes?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown> | null;
   ipAddress?: string | null;
   userAgent?: string | null;
   createdAt: string;
@@ -375,6 +402,9 @@ export interface WalletStatistics {
 
 export interface KYCStatistics {
   total: number;
+  pendingCount?: number;
+  approvedCount?: number;
+  rejectedCount?: number;
   byTier: Record<KYCTier, number>;
   pendingBVN: number;
   pendingNIN: number;
@@ -386,6 +416,7 @@ export interface VTUStatistics {
   totalVolume: string;
   averageAmount: string;
   successRate: string;
+  failedOrders?: number;
   byServiceType: Array<{
     serviceType: VTUServiceType;
     count: number;
@@ -396,4 +427,133 @@ export interface VTUStatistics {
     count: number;
     volume: string;
   }>;
+}
+
+export interface GiftCardStatistics {
+  totalCount: number;
+  totalOrders?: number;
+  totalVolume: number | string;
+  averageAmount: number | string;
+  averageRate: number | string;
+  approvalRate: string;
+  successRate?: string;
+  pendingOrders?: number;
+  byType: Array<{
+    type: GiftCardType;
+    count: number;
+    volume: number | string;
+  }>;
+  byBrand: Array<{
+    brand: string;
+    count: number;
+    volume: number | string;
+  }>;
+  byStatus: Array<{
+    status: TransactionStatus;
+    count: number;
+  }>;
+}
+
+export interface CryptoStatistics {
+  totalCount: number;
+  totalVolumeNGN: number | string;
+  totalVolumeCrypto: number | string;
+  averageAmountNGN: number | string;
+  averageRate: number | string;
+  approvalRate: string;
+  successRate?: string;
+  byType: Array<{
+    type: CryptoType;
+    count: number;
+    volumeNGN: number | string;
+  }>;
+  byAsset: Array<{
+    asset: string;
+    count: number;
+    volumeCrypto: number | string;
+    volumeNGN: number | string;
+  }>;
+  byStatus: Array<{
+    status: TransactionStatus;
+    count: number;
+  }>;
+}
+
+export interface VirtualAccountStatistics {
+  total: number;
+  active: number;
+  inactive: number;
+  frozen?: number;
+  byProvider: Record<string, number>;
+}
+
+export type VerificationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'NOT_SUBMITTED';
+
+export interface KycQueueEntry {
+  id: string;
+  email?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
+  kycTier?: KYCTier | number | null;
+  bvn?: string | null;
+  nin?: string | null;
+  daysPending?: number;
+  user?: Pick<User, 'id' | 'email' | 'firstName' | 'lastName'>;
+}
+
+export type KycPendingResponse = Record<'pendingBVN' | 'pendingNIN', KycQueueEntry[]>;
+
+export type KycRejectedResponse = Record<'rejectedBVN' | 'rejectedNIN', KycQueueEntry[]>;
+
+export interface KYC {
+  userId?: string;
+  user?: User;
+  kycTier?: KYCTier;
+  bvn?: string | null;
+  nin?: string | null;
+  bvnData?: Record<string, unknown> | null;
+  ninData?: Record<string, unknown> | null;
+  bvnVerificationStatus?: VerificationStatus;
+  ninVerificationStatus?: VerificationStatus;
+  bvnVerifiedAt?: string | null;
+  ninVerifiedAt?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  auditLogs: AuditLog[];
+}
+
+export interface KycVerificationResult {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  kycTier: KYCTier;
+  bvnVerified?: boolean;
+  ninVerified?: boolean;
+}
+
+export interface GiftCardReviewResult {
+  order: GiftCardOrder;
+  transaction: Transaction;
+}
+
+export interface CryptoReviewResult {
+  order: CryptoOrder;
+  transaction: Transaction;
+}
+
+export interface WalletAdjustmentResult {
+  wallet: Wallet;
+  transaction: Transaction;
+}
+
+export interface TransactionReversalResult {
+  originalTransaction: Transaction;
+  reversalTransaction: Transaction;
+}
+
+export interface VTURefundResult {
+  order: VTUOrder;
+  refundTransaction: Transaction;
 }

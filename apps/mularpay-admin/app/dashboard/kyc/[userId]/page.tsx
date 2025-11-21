@@ -1,90 +1,90 @@
-'use client'
+'use client';
 
-import { use, useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
-import { ArrowLeft, CheckCircle2, XCircle, User, FileText, AlertCircle } from 'lucide-react'
-import { toast } from 'sonner'
-import Link from 'next/link'
+import { use, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, CheckCircle2, XCircle, User, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import Link from 'next/link';
 
-import { kycApi } from '@/lib/api/kyc'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
-import { formatDate } from '@/lib/utils'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
+import { kycApi } from '@/lib/api/kyc';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatDate, getApiErrorMessage } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 export default function KYCDetailPage({ params }: { params: Promise<{ userId: string }> }) {
-  const resolvedParams = use(params)
-  const router = useRouter()
-  const queryClient = useQueryClient()
-  const [bvnRejectReason, setBvnRejectReason] = useState('')
-  const [ninRejectReason, setNinRejectReason] = useState('')
+  const resolvedParams = use(params);
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [bvnRejectReason, setBvnRejectReason] = useState('');
+  const [ninRejectReason, setNinRejectReason] = useState('');
 
   const { data: kyc, isLoading } = useQuery({
     queryKey: ['kyc', resolvedParams.userId],
     queryFn: () => kycApi.getById(resolvedParams.userId),
-  })
+  });
 
   const approveBvnMutation = useMutation({
     mutationFn: () => kycApi.approveBVN(resolvedParams.userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['kyc', resolvedParams.userId] })
-      queryClient.invalidateQueries({ queryKey: ['kyc'] })
-      toast.success('BVN verification approved successfully')
+      queryClient.invalidateQueries({ queryKey: ['kyc', resolvedParams.userId] });
+      queryClient.invalidateQueries({ queryKey: ['kyc'] });
+      toast.success('BVN verification approved successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Failed to approve BVN', {
-        description: error?.response?.data?.message || 'An error occurred',
-      })
+        description: getApiErrorMessage(error, 'Unable to approve BVN'),
+      });
     },
-  })
+  });
 
   const rejectBvnMutation = useMutation({
     mutationFn: (reason: string) => kycApi.rejectBVN(resolvedParams.userId, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['kyc', resolvedParams.userId] })
-      queryClient.invalidateQueries({ queryKey: ['kyc'] })
-      toast.success('BVN verification rejected')
-      setBvnRejectReason('')
+      queryClient.invalidateQueries({ queryKey: ['kyc', resolvedParams.userId] });
+      queryClient.invalidateQueries({ queryKey: ['kyc'] });
+      toast.success('BVN verification rejected');
+      setBvnRejectReason('');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Failed to reject BVN', {
-        description: error?.response?.data?.message || 'An error occurred',
-      })
+        description: getApiErrorMessage(error, 'Unable to reject BVN'),
+      });
     },
-  })
+  });
 
   const approveNinMutation = useMutation({
     mutationFn: () => kycApi.approveNIN(resolvedParams.userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['kyc', resolvedParams.userId] })
-      queryClient.invalidateQueries({ queryKey: ['kyc'] })
-      toast.success('NIN verification approved successfully')
+      queryClient.invalidateQueries({ queryKey: ['kyc', resolvedParams.userId] });
+      queryClient.invalidateQueries({ queryKey: ['kyc'] });
+      toast.success('NIN verification approved successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Failed to approve NIN', {
-        description: error?.response?.data?.message || 'An error occurred',
-      })
+        description: getApiErrorMessage(error, 'Unable to approve NIN'),
+      });
     },
-  })
+  });
 
   const rejectNinMutation = useMutation({
     mutationFn: (reason: string) => kycApi.rejectNIN(resolvedParams.userId, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['kyc', resolvedParams.userId] })
-      queryClient.invalidateQueries({ queryKey: ['kyc'] })
-      toast.success('NIN verification rejected')
-      setNinRejectReason('')
+      queryClient.invalidateQueries({ queryKey: ['kyc', resolvedParams.userId] });
+      queryClient.invalidateQueries({ queryKey: ['kyc'] });
+      toast.success('NIN verification rejected');
+      setNinRejectReason('');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Failed to reject NIN', {
-        description: error?.response?.data?.message || 'An error occurred',
-      })
+        description: getApiErrorMessage(error, 'Unable to reject NIN'),
+      });
     },
-  })
+  });
 
   if (isLoading) {
     return (
@@ -95,7 +95,7 @@ export default function KYCDetailPage({ params }: { params: Promise<{ userId: st
           <Skeleton className="h-[400px]" />
         </div>
       </div>
-    )
+    );
   }
 
   if (!kyc) {
@@ -106,7 +106,7 @@ export default function KYCDetailPage({ params }: { params: Promise<{ userId: st
           Go Back
         </Button>
       </div>
-    )
+    );
   }
 
   const getKYCStatusBadge = (status: string) => {
@@ -117,28 +117,28 @@ export default function KYCDetailPage({ params }: { params: Promise<{ userId: st
             <AlertCircle className="h-3 w-3" />
             Pending Review
           </Badge>
-        )
+        );
       case 'APPROVED':
         return (
           <Badge variant="success" className="gap-1">
             <CheckCircle2 className="h-3 w-3" />
             Approved
           </Badge>
-        )
+        );
       case 'REJECTED':
         return (
           <Badge variant="destructive" className="gap-1">
             <XCircle className="h-3 w-3" />
             Rejected
           </Badge>
-        )
+        );
       default:
-        return <Badge variant="secondary">Not Submitted</Badge>
+        return <Badge variant="secondary">Not Submitted</Badge>;
     }
-  }
+  };
 
-  const canApproveBVN = kyc.bvnVerificationStatus === 'PENDING'
-  const canApproveNIN = kyc.ninVerificationStatus === 'PENDING'
+  const canApproveBVN = kyc.bvnVerificationStatus === 'PENDING';
+  const canApproveNIN = kyc.ninVerificationStatus === 'PENDING';
 
   return (
     <div className="space-y-6">
@@ -386,5 +386,5 @@ export default function KYCDetailPage({ params }: { params: Promise<{ userId: st
         </Card>
       )}
     </div>
-  )
+  );
 }

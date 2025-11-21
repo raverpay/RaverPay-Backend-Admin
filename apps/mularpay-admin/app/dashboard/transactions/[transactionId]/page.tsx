@@ -1,64 +1,64 @@
-'use client'
+'use client';
 
-import { use } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
-import { ArrowLeft, RotateCcw, Undo2, User } from 'lucide-react'
-import { toast } from 'sonner'
-import Link from 'next/link'
+import { use } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, RotateCcw, Undo2, User } from 'lucide-react';
+import { toast } from 'sonner';
+import Link from 'next/link';
 
-import { transactionsApi } from '@/lib/api/transactions'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { StatusBadge } from '@/components/ui/status-badge'
-import { Skeleton } from '@/components/ui/skeleton'
-import { formatDate, formatCurrency } from '@/lib/utils'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import { useState } from 'react'
+import { transactionsApi } from '@/lib/api/transactions';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatDate, formatCurrency, getApiErrorMessage } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { useState } from 'react';
 
 export default function TransactionDetailPage({
   params,
 }: {
-  params: Promise<{ transactionId: string }>
+  params: Promise<{ transactionId: string }>;
 }) {
-  const resolvedParams = use(params)
-  const router = useRouter()
-  const queryClient = useQueryClient()
-  const [reverseReason, setReverseReason] = useState('')
+  const resolvedParams = use(params);
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [reverseReason, setReverseReason] = useState('');
 
   const { data: transaction, isLoading } = useQuery({
     queryKey: ['transaction', resolvedParams.transactionId],
     queryFn: () => transactionsApi.getById(resolvedParams.transactionId),
-  })
+  });
 
   const reverseMutation = useMutation({
     mutationFn: (reason: string) => transactionsApi.reverse(resolvedParams.transactionId, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transaction', resolvedParams.transactionId] })
-      queryClient.invalidateQueries({ queryKey: ['transactions'] })
-      toast.success('Transaction reversed successfully')
-      setReverseReason('')
+      queryClient.invalidateQueries({ queryKey: ['transaction', resolvedParams.transactionId] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      toast.success('Transaction reversed successfully');
+      setReverseReason('');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Failed to reverse transaction', {
-        description: error?.response?.data?.message || 'An error occurred',
-      })
+        description: getApiErrorMessage(error, 'Unable to reverse transaction'),
+      });
     },
-  })
+  });
 
   const retryMutation = useMutation({
     mutationFn: () => transactionsApi.retry(resolvedParams.transactionId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transaction', resolvedParams.transactionId] })
-      toast.success('Transaction retry initiated')
+      queryClient.invalidateQueries({ queryKey: ['transaction', resolvedParams.transactionId] });
+      toast.success('Transaction retry initiated');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Failed to retry transaction', {
-        description: error?.response?.data?.message || 'An error occurred',
-      })
+        description: getApiErrorMessage(error, 'Unable to retry transaction'),
+      });
     },
-  })
+  });
 
   if (isLoading) {
     return (
@@ -69,7 +69,7 @@ export default function TransactionDetailPage({
           <Skeleton className="h-[400px]" />
         </div>
       </div>
-    )
+    );
   }
 
   if (!transaction) {
@@ -80,11 +80,11 @@ export default function TransactionDetailPage({
           Go Back
         </Button>
       </div>
-    )
+    );
   }
 
-  const canReverse = transaction.status === 'COMPLETED' && !transaction.reversedAt
-  const canRetry = transaction.status === 'FAILED'
+  const canReverse = transaction.status === 'COMPLETED' && !transaction.reversedAt;
+  const canRetry = transaction.status === 'FAILED';
 
   return (
     <div className="space-y-6">
@@ -231,7 +231,7 @@ export default function TransactionDetailPage({
                     ? '+'
                     : ''}
                   {formatCurrency(
-                    parseFloat(transaction.balanceAfter) - parseFloat(transaction.balanceBefore)
+                    parseFloat(transaction.balanceAfter) - parseFloat(transaction.balanceBefore),
                   )}
                 </p>
               </div>
@@ -273,7 +273,7 @@ export default function TransactionDetailPage({
               <div className="space-y-3">
                 <Label>Reverse Transaction</Label>
                 <p className="text-sm text-muted-foreground">
-                  This will refund the amount to the user's wallet. Please provide a reason.
+                  This will refund the amount to the user&rsquo;s wallet. Please provide a reason.
                 </p>
                 <div className="flex gap-2">
                   <Input
@@ -315,5 +315,5 @@ export default function TransactionDetailPage({
         </Card>
       )}
     </div>
-  )
+  );
 }

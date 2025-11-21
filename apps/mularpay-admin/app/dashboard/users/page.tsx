@@ -1,21 +1,21 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import Link from 'next/link'
-import { Search, Filter, Download, Eye } from 'lucide-react'
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
+import { Search, Download, Eye } from 'lucide-react';
 
-import { usersApi } from '@/lib/api/users'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { usersApi } from '@/lib/api/users';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -23,18 +23,18 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Pagination } from '@/components/ui/pagination'
-import { StatusBadge, KYCBadge, RoleBadge } from '@/components/ui/status-badge'
-import { formatDate } from '@/lib/utils'
+} from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Pagination } from '@/components/ui/pagination';
+import { StatusBadge, KYCBadge, RoleBadge } from '@/components/ui/status-badge';
+import { formatDate } from '@/lib/utils';
 
 export default function UsersPage() {
-  const [page, setPage] = useState(1)
-  const [search, setSearch] = useState('')
-  const [roleFilter, setRoleFilter] = useState<string>('all')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [kycFilter, setKYCFilter] = useState<string>('all')
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [kycFilter, setKYCFilter] = useState<string>('all');
 
   const { data: usersData, isLoading } = useQuery({
     queryKey: ['users', page, search, roleFilter, statusFilter, kycFilter],
@@ -47,12 +47,12 @@ export default function UsersPage() {
         ...(statusFilter !== 'all' && { status: statusFilter }),
         ...(kycFilter !== 'all' && { kycTier: kycFilter }),
       }),
-  })
+  });
 
   const { data: stats } = useQuery({
     queryKey: ['user-stats'],
     queryFn: () => usersApi.getStatistics(),
-  })
+  });
 
   return (
     <div className="space-y-6">
@@ -72,21 +72,15 @@ export default function UsersPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Users
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {stats?.totalUsers?.toLocaleString() || '0'}
-            </div>
+            <div className="text-2xl font-bold">{stats?.totalUsers?.toLocaleString() || '0'}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              New Today
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">New Today</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -96,9 +90,7 @@ export default function UsersPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              This Week
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">This Week</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -108,9 +100,7 @@ export default function UsersPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              This Month
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">This Month</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -124,9 +114,7 @@ export default function UsersPage() {
       <Card>
         <CardHeader>
           <CardTitle>Users List</CardTitle>
-          <CardDescription>
-            Search and filter users by various criteria
-          </CardDescription>
+          <CardDescription>Search and filter users by various criteria</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col md:flex-row gap-4">
@@ -256,5 +244,5 @@ export default function UsersPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

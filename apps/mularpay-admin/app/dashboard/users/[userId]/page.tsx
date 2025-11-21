@@ -1,80 +1,69 @@
-'use client'
+'use client';
 
-import { use } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
-import { ArrowLeft, Edit, Ban, CheckCircle, Shield } from 'lucide-react'
-import { toast } from 'sonner'
+import { use } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Ban, CheckCircle, Shield } from 'lucide-react';
+import { toast } from 'sonner';
 
-import { usersApi } from '@/lib/api/users'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { StatusBadge, KYCBadge, RoleBadge } from '@/components/ui/status-badge'
-import { Skeleton } from '@/components/ui/skeleton'
-import { formatDate, formatCurrency } from '@/lib/utils'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
+import { usersApi } from '@/lib/api/users';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { StatusBadge, KYCBadge, RoleBadge } from '@/components/ui/status-badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatDate, getApiErrorMessage } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
 
-export default function UserDetailPage({
-  params,
-}: {
-  params: Promise<{ userId: string }>
-}) {
-  const resolvedParams = use(params)
-  const router = useRouter()
-  const queryClient = useQueryClient()
+export default function UserDetailPage({ params }: { params: Promise<{ userId: string }> }) {
+  const resolvedParams = use(params);
+  const router = useRouter();
+  const queryClient = useQueryClient();
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['user', resolvedParams.userId],
     queryFn: () => usersApi.getById(resolvedParams.userId),
-  })
+  });
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ status, reason }: { status: string; reason?: string }) =>
       usersApi.updateStatus(resolvedParams.userId, status, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user', resolvedParams.userId] })
-      toast.success('User status updated successfully')
+      queryClient.invalidateQueries({ queryKey: ['user', resolvedParams.userId] });
+      toast.success('User status updated successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Failed to update status', {
-        description: error?.response?.data?.message || 'An error occurred',
-      })
+        description: getApiErrorMessage(error, 'Unable to update status'),
+      });
     },
-  })
+  });
 
   const updateKYCMutation = useMutation({
     mutationFn: ({ tier, notes }: { tier: string; notes?: string }) =>
       usersApi.updateKYCTier(resolvedParams.userId, tier, notes),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user', resolvedParams.userId] })
-      toast.success('KYC tier updated successfully')
+      queryClient.invalidateQueries({ queryKey: ['user', resolvedParams.userId] });
+      toast.success('KYC tier updated successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Failed to update KYC tier', {
-        description: error?.response?.data?.message || 'An error occurred',
-      })
+        description: getApiErrorMessage(error, 'Unable to update KYC tier'),
+      });
     },
-  })
+  });
 
   const updateRoleMutation = useMutation({
     mutationFn: (role: string) => usersApi.updateRole(resolvedParams.userId, role),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user', resolvedParams.userId] })
-      toast.success('User role updated successfully')
+      queryClient.invalidateQueries({ queryKey: ['user', resolvedParams.userId] });
+      toast.success('User role updated successfully');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Failed to update role', {
-        description: error?.response?.data?.message || 'An error occurred',
-      })
+        description: getApiErrorMessage(error, 'Unable to update role'),
+      });
     },
-  })
+  });
 
   if (isLoading) {
     return (
@@ -85,7 +74,7 @@ export default function UserDetailPage({
           <Skeleton className="h-[300px]" />
         </div>
       </div>
-    )
+    );
   }
 
   if (!user) {
@@ -96,7 +85,7 @@ export default function UserDetailPage({
           Go Back
         </Button>
       </div>
-    )
+    );
   }
 
   return (
@@ -222,9 +211,7 @@ export default function UserDetailPage({
 
             {user.deletionRequested && (
               <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
-                <p className="text-sm font-medium text-destructive">
-                  Account Deletion Requested
-                </p>
+                <p className="text-sm font-medium text-destructive">Account Deletion Requested</p>
                 {user.deletionRequestedAt && (
                   <p className="text-xs text-muted-foreground mt-1">
                     {formatDate(user.deletionRequestedAt)}
@@ -336,5 +323,5 @@ export default function UserDetailPage({
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

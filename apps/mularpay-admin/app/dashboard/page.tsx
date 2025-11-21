@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
 
 export default function DashboardPage() {
   const { data: dashboardData, isPending: isLoading } = useQuery({
@@ -136,7 +137,7 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <a
+            <Link
               href="/dashboard/kyc"
               className="flex flex-col items-center justify-center gap-2 rounded-lg border p-6 hover:bg-accent transition-colors"
             >
@@ -145,8 +146,8 @@ export default function DashboardPage() {
               <span className="text-xs text-muted-foreground">
                 {dashboardData?.pending?.kyc} pending
               </span>
-            </a>
-            <a
+            </Link>
+            <Link
               href="/dashboard/transactions"
               className="flex flex-col items-center justify-center gap-2 rounded-lg border p-6 hover:bg-accent transition-colors"
             >
@@ -155,8 +156,8 @@ export default function DashboardPage() {
               <span className="text-xs text-muted-foreground">
                 {dashboardData?.transactions?.today} today
               </span>
-            </a>
-            <a
+            </Link>
+            <Link
               href="/dashboard/users"
               className="flex flex-col items-center justify-center gap-2 rounded-lg border p-6 hover:bg-accent transition-colors"
             >
@@ -165,15 +166,15 @@ export default function DashboardPage() {
               <span className="text-xs text-muted-foreground">
                 {dashboardData?.users?.total} total
               </span>
-            </a>
-            <a
+            </Link>
+            <Link
               href="/dashboard/analytics"
               className="flex flex-col items-center justify-center gap-2 rounded-lg border p-6 hover:bg-accent transition-colors"
             >
               <DollarSign className="h-8 w-8 text-primary" />
               <span className="font-medium">View Analytics</span>
               <span className="text-xs text-muted-foreground">Revenue & insights</span>
-            </a>
+            </Link>
           </div>
         </CardContent>
       </Card>

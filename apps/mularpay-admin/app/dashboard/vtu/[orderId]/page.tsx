@@ -1,59 +1,59 @@
-'use client'
+'use client';
 
-import { use, useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
-import { ArrowLeft, RotateCcw, Undo2, User, Smartphone } from 'lucide-react'
-import { toast } from 'sonner'
-import Link from 'next/link'
+import { use, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, RotateCcw, Undo2, User, Smartphone } from 'lucide-react';
+import { toast } from 'sonner';
+import Link from 'next/link';
 
-import { vtuApi } from '@/lib/api/vtu'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { StatusBadge } from '@/components/ui/status-badge'
-import { Skeleton } from '@/components/ui/skeleton'
-import { formatDate, formatCurrency } from '@/lib/utils'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
+import { vtuApi } from '@/lib/api/vtu';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatDate, formatCurrency, getApiErrorMessage } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 export default function VTUDetailPage({ params }: { params: Promise<{ orderId: string }> }) {
-  const resolvedParams = use(params)
-  const router = useRouter()
-  const queryClient = useQueryClient()
-  const [refundReason, setRefundReason] = useState('')
+  const resolvedParams = use(params);
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [refundReason, setRefundReason] = useState('');
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['vtu-order', resolvedParams.orderId],
     queryFn: () => vtuApi.getById(resolvedParams.orderId),
-  })
+  });
 
   const refundMutation = useMutation({
     mutationFn: (reason: string) => vtuApi.refund(resolvedParams.orderId, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vtu-order', resolvedParams.orderId] })
-      queryClient.invalidateQueries({ queryKey: ['vtu'] })
-      toast.success('Order refunded successfully')
-      setRefundReason('')
+      queryClient.invalidateQueries({ queryKey: ['vtu-order', resolvedParams.orderId] });
+      queryClient.invalidateQueries({ queryKey: ['vtu'] });
+      toast.success('Order refunded successfully');
+      setRefundReason('');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Failed to refund order', {
-        description: error?.response?.data?.message || 'An error occurred',
-      })
+        description: getApiErrorMessage(error, 'Unable to refund order'),
+      });
     },
-  })
+  });
 
   const retryMutation = useMutation({
     mutationFn: () => vtuApi.retry(resolvedParams.orderId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vtu-order', resolvedParams.orderId] })
-      toast.success('Order retry initiated')
+      queryClient.invalidateQueries({ queryKey: ['vtu-order', resolvedParams.orderId] });
+      toast.success('Order retry initiated');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error('Failed to retry order', {
-        description: error?.response?.data?.message || 'An error occurred',
-      })
+        description: getApiErrorMessage(error, 'Unable to retry order'),
+      });
     },
-  })
+  });
 
   if (isLoading) {
     return (
@@ -64,7 +64,7 @@ export default function VTUDetailPage({ params }: { params: Promise<{ orderId: s
           <Skeleton className="h-[400px]" />
         </div>
       </div>
-    )
+    );
   }
 
   if (!order) {
@@ -75,11 +75,11 @@ export default function VTUDetailPage({ params }: { params: Promise<{ orderId: s
           Go Back
         </Button>
       </div>
-    )
+    );
   }
 
-  const canRefund = order.status === 'COMPLETED' && !order.refundedAt
-  const canRetry = order.status === 'FAILED'
+  const canRefund = order.status === 'COMPLETED' && !order.refundedAt;
+  const canRetry = order.status === 'FAILED';
 
   return (
     <div className="space-y-6">
@@ -172,9 +172,7 @@ export default function VTUDetailPage({ params }: { params: Promise<{ orderId: s
             {order.refundedAt && (
               <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
                 <p className="text-sm font-medium text-destructive">Order Refunded</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {formatDate(order.refundedAt)}
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">{formatDate(order.refundedAt)}</p>
                 {order.refundReason && <p className="text-xs mt-2">{order.refundReason}</p>}
               </div>
             )}
@@ -230,9 +228,7 @@ export default function VTUDetailPage({ params }: { params: Promise<{ orderId: s
 
             {order.providerResponse && Object.keys(order.providerResponse).length > 0 && (
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-2">
-                  Provider Response
-                </p>
+                <p className="text-sm font-medium text-muted-foreground mb-2">Provider Response</p>
                 <pre className="text-xs bg-muted p-3 rounded-lg overflow-auto max-h-40">
                   {JSON.stringify(order.providerResponse, null, 2)}
                 </pre>
@@ -263,7 +259,7 @@ export default function VTUDetailPage({ params }: { params: Promise<{ orderId: s
               <div className="space-y-3">
                 <Label>Refund Order</Label>
                 <p className="text-sm text-muted-foreground">
-                  This will refund the amount to the user's wallet. Please provide a reason.
+                  This will refund the amount to the user&rsquo;s wallet. Please provide a reason.
                 </p>
                 <div className="flex gap-2">
                   <Input
@@ -305,5 +301,5 @@ export default function VTUDetailPage({ params }: { params: Promise<{ orderId: s
         </Card>
       )}
     </div>
-  )
+  );
 }

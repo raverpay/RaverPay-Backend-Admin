@@ -205,6 +205,17 @@ export class VTUService {
 
   // ==================== Generate Reference ====================
 
+  // generateReference(serviceType: VTUServiceType): string {
+  //   const prefix = {
+  //     AIRTIME: 'VTU_AIR',
+  //     DATA: 'VTU_DATA',
+  //     CABLE_TV: 'VTU_CABLE',
+  //     ELECTRICITY: 'VTU_ELEC',
+  //   }[serviceType];
+
+  //   return `${prefix}_${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+  // }
+
   generateReference(serviceType: VTUServiceType): string {
     const prefix = {
       AIRTIME: 'VTU_AIR',
@@ -213,7 +224,27 @@ export class VTUService {
       ELECTRICITY: 'VTU_ELEC',
     }[serviceType];
 
-    return `${prefix}_${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    // Force Africa/Lagos timezone (+1 hour)
+    const now = new Date();
+    const lagosOffsetMs = 60 * 60 * 1000;
+    const lagosTime = new Date(now.getTime() + lagosOffsetMs);
+
+    const pad = (n: number) => n.toString().padStart(2, '0');
+
+    const year = lagosTime.getFullYear();
+    const month = pad(lagosTime.getMonth() + 1);
+    const day = pad(lagosTime.getDate());
+    const hour = pad(lagosTime.getHours());
+    const minute = pad(lagosTime.getMinutes());
+
+    const datePart = `${year}${month}${day}${hour}${minute}`;
+
+    const randomPart = Math.random()
+      .toString(36)
+      .substring(2, 10)
+      .toUpperCase();
+
+    return `${datePart}${prefix}${randomPart}`;
   }
 
   // ==================== Check Duplicate ====================

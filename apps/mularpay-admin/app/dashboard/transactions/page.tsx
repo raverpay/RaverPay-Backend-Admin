@@ -1,21 +1,21 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import Link from 'next/link'
-import { Search, Download, Eye, TrendingUp, TrendingDown, Activity } from 'lucide-react'
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
+import { Search, Download, Eye, TrendingUp, Activity } from 'lucide-react';
 
-import { transactionsApi } from '@/lib/api/transactions'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { transactionsApi } from '@/lib/api/transactions';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -23,17 +23,17 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Pagination } from '@/components/ui/pagination'
-import { StatusBadge } from '@/components/ui/status-badge'
-import { formatDate, formatCurrency } from '@/lib/utils'
+} from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Pagination } from '@/components/ui/pagination';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { formatDate, formatCurrency } from '@/lib/utils';
 
 export default function TransactionsPage() {
-  const [page, setPage] = useState(1)
-  const [search, setSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState<string>('all')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const { data: transactionsData, isLoading } = useQuery({
     queryKey: ['transactions', page, search, typeFilter, statusFilter],
@@ -47,12 +47,12 @@ export default function TransactionsPage() {
         sortBy: 'createdAt',
         sortOrder: 'desc',
       }),
-  })
+  });
 
   const { data: stats } = useQuery({
     queryKey: ['transaction-stats'],
     queryFn: () => transactionsApi.getStatistics(),
-  })
+  });
 
   return (
     <div className="space-y-6">
@@ -212,13 +212,9 @@ export default function TransactionsPage() {
                   <TableBody>
                     {transactionsData.data.map((transaction) => (
                       <TableRow key={transaction.id}>
-                        <TableCell className="font-mono text-sm">
-                          {transaction.reference}
-                        </TableCell>
+                        <TableCell className="font-mono text-sm">{transaction.reference}</TableCell>
                         <TableCell>
-                          <span className="text-xs">
-                            {transaction.type.replace(/_/g, ' ')}
-                          </span>
+                          <span className="text-xs">{transaction.type.replace(/_/g, ' ')}</span>
                         </TableCell>
                         <TableCell>
                           {transaction.user ? (
@@ -281,5 +277,5 @@ export default function TransactionsPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

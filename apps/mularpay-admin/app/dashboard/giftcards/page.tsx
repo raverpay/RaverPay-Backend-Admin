@@ -1,21 +1,21 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import Link from 'next/link'
-import { Search, Eye, Gift, TrendingUp, Clock } from 'lucide-react'
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
+import { Search, Eye, Gift, TrendingUp, Clock } from 'lucide-react';
 
-import { giftcardsApi } from '@/lib/api/giftcards'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { giftcardsApi } from '@/lib/api/giftcards';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -23,17 +23,17 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Pagination } from '@/components/ui/pagination'
-import { StatusBadge } from '@/components/ui/status-badge'
-import { formatDate, formatCurrency } from '@/lib/utils'
+} from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Pagination } from '@/components/ui/pagination';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { formatDate, formatCurrency } from '@/lib/utils';
 
 export default function GiftCardsPage() {
-  const [page, setPage] = useState(1)
-  const [search, setSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState<string>('all')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const { data: giftcardsData, isLoading } = useQuery({
     queryKey: ['giftcards', page, search, typeFilter, statusFilter],
@@ -47,12 +47,17 @@ export default function GiftCardsPage() {
         sortBy: 'createdAt',
         sortOrder: 'desc',
       }),
-  })
+  });
 
   const { data: stats } = useQuery({
     queryKey: ['giftcards-stats'],
     queryFn: () => giftcardsApi.getStatistics(),
-  })
+  });
+
+  const totalOrders = stats?.totalOrders ?? stats?.totalCount ?? 0;
+  const totalVolume = Number(stats?.totalVolume ?? 0);
+  const pendingOrders = stats?.pendingOrders ?? 0;
+  const successRate = stats?.successRate ?? stats?.approvalRate ?? '0';
 
   return (
     <div className="space-y-6">
@@ -75,7 +80,7 @@ export default function GiftCardsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats?.totalOrders?.toLocaleString() || '0'}
+              {totalOrders ? totalOrders.toLocaleString() : '0'}
             </div>
           </CardContent>
         </Card>
@@ -91,7 +96,7 @@ export default function GiftCardsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats?.totalVolume ? formatCurrency(parseFloat(stats.totalVolume)) : '₦0'}
+              {totalVolume ? formatCurrency(totalVolume) : '₦0'}
             </div>
           </CardContent>
         </Card>
@@ -107,7 +112,7 @@ export default function GiftCardsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
-              {stats?.pendingOrders?.toLocaleString() || '0'}
+              {pendingOrders ? pendingOrders.toLocaleString() : '0'}
             </div>
           </CardContent>
         </Card>
@@ -122,7 +127,7 @@ export default function GiftCardsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.successRate || '0'}%</div>
+            <div className="text-2xl font-bold">{successRate || '0'}%</div>
           </CardContent>
         </Card>
       </div>
@@ -265,5 +270,5 @@ export default function GiftCardsPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

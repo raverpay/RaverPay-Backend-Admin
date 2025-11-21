@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Search, Eye, FileCheck, Clock, XCircle, CheckCircle2 } from 'lucide-react';
+import { Search, Eye, FileCheck, Clock, XCircle } from 'lucide-react';
 
 import { kycApi } from '@/lib/api/kyc';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,18 +11,22 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatDate } from '@/lib/utils';
+import { KycPendingResponse, KycRejectedResponse, KycQueueEntry } from '@/types';
+
+type KycResponse = KycPendingResponse | KycRejectedResponse;
+type VerificationGroup = keyof KycPendingResponse | keyof KycRejectedResponse;
+type KycListItem = KycQueueEntry & { verificationType: VerificationGroup };
 
 export default function KYCPage() {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'pending' | 'rejected'>('pending');
 
-  const { data: pendingData, isLoading: pendingLoading } = useQuery({
+  const { data: pendingData, isLoading: pendingLoading } = useQuery<KycPendingResponse>({
     queryKey: ['kyc-pending'],
     queryFn: () => kycApi.getPending(),
   });
 
-  const { data: rejectedData, isLoading: rejectedLoading } = useQuery({
+  const { data: rejectedData, isLoading: rejectedLoading } = useQuery<KycRejectedResponse>({
     queryKey: ['kyc-rejected'],
     queryFn: () => kycApi.getRejected(),
   });
@@ -35,22 +39,28 @@ export default function KYCPage() {
   console.log({ stats });
 
   const isLoading = activeTab === 'pending' ? pendingLoading : rejectedLoading;
-  const currentData = activeTab === 'pending' ? pendingData : rejectedData;
+  const currentData: KycResponse | undefined = activeTab === 'pending' ? pendingData : rejectedData;
 
-  // Filter data based on search
-  const filteredData = currentData
-    ? Object.entries(currentData).flatMap(([type, users]: [string, any]) =>
-        (users || [])
-          .filter(
-            (user: any) =>
-              !search ||
-              user.email?.toLowerCase().includes(search.toLowerCase()) ||
-              user.firstName?.toLowerCase().includes(search.toLowerCase()) ||
-              user.lastName?.toLowerCase().includes(search.toLowerCase()),
-          )
-          .map((user: any) => ({ ...user, verificationType: type })),
-      )
+  const groupedEntries: Array<[VerificationGroup, KycQueueEntry[]]> = currentData
+    ? (Object.entries(currentData) as Array<[VerificationGroup, KycQueueEntry[]]>)
     : [];
+
+  const filteredData: KycListItem[] = groupedEntries.flatMap(([type, users]) =>
+    (users ?? [])
+      .filter((user) => {
+        if (!search) {
+          return true;
+        }
+
+        const normalizedSearch = search.toLowerCase();
+        return (
+          user.email?.toLowerCase().includes(normalizedSearch) ||
+          user.firstName?.toLowerCase().includes(normalizedSearch) ||
+          user.lastName?.toLowerCase().includes(normalizedSearch)
+        );
+      })
+      .map((user) => ({ ...user, verificationType: type })),
+  );
 
   return (
     <div className="space-y-6">
@@ -158,7 +168,7 @@ export default function KYCPage() {
             </div>
           ) : filteredData.length > 0 ? (
             <div className="grid gap-4">
-              {filteredData.map((user: any) => (
+              {filteredData.map((user) => (
                 <div
                   key={user.id}
                   className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors"
