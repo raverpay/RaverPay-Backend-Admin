@@ -203,7 +203,9 @@ export default function WalletDetailPage({ params }: { params: Promise<{ userId:
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(parseFloat(wallet.balance))}</div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(parseFloat(wallet.wallet?.balance || '0'))}
+            </div>
           </CardContent>
         </Card>
 
@@ -218,7 +220,7 @@ export default function WalletDetailPage({ params }: { params: Promise<{ userId:
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(parseFloat(wallet.ledgerBalance))}
+              {formatCurrency(parseFloat(wallet.wallet?.ledgerBalance || '0'))}
             </div>
           </CardContent>
         </Card>
@@ -233,7 +235,9 @@ export default function WalletDetailPage({ params }: { params: Promise<{ userId:
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(parseFloat(wallet.dailySpent))}</div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(parseFloat(wallet.wallet?.dailySpent || '0'))}
+            </div>
           </CardContent>
         </Card>
 
@@ -248,7 +252,7 @@ export default function WalletDetailPage({ params }: { params: Promise<{ userId:
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(parseFloat(wallet.monthlySpent))}
+              {formatCurrency(parseFloat(wallet.wallet?.monthlySpent || '0'))}
             </div>
           </CardContent>
         </Card>
@@ -266,13 +270,13 @@ export default function WalletDetailPage({ params }: { params: Promise<{ userId:
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Available Balance</p>
                 <p className="text-lg font-bold">
-                  {formatCurrency(parseFloat(wallet.balance))}
+                  {formatCurrency(parseFloat(wallet.wallet?.balance || '0'))}
                 </p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Ledger Balance</p>
                 <p className="text-lg font-bold">
-                  {formatCurrency(parseFloat(wallet.ledgerBalance))}
+                  {formatCurrency(parseFloat(wallet.wallet?.ledgerBalance || '0'))}
                 </p>
               </div>
             </div>
@@ -280,29 +284,33 @@ export default function WalletDetailPage({ params }: { params: Promise<{ userId:
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Daily Spent</p>
-                <p className="text-sm">{formatCurrency(parseFloat(wallet.dailySpent))}</p>
+                <p className="text-sm">
+                  {formatCurrency(parseFloat(wallet.wallet?.dailySpent || '0'))}
+                </p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Monthly Spent</p>
-                <p className="text-sm">{formatCurrency(parseFloat(wallet.monthlySpent))}</p>
+                <p className="text-sm">
+                  {formatCurrency(parseFloat(wallet.wallet?.monthlySpent || '0'))}
+                </p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Created</p>
-                <p className="text-sm">{formatDate(wallet.createdAt)}</p>
+                <p className="text-sm">{formatDate(wallet.wallet?.createdAt || '')}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Updated</p>
-                <p className="text-sm">{formatDate(wallet.updatedAt)}</p>
+                <p className="text-sm">{formatDate(wallet.wallet?.updatedAt || '')}</p>
               </div>
             </div>
 
-            {wallet.lastResetAt && (
+            {wallet.wallet?.lastResetAt && (
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Last Limit Reset</p>
-                <p className="text-sm">{formatDate(wallet.lastResetAt)}</p>
+                <p className="text-sm">{formatDate(wallet.wallet?.lastResetAt || '')}</p>
               </div>
             )}
 
@@ -317,10 +325,10 @@ export default function WalletDetailPage({ params }: { params: Promise<{ userId:
               </Button>
             </div>
 
-            {wallet.isLocked && wallet.lockReason && (
+            {wallet.wallet?.isLocked && wallet.wallet?.lockReason && (
               <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
                 <p className="text-sm font-medium text-destructive">Lock Reason</p>
-                <p className="text-xs mt-1">{wallet.lockReason}</p>
+                <p className="text-xs mt-1">{wallet.wallet?.lockReason}</p>
               </div>
             )}
           </CardContent>
@@ -333,18 +341,18 @@ export default function WalletDetailPage({ params }: { params: Promise<{ userId:
             <CardDescription>Wallet owner details</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {wallet.user && (
+            {wallet?.wallet?.user && (
               <>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-2">User</p>
                   <div className="flex items-center justify-between p-3 rounded-lg border">
                     <div>
                       <p className="font-medium">
-                        {wallet.user.firstName} {wallet.user.lastName}
+                        {wallet?.wallet?.user?.firstName} {wallet?.wallet?.user?.lastName}
                       </p>
-                      <p className="text-sm text-muted-foreground">{wallet.user.email}</p>
+                      <p className="text-sm text-muted-foreground">{wallet?.wallet?.user?.email}</p>
                     </div>
-                    <Link href={`/dashboard/users/${wallet.user.id}`}>
+                    <Link href={`/dashboard/users/${wallet?.wallet?.user?.id}`}>
                       <Button variant="outline" size="sm" className="gap-2">
                         <User className="h-4 w-4" />
                         View
@@ -356,15 +364,19 @@ export default function WalletDetailPage({ params }: { params: Promise<{ userId:
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Account Status</p>
                   <div className="mt-1">
-                    <Badge variant={wallet.user.status === 'ACTIVE' ? 'success' : 'destructive'}>
-                      {wallet.user.status}
+                    <Badge
+                      variant={
+                        wallet?.wallet?.user?.status === 'ACTIVE' ? 'success' : 'destructive'
+                      }
+                    >
+                      {wallet?.wallet?.user?.status}
                     </Badge>
                   </div>
                 </div>
 
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">KYC Tier</p>
-                  <p className="text-sm">Tier {wallet.user.kycTier || 1}</p>
+                  <p className="text-sm">Tier {wallet?.wallet?.user?.kycTier || 1}</p>
                 </div>
               </>
             )}

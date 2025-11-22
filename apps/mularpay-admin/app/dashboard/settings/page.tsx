@@ -1,13 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  Settings,
-  DollarSign,
-  Shield,
-  Bell,
-  Server,
-} from 'lucide-react';
+import { Settings, DollarSign, Shield, Bell, Server } from 'lucide-react';
 
 import { usePermissions } from '@/lib/permissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,12 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function SettingsPage() {
   const { canModifySettings } = usePermissions();
@@ -34,8 +23,8 @@ export default function SettingsPage() {
 
   // Form states
   const [generalSettings, setGeneralSettings] = useState({
-    platformName: 'MularPay',
-    supportEmail: 'support@mularpay.com',
+    platformName: 'RaverPay',
+    supportEmail: 'support@raverpay.com',
     supportPhone: '+234...',
     maintenanceMode: 'off',
   });
@@ -193,9 +182,7 @@ export default function SettingsPage() {
                     id="depositFee"
                     type="number"
                     value={feeSettings.depositFee}
-                    onChange={(e) =>
-                      setFeeSettings({ ...feeSettings, depositFee: e.target.value })
-                    }
+                    onChange={(e) => setFeeSettings({ ...feeSettings, depositFee: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -226,9 +213,7 @@ export default function SettingsPage() {
                     id="vtuFee"
                     type="number"
                     value={feeSettings.vtuFee}
-                    onChange={(e) =>
-                      setFeeSettings({ ...feeSettings, vtuFee: e.target.value })
-                    }
+                    onChange={(e) => setFeeSettings({ ...feeSettings, vtuFee: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -248,9 +233,7 @@ export default function SettingsPage() {
                     id="cryptoFee"
                     type="number"
                     value={feeSettings.cryptoFee}
-                    onChange={(e) =>
-                      setFeeSettings({ ...feeSettings, cryptoFee: e.target.value })
-                    }
+                    onChange={(e) => setFeeSettings({ ...feeSettings, cryptoFee: e.target.value })}
                   />
                 </div>
               </div>
@@ -274,9 +257,7 @@ export default function SettingsPage() {
                     id="tier0Limit"
                     type="number"
                     value={kycSettings.tier0Limit}
-                    onChange={(e) =>
-                      setKycSettings({ ...kycSettings, tier0Limit: e.target.value })
-                    }
+                    onChange={(e) => setKycSettings({ ...kycSettings, tier0Limit: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -285,9 +266,7 @@ export default function SettingsPage() {
                     id="tier1Limit"
                     type="number"
                     value={kycSettings.tier1Limit}
-                    onChange={(e) =>
-                      setKycSettings({ ...kycSettings, tier1Limit: e.target.value })
-                    }
+                    onChange={(e) => setKycSettings({ ...kycSettings, tier1Limit: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -296,9 +275,7 @@ export default function SettingsPage() {
                     id="tier2Limit"
                     type="number"
                     value={kycSettings.tier2Limit}
-                    onChange={(e) =>
-                      setKycSettings({ ...kycSettings, tier2Limit: e.target.value })
-                    }
+                    onChange={(e) => setKycSettings({ ...kycSettings, tier2Limit: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -307,9 +284,7 @@ export default function SettingsPage() {
                     id="tier3Limit"
                     type="number"
                     value={kycSettings.tier3Limit}
-                    onChange={(e) =>
-                      setKycSettings({ ...kycSettings, tier3Limit: e.target.value })
-                    }
+                    onChange={(e) => setKycSettings({ ...kycSettings, tier3Limit: e.target.value })}
                   />
                 </div>
               </div>
@@ -383,9 +358,7 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
                   <div>
                     <p className="font-medium">SMS Notifications</p>
-                    <p className="text-sm text-muted-foreground">
-                      Send SMS for critical alerts
-                    </p>
+                    <p className="text-sm text-muted-foreground">Send SMS for critical alerts</p>
                   </div>
                   <Select defaultValue="enabled">
                     <SelectTrigger className="w-[120px]">
@@ -433,9 +406,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <p className="font-medium">Payment Provider</p>
-                      <p className="text-sm text-muted-foreground">
-                        Primary payment gateway
-                      </p>
+                      <p className="text-sm text-muted-foreground">Primary payment gateway</p>
                     </div>
                     <Select defaultValue="paystack">
                       <SelectTrigger className="w-[150px]">
@@ -454,9 +425,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <p className="font-medium">VTU Provider</p>
-                      <p className="text-sm text-muted-foreground">
-                        Airtime and data provider
-                      </p>
+                      <p className="text-sm text-muted-foreground">Airtime and data provider</p>
                     </div>
                     <Select defaultValue="vtpass">
                       <SelectTrigger className="w-[150px]">
@@ -496,9 +465,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <p className="font-medium">Virtual Account Provider</p>
-                      <p className="text-sm text-muted-foreground">
-                        Virtual account generation
-                      </p>
+                      <p className="text-sm text-muted-foreground">Virtual account generation</p>
                     </div>
                     <Select defaultValue="providus">
                       <SelectTrigger className="w-[150px]">

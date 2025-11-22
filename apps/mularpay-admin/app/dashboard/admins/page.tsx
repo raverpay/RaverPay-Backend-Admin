@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, UserPlus, Trash2, Edit, Shield, UserCog } from 'lucide-react';
+import { toast } from 'sonner';
+import { AxiosError } from 'axios';
 
 import { adminsApi, CreateAdminDto, UpdateAdminDto } from '@/lib/api/admins';
 import { usePermissions } from '@/lib/permissions';
@@ -90,10 +92,11 @@ export default function AdminsPage() {
         password: '',
         role: 'ADMIN',
       });
-      alert('Admin created successfully!');
+      toast.success('Admin created successfully!');
     },
-    onError: () => {
-      alert('Failed to create admin');
+    onError: (error: AxiosError<{ message: string }>) => {
+      const message = error.response?.data?.message || 'Failed to create admin';
+      toast.error(message);
     },
   });
 
@@ -104,10 +107,11 @@ export default function AdminsPage() {
       queryClient.invalidateQueries({ queryKey: ['admins'] });
       setEditDialogOpen(false);
       setSelectedAdmin(null);
-      alert('Admin updated successfully!');
+      toast.success('Admin updated successfully!');
     },
-    onError: () => {
-      alert('Failed to update admin');
+    onError: (error: AxiosError<{ message: string }>) => {
+      const message = error.response?.data?.message || 'Failed to update admin';
+      toast.error(message);
     },
   });
 
@@ -115,16 +119,17 @@ export default function AdminsPage() {
     mutationFn: (adminId: string) => adminsApi.delete(adminId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admins'] });
-      alert('Admin deleted successfully!');
+      toast.success('Admin deleted successfully!');
     },
-    onError: () => {
-      alert('Failed to delete admin');
+    onError: (error: AxiosError<{ message: string }>) => {
+      const message = error.response?.data?.message || 'Failed to delete admin';
+      toast.error(message);
     },
   });
 
   const handleCreate = () => {
     if (!createForm.email || !createForm.firstName || !createForm.lastName || !createForm.password) {
-      alert('Please fill in all required fields');
+      toast.error('Please fill in all required fields');
       return;
     }
     createMutation.mutate(createForm);

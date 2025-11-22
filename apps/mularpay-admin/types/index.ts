@@ -27,7 +27,21 @@ export interface User {
 
 // Wallet Types
 export interface Wallet {
-  wallet: unknown;
+  wallet: {
+    balance: string;
+    ledgerBalance: string;
+    currency: string;
+    isLocked: boolean;
+    lockReason?: string | null;
+    dailyLimit: string;
+    monthlyLimit: string;
+    dailySpent: string;
+    monthlySpent: string;
+    lastResetAt: string;
+    createdAt: string;
+    updatedAt: string;
+    user?: User;
+  };
   id: string;
   userId: string;
   balance: string;

@@ -25,6 +25,8 @@ import { AdminAdvancedAnalyticsController } from './advanced-analytics/admin-adv
 import { AdminAdvancedAnalyticsService } from './advanced-analytics/admin-advanced-analytics.service';
 import { AdminAuditLogsController } from './audit-logs/admin-audit-logs.controller';
 import { AdminAuditLogsService } from './audit-logs/admin-audit-logs.service';
+import { AdminAdminsController } from './admins/admin-admins.controller';
+import { AdminAdminsService } from './admins/admin-admins.service';
 import { HierarchyService } from '../common/services/hierarchy.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -45,6 +47,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     AdminNotificationsController,
     AdminAdvancedAnalyticsController,
     AdminAuditLogsController,
+    AdminAdminsController,
   ],
   providers: [
     AdminUsersService,
@@ -60,6 +63,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     AdminNotificationsService,
     AdminAdvancedAnalyticsService,
     AdminAuditLogsService,
+    AdminAdminsService,
     HierarchyService,
   ],
   exports: [HierarchyService],

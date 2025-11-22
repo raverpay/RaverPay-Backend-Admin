@@ -2,7 +2,7 @@ import apiClient from '../api-client';
 import { AuditLog, PaginatedResponse } from '@/types';
 
 export interface AuditLogStatistics {
-  total: number;
+  totalCount: number;
   today: number;
   byAction: Array<{
     action: string;
@@ -10,6 +10,10 @@ export interface AuditLogStatistics {
   }>;
   byResource: Array<{
     resource: string;
+    count: number;
+  }>;
+  topActions?: Array<{
+    action: string;
     count: number;
   }>;
 }

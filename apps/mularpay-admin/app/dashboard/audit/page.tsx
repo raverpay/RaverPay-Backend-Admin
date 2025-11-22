@@ -70,7 +70,7 @@ export default function AuditLogsPage() {
   const [resourceFilter, setResourceFilter] = useState<string>('all');
   const [actionFilter, setActionFilter] = useState<string>('all');
 
-  const { data: logsData, isLoading } = useQuery({
+  const { data: logsData, isPending: isLoading } = useQuery({
     queryKey: ['audit-logs', page, search, resourceFilter, actionFilter],
     queryFn: () =>
       auditLogsApi.getAll({
@@ -101,12 +101,10 @@ export default function AuditLogsPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Logs
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Logs</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.total?.toLocaleString() || 0}</div>
+            <div className="text-2xl font-bold">{stats?.totalCount?.toLocaleString() || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -126,19 +124,16 @@ export default function AuditLogsPage() {
       {/* Top Actions & Resources */}
       {stats && (
         <div className="grid gap-6 md:grid-cols-2">
-          {stats.byAction && stats.byAction.length > 0 && (
+          {stats.topActions && stats.topActions.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Top Actions</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {stats.byAction.slice(0, 5).map((item) => (
-                    <div
-                      key={item.action}
-                      className="flex items-center justify-between py-2"
-                    >
-                      <Badge className={actionColors[item.action] || 'bg-gray-100'}>
+                  {stats.topActions.slice(0, 5).map((item: { action: string; count: number }) => (
+                    <div key={item.action} className="flex items-center justify-between py-2">
+                      <Badge className={actionColors[item.action] || 'bg-gray-600'}>
                         {item.action}
                       </Badge>
                       <span className="font-medium">{item.count}</span>
@@ -157,10 +152,7 @@ export default function AuditLogsPage() {
               <CardContent>
                 <div className="space-y-2">
                   {stats.byResource.slice(0, 5).map((item) => (
-                    <div
-                      key={item.resource}
-                      className="flex items-center justify-between py-2"
-                    >
+                    <div key={item.resource} className="flex items-center justify-between py-2">
                       <span className="text-sm">{item.resource}</span>
                       <span className="font-medium">{item.count}</span>
                     </div>
@@ -244,7 +236,7 @@ export default function AuditLogsPage() {
                     {logsData.data.map((log) => (
                       <TableRow key={log.id}>
                         <TableCell>
-                          <Badge className={actionColors[log.action] || 'bg-gray-100'}>
+                          <Badge className={actionColors[log.action] || 'bg-gray-500'}>
                             {log.action}
                           </Badge>
                         </TableCell>
@@ -262,18 +254,14 @@ export default function AuditLogsPage() {
                               <p className="text-sm">
                                 {log.user.firstName} {log.user.lastName}
                               </p>
-                              <p className="text-xs text-muted-foreground">
-                                {log.user.email}
-                              </p>
+                              <p className="text-xs text-muted-foreground">{log.user.email}</p>
                             </div>
                           ) : (
                             <span className="text-sm text-muted-foreground">System</span>
                           )}
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm font-mono">
-                            {log.ipAddress || '-'}
-                          </span>
+                          <span className="text-sm font-mono">{log.ipAddress || '-'}</span>
                         </TableCell>
                         <TableCell>{formatDate(log.createdAt)}</TableCell>
                         <TableCell className="text-right">
