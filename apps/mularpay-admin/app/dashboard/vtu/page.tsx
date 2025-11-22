@@ -54,7 +54,7 @@ export default function VTUPage() {
     queryFn: () => vtuApi.getStatistics(),
   });
 
-  const totalOrders = stats?.totalOrders ?? 0;
+  const totalOrders = stats?.totalCount ?? 0;
   const totalVolume = Number(stats?.totalVolume ?? 0);
   const successRate = stats?.successRate ?? '0';
   const failedOrders = stats?.failedOrders ?? 0;

@@ -30,6 +30,7 @@ export class AdminWalletsController {
   async getWallets(
     @Query('page') page?: number,
     @Query('limit') limit?: number,
+    @Query('search') search?: string,
     @Query('minBalance') minBalance?: number,
     @Query('maxBalance') maxBalance?: number,
     @Query('isLocked', new ParseBoolPipe({ optional: true }))
@@ -40,6 +41,7 @@ export class AdminWalletsController {
     return this.adminWalletsService.getWallets(
       page,
       limit,
+      search,
       minBalance,
       maxBalance,
       isLocked,

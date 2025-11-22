@@ -8,9 +8,10 @@ import {
 
 export const giftcardsApi = {
   getAll: async (params?: Record<string, unknown>): Promise<PaginatedResponse<GiftCardOrder>> => {
-    const response = await apiClient.get<PaginatedResponse<GiftCardOrder>>('/admin/giftcards', {
-      params,
-    });
+    const response = await apiClient.get<PaginatedResponse<GiftCardOrder>>(
+      '/admin/giftcards/orders',
+      { params },
+    );
     return response.data;
   },
 
@@ -28,7 +29,7 @@ export const giftcardsApi = {
     params?: Record<string, unknown>,
   ): Promise<PaginatedResponse<GiftCardOrder>> => {
     const response = await apiClient.get<PaginatedResponse<GiftCardOrder>>(
-      '/admin/giftcards/pending',
+      '/admin/giftcards/pending-review',
       { params },
     );
     return response.data;

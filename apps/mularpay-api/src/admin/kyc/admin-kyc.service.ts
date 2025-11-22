@@ -1,11 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { KYCTier, Prisma } from '@prisma/client';
+import { KYCTier } from '@prisma/client';
 import { ApproveBVNDto, RejectBVNDto } from '../dto';
+import { NotificationDispatcherService } from '../../notifications/notification-dispatcher.service';
 
 @Injectable()
 export class AdminKYCService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(AdminKYCService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private notificationDispatcher: NotificationDispatcherService,
+  ) {}
 
   /**
    * Get pending KYC verifications
@@ -118,48 +124,77 @@ export class AdminKYCService {
    * Get KYC statistics
    */
   async getKYCStats() {
-    const [byTier, pendingBVNCount, pendingNINCount, approvalRate] =
-      await Promise.all([
-        // Users by KYC tier
-        this.prisma.user.groupBy({
-          by: ['kycTier'],
-          _count: true,
-        }),
+    const [
+      byTier,
+      pendingBVNCount,
+      pendingNINCount,
+      approvedBVNCount,
+      approvedNINCount,
+      rejectedBVNCount,
+      rejectedNINCount,
+      totalUsers,
+    ] = await Promise.all([
+      // Users by KYC tier
+      this.prisma.user.groupBy({
+        by: ['kycTier'],
+        _count: true,
+      }),
 
-        // Pending BVN count
-        this.prisma.user.count({
-          where: {
-            bvn: { not: null },
-            bvnVerified: false,
-          },
-        }),
+      // Pending BVN count
+      this.prisma.user.count({
+        where: {
+          bvn: { not: null },
+          bvnVerified: false,
+        },
+      }),
 
-        // Pending NIN count
-        this.prisma.user.count({
-          where: {
-            nin: { not: null },
-            ninVerified: false,
-          },
-        }),
+      // Pending NIN count
+      this.prisma.user.count({
+        where: {
+          nin: { not: null },
+          ninVerified: false,
+        },
+      }),
 
-        // Calculate approval rate from audit logs
-        Promise.all([
-          this.prisma.auditLog.count({
-            where: { action: 'APPROVE_BVN' },
-          }),
-          this.prisma.auditLog.count({
-            where: { action: 'REJECT_BVN' },
-          }),
-        ]),
-      ]);
+      // Approved BVN count (from audit logs)
+      this.prisma.auditLog.count({
+        where: { action: 'APPROVE_BVN' },
+      }),
 
-    const totalBVNActions = approvalRate[0] + approvalRate[1];
-    const bvnApprovalRate =
-      totalBVNActions > 0
-        ? ((approvalRate[0] / totalBVNActions) * 100).toFixed(2)
-        : '0';
+      // Approved NIN count (from audit logs)
+      this.prisma.auditLog.count({
+        where: { action: 'APPROVE_NIN' },
+      }),
+
+      // Rejected BVN count (from audit logs)
+      this.prisma.auditLog.count({
+        where: { action: 'REJECT_BVN' },
+      }),
+
+      // Rejected NIN count (from audit logs)
+      this.prisma.auditLog.count({
+        where: { action: 'REJECT_NIN' },
+      }),
+
+      // Total users
+      this.prisma.user.count(),
+    ]);
+
+    const totalApproved = approvedBVNCount + approvedNINCount;
+    const totalRejected = rejectedBVNCount + rejectedNINCount;
+    const totalActions = totalApproved + totalRejected;
+    const approvalRate =
+      totalActions > 0
+        ? ((totalApproved / totalActions) * 100).toFixed(2)
+        : '100.00';
 
     return {
+      total: totalUsers,
+      pendingCount: pendingBVNCount + pendingNINCount,
+      approvedCount: totalApproved,
+      rejectedCount: totalRejected,
+      pendingBVN: pendingBVNCount,
+      pendingNIN: pendingNINCount,
       byTier: byTier.reduce(
         (acc, item) => {
           acc[item.kycTier] = item._count;
@@ -167,12 +202,7 @@ export class AdminKYCService {
         },
         {} as Record<KYCTier, number>,
       ),
-      pending: {
-        bvn: pendingBVNCount,
-        nin: pendingNINCount,
-        total: pendingBVNCount + pendingNINCount,
-      },
-      approvalRate: bvnApprovalRate,
+      approvalRate,
     };
   }
 
@@ -226,6 +256,7 @@ export class AdminKYCService {
 
   /**
    * Approve BVN verification
+   * BVN approval always upgrades user to TIER_2 (if they're below TIER_2)
    */
   async approveBVN(adminUserId: string, userId: string, dto: ApproveBVNDto) {
     const user = await this.prisma.user.findUnique({
@@ -236,9 +267,12 @@ export class AdminKYCService {
       throw new NotFoundException('User not found');
     }
 
-    // Update BVN verification and upgrade tier
-    const newTier =
-      user.kycTier === KYCTier.TIER_0 ? KYCTier.TIER_2 : user.kycTier;
+    // BVN verification qualifies user for TIER_2
+    // Only upgrade if current tier is below TIER_2
+    const tierOrder = [KYCTier.TIER_0, KYCTier.TIER_1, KYCTier.TIER_2, KYCTier.TIER_3];
+    const currentTierIndex = tierOrder.indexOf(user.kycTier);
+    const tier2Index = tierOrder.indexOf(KYCTier.TIER_2);
+    const newTier = currentTierIndex < tier2Index ? KYCTier.TIER_2 : user.kycTier;
 
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
@@ -271,7 +305,23 @@ export class AdminKYCService {
       },
     });
 
-    // TODO: Send notification to user
+    // Send notification to user
+    this.notificationDispatcher
+      .sendNotification({
+        userId,
+        eventType: 'bvn_approved',
+        category: 'KYC',
+        channels: ['EMAIL', 'PUSH', 'IN_APP'],
+        title: 'BVN Verification Approved',
+        message: `Great news! Your BVN has been verified successfully. Your account has been upgraded to ${newTier.replace('_', ' ')}.`,
+        data: {
+          previousTier: user.kycTier,
+          newTier,
+        },
+      })
+      .catch((error) => {
+        this.logger.error('Failed to send BVN approval notification', error);
+      });
 
     return updatedUser;
   }
@@ -318,7 +368,22 @@ export class AdminKYCService {
       },
     });
 
-    // TODO: Send notification to user with reason
+    // Send notification to user with reason
+    this.notificationDispatcher
+      .sendNotification({
+        userId,
+        eventType: 'bvn_rejected',
+        category: 'KYC',
+        channels: ['EMAIL', 'PUSH', 'IN_APP'],
+        title: 'BVN Verification Unsuccessful',
+        message: `Your BVN verification could not be completed. Reason: ${dto.reason}. Please submit valid BVN details to try again.`,
+        data: {
+          reason: dto.reason,
+        },
+      })
+      .catch((error) => {
+        this.logger.error('Failed to send BVN rejection notification', error);
+      });
 
     return updatedUser;
   }
@@ -370,7 +435,23 @@ export class AdminKYCService {
       },
     });
 
-    // TODO: Send notification to user
+    // Send notification to user
+    this.notificationDispatcher
+      .sendNotification({
+        userId,
+        eventType: 'nin_approved',
+        category: 'KYC',
+        channels: ['EMAIL', 'PUSH', 'IN_APP'],
+        title: 'NIN Verification Approved',
+        message: `Great news! Your NIN has been verified successfully. Your account has been upgraded to ${newTier.replace('_', ' ')}.`,
+        data: {
+          previousTier: user.kycTier,
+          newTier,
+        },
+      })
+      .catch((error) => {
+        this.logger.error('Failed to send NIN approval notification', error);
+      });
 
     return updatedUser;
   }
@@ -417,7 +498,22 @@ export class AdminKYCService {
       },
     });
 
-    // TODO: Send notification to user with reason
+    // Send notification to user with reason
+    this.notificationDispatcher
+      .sendNotification({
+        userId,
+        eventType: 'nin_rejected',
+        category: 'KYC',
+        channels: ['EMAIL', 'PUSH', 'IN_APP'],
+        title: 'NIN Verification Unsuccessful',
+        message: `Your NIN verification could not be completed. Reason: ${dto.reason}. Please submit valid NIN details to try again.`,
+        data: {
+          reason: dto.reason,
+        },
+      })
+      .catch((error) => {
+        this.logger.error('Failed to send NIN rejection notification', error);
+      });
 
     return updatedUser;
   }

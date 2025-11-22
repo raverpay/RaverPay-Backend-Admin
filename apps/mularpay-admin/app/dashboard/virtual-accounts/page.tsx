@@ -49,8 +49,6 @@ export default function VirtualAccountsPage() {
       }),
   });
 
-  console.log({ accountsData });
-
   const { data: stats } = useQuery({
     queryKey: ['virtual-accounts-stats'],
     queryFn: () => virtualAccountsApi.getStatistics(),

@@ -3,12 +3,14 @@ import { VTUOrder, PaginatedResponse, VTUStatistics, VTURefundResult } from '@/t
 
 export const vtuApi = {
   getAll: async (params?: Record<string, unknown>): Promise<PaginatedResponse<VTUOrder>> => {
-    const response = await apiClient.get<PaginatedResponse<VTUOrder>>('/admin/vtu', { params });
+    const response = await apiClient.get<PaginatedResponse<VTUOrder>>('/admin/vtu/orders', {
+      params,
+    });
     return response.data;
   },
 
   getById: async (orderId: string): Promise<VTUOrder> => {
-    const response = await apiClient.get<VTUOrder>(`/admin/vtu/${orderId}`);
+    const response = await apiClient.get<VTUOrder>(`/admin/vtu/orders/${orderId}`);
     return response.data;
   },
 
@@ -18,8 +20,8 @@ export const vtuApi = {
   },
 
   getPending: async (params?: Record<string, unknown>): Promise<PaginatedResponse<VTUOrder>> => {
-    const response = await apiClient.get<PaginatedResponse<VTUOrder>>('/admin/vtu/pending', {
-      params,
+    const response = await apiClient.get<PaginatedResponse<VTUOrder>>('/admin/vtu/orders', {
+      params: { ...params, status: 'PENDING' },
     });
     return response.data;
   },
@@ -32,19 +34,24 @@ export const vtuApi = {
   },
 
   refund: async (orderId: string, reason: string): Promise<VTURefundResult> => {
-    const response = await apiClient.post<VTURefundResult>(`/admin/vtu/${orderId}/refund`, {
-      reason,
-    });
+    const response = await apiClient.post<VTURefundResult>(
+      `/admin/vtu/orders/${orderId}/refund`,
+      {
+        reason,
+      },
+    );
     return response.data;
   },
 
   retry: async (orderId: string): Promise<VTUOrder> => {
-    const response = await apiClient.post<VTUOrder>(`/admin/vtu/${orderId}/retry`);
+    const response = await apiClient.post<VTUOrder>(`/admin/vtu/orders/${orderId}/retry`);
     return response.data;
   },
 
-  updateStatus: async (orderId: string, status: string): Promise<VTUOrder> => {
-    const response = await apiClient.patch<VTUOrder>(`/admin/vtu/${orderId}/status`, { status });
+  markCompleted: async (orderId: string, notes?: string): Promise<VTUOrder> => {
+    const response = await apiClient.post<VTUOrder>(`/admin/vtu/orders/${orderId}/mark-completed`, {
+      notes,
+    });
     return response.data;
   },
 };

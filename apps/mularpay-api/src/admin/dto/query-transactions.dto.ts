@@ -25,6 +25,10 @@ export class QueryTransactionsDto {
 
   @IsOptional()
   @IsString()
+  search?: string;
+
+  @IsOptional()
+  @IsString()
   userId?: string;
 
   @IsOptional()

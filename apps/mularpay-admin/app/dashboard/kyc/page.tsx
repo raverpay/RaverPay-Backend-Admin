@@ -21,12 +21,12 @@ export default function KYCPage() {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'pending' | 'rejected'>('pending');
 
-  const { data: pendingData, isLoading: pendingLoading } = useQuery<KycPendingResponse>({
+  const { data: pendingData, isPending: pendingLoading } = useQuery<KycPendingResponse>({
     queryKey: ['kyc-pending'],
     queryFn: () => kycApi.getPending(),
   });
 
-  const { data: rejectedData, isLoading: rejectedLoading } = useQuery<KycRejectedResponse>({
+  const { data: rejectedData, isPending: rejectedLoading } = useQuery<KycRejectedResponse>({
     queryKey: ['kyc-rejected'],
     queryFn: () => kycApi.getRejected(),
   });
@@ -35,8 +35,6 @@ export default function KYCPage() {
     queryKey: ['kyc-stats'],
     queryFn: () => kycApi.getStatistics(),
   });
-
-  console.log({ stats });
 
   const isLoading = activeTab === 'pending' ? pendingLoading : rejectedLoading;
   const currentData: KycResponse | undefined = activeTab === 'pending' ? pendingData : rejectedData;

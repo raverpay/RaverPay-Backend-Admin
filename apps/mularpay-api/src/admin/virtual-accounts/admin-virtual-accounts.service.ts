@@ -11,9 +11,12 @@ export class AdminVirtualAccountsService {
   async getVirtualAccounts(
     page: number = 1,
     limit: number = 20,
+    search?: string,
     provider?: string,
     isActive?: boolean,
     userId?: string,
+    sortBy: string = 'createdAt',
+    sortOrder: 'asc' | 'desc' = 'desc',
   ) {
     const skip = (page - 1) * limit;
 
@@ -22,12 +25,31 @@ export class AdminVirtualAccountsService {
     if (isActive !== undefined) where.isActive = isActive;
     if (userId) where.userId = userId;
 
+    // Search by account number, bank name, or user details
+    if (search) {
+      where.OR = [
+        { accountNumber: { contains: search, mode: 'insensitive' } },
+        { accountName: { contains: search, mode: 'insensitive' } },
+        { bankName: { contains: search, mode: 'insensitive' } },
+        {
+          user: {
+            OR: [
+              { email: { contains: search, mode: 'insensitive' } },
+              { firstName: { contains: search, mode: 'insensitive' } },
+              { lastName: { contains: search, mode: 'insensitive' } },
+              { phone: { contains: search, mode: 'insensitive' } },
+            ],
+          },
+        },
+      ];
+    }
+
     const [accounts, total] = await Promise.all([
       this.prisma.virtualAccount.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { [sortBy]: sortOrder },
         include: {
           user: {
             select: {

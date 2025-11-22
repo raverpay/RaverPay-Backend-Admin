@@ -21,6 +21,11 @@ export interface User {
   phoneVerified: boolean;
   deletionRequested: boolean;
   deletionRequestedAt?: string | null;
+  dateOfBirth?: string | null;
+  gender?: string | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -427,6 +432,7 @@ export interface KYCStatistics {
 
 export interface VTUStatistics {
   totalOrders: number;
+  totalCount: number;
   totalVolume: string;
   averageAmount: string;
   successRate: string;

@@ -3,7 +3,7 @@ import { CryptoOrder, PaginatedResponse, CryptoStatistics, CryptoReviewResult } 
 
 export const cryptoApi = {
   getAll: async (params?: Record<string, unknown>): Promise<PaginatedResponse<CryptoOrder>> => {
-    const response = await apiClient.get<PaginatedResponse<CryptoOrder>>('/admin/crypto', {
+    const response = await apiClient.get<PaginatedResponse<CryptoOrder>>('/admin/crypto/orders', {
       params,
     });
     return response.data;
@@ -20,9 +20,10 @@ export const cryptoApi = {
   },
 
   getPending: async (params?: Record<string, unknown>): Promise<PaginatedResponse<CryptoOrder>> => {
-    const response = await apiClient.get<PaginatedResponse<CryptoOrder>>('/admin/crypto/pending', {
-      params,
-    });
+    const response = await apiClient.get<PaginatedResponse<CryptoOrder>>(
+      '/admin/crypto/pending-review',
+      { params },
+    );
     return response.data;
   },
 

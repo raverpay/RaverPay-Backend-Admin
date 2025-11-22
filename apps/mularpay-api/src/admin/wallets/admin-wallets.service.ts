@@ -14,6 +14,7 @@ export class AdminWalletsService {
   async getWallets(
     page: number = 1,
     limit: number = 20,
+    search?: string,
     minBalance?: number,
     maxBalance?: number,
     isLocked?: boolean,
@@ -32,6 +33,18 @@ export class AdminWalletsService {
         where.balance.gte = new Decimal(minBalance);
       if (maxBalance !== undefined)
         where.balance.lte = new Decimal(maxBalance);
+    }
+
+    // Search by user's name, email, or phone
+    if (search) {
+      where.user = {
+        OR: [
+          { email: { contains: search, mode: 'insensitive' } },
+          { firstName: { contains: search, mode: 'insensitive' } },
+          { lastName: { contains: search, mode: 'insensitive' } },
+          { phone: { contains: search, mode: 'insensitive' } },
+        ],
+      };
     }
 
     const [wallets, total] = await Promise.all([

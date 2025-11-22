@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, RotateCcw, Undo2, User } from 'lucide-react';
@@ -15,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate, formatCurrency, getApiErrorMessage } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { useState } from 'react';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 export default function TransactionDetailPage({
   params,
@@ -26,6 +26,8 @@ export default function TransactionDetailPage({
   const router = useRouter();
   const queryClient = useQueryClient();
   const [reverseReason, setReverseReason] = useState('');
+  const [showReverseConfirm, setShowReverseConfirm] = useState(false);
+  const [showRetryConfirm, setShowRetryConfirm] = useState(false);
 
   const { data: transaction, isLoading } = useQuery({
     queryKey: ['transaction', resolvedParams.transactionId],
@@ -283,7 +285,7 @@ export default function TransactionDetailPage({
                   />
                   <Button
                     variant="destructive"
-                    onClick={() => reverseReason && reverseMutation.mutate(reverseReason)}
+                    onClick={() => setShowReverseConfirm(true)}
                     disabled={!reverseReason || reverseMutation.isPending}
                     className="gap-2"
                   >
@@ -302,7 +304,7 @@ export default function TransactionDetailPage({
                 </p>
                 <Button
                   variant="outline"
-                  onClick={() => retryMutation.mutate()}
+                  onClick={() => setShowRetryConfirm(true)}
                   disabled={retryMutation.isPending}
                   className="gap-2"
                 >
@@ -314,6 +316,40 @@ export default function TransactionDetailPage({
           </CardContent>
         </Card>
       )}
+
+      {/* Reverse Transaction Confirmation Dialog */}
+      <ConfirmDialog
+        open={showReverseConfirm}
+        onOpenChange={setShowReverseConfirm}
+        title="Reverse Transaction"
+        description={`Are you sure you want to reverse this transaction? This will refund ${formatCurrency(parseFloat(transaction?.totalAmount || '0'))} to the user's wallet. This action cannot be undone.`}
+        confirmText="Yes, Reverse"
+        cancelText="Cancel"
+        variant="danger"
+        icon="reverse"
+        isLoading={reverseMutation.isPending}
+        onConfirm={async () => {
+          await reverseMutation.mutateAsync(reverseReason);
+          setShowReverseConfirm(false);
+        }}
+      />
+
+      {/* Retry Transaction Confirmation Dialog */}
+      <ConfirmDialog
+        open={showRetryConfirm}
+        onOpenChange={setShowRetryConfirm}
+        title="Retry Transaction"
+        description="Are you sure you want to retry this failed transaction? This will attempt to process it again."
+        confirmText="Yes, Retry"
+        cancelText="Cancel"
+        variant="warning"
+        icon="warning"
+        isLoading={retryMutation.isPending}
+        onConfirm={async () => {
+          await retryMutation.mutateAsync();
+          setShowRetryConfirm(false);
+        }}
+      />
     </div>
   );
 }

@@ -31,17 +31,29 @@ export class AdminVirtualAccountsController {
   async getVirtualAccounts(
     @Query('page') page?: number,
     @Query('limit') limit?: number,
+    @Query('search') search?: string,
     @Query('provider') provider?: string,
+    @Query('status') status?: string,
     @Query('isActive', new ParseBoolPipe({ optional: true }))
     isActive?: boolean,
     @Query('userId') userId?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
   ) {
+    // Convert status to isActive boolean
+    let activeStatus = isActive;
+    if (status === 'active') activeStatus = true;
+    else if (status === 'closed' || status === 'inactive') activeStatus = false;
+
     return this.adminVirtualAccountsService.getVirtualAccounts(
       page,
       limit,
+      search,
       provider,
-      isActive,
+      activeStatus,
       userId,
+      sortBy,
+      sortOrder,
     );
   }
 

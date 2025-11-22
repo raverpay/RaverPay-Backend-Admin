@@ -23,11 +23,7 @@ const actionColors: Record<string, string> = {
   REJECT: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100',
 };
 
-export default function AuditLogDetailPage({
-  params,
-}: {
-  params: Promise<{ logId: string }>;
-}) {
+export default function AuditLogDetailPage({ params }: { params: Promise<{ logId: string }> }) {
   const { logId } = use(params);
   const router = useRouter();
 
@@ -71,9 +67,7 @@ export default function AuditLogDetailPage({
             <p className="text-muted-foreground font-mono text-sm">{log.id}</p>
           </div>
         </div>
-        <Badge className={actionColors[log.action] || 'bg-gray-100'}>
-          {log.action}
-        </Badge>
+        <Badge className={actionColors[log.action] || 'bg-gray-100'}>{log.action}</Badge>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -88,9 +82,7 @@ export default function AuditLogDetailPage({
           <CardContent className="space-y-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Action</p>
-              <Badge className={actionColors[log.action] || 'bg-gray-100'}>
-                {log.action}
-              </Badge>
+              <Badge className={actionColors[log.action] || 'bg-gray-500'}>{log.action}</Badge>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Resource Type</p>
@@ -155,9 +147,7 @@ export default function AuditLogDetailPage({
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">User Agent</p>
-              <p className="text-sm text-muted-foreground break-all">
-                {log.userAgent || 'N/A'}
-              </p>
+              <p className="text-sm text-muted-foreground break-all">{log.userAgent || 'N/A'}</p>
             </div>
           </CardContent>
         </Card>

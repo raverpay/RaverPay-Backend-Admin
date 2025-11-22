@@ -23,7 +23,7 @@ export default function KYCDetailPage({ params }: { params: Promise<{ userId: st
   const [bvnRejectReason, setBvnRejectReason] = useState('');
   const [ninRejectReason, setNinRejectReason] = useState('');
 
-  const { data: kyc, isLoading } = useQuery({
+  const { data: kyc, isPending: isLoading } = useQuery({
     queryKey: ['kyc', resolvedParams.userId],
     queryFn: () => kycApi.getById(resolvedParams.userId),
   });
@@ -109,6 +109,19 @@ export default function KYCDetailPage({ params }: { params: Promise<{ userId: st
     );
   }
 
+  // Determine status from boolean flags and existence of BVN/NIN
+  const getBVNStatus = () => {
+    if (!kyc.user?.bvn) return 'NOT_SUBMITTED';
+    if (kyc.user.bvnVerified) return 'APPROVED';
+    return 'PENDING'; // BVN exists but not verified yet
+  };
+
+  const getNINStatus = () => {
+    if (!kyc.user?.nin) return 'NOT_SUBMITTED';
+    if (kyc.user.ninVerified) return 'APPROVED';
+    return 'PENDING'; // NIN exists but not verified yet
+  };
+
   const getKYCStatusBadge = (status: string) => {
     switch (status) {
       case 'PENDING':
@@ -137,8 +150,10 @@ export default function KYCDetailPage({ params }: { params: Promise<{ userId: st
     }
   };
 
-  const canApproveBVN = kyc.bvnVerificationStatus === 'PENDING';
-  const canApproveNIN = kyc.ninVerificationStatus === 'PENDING';
+  const bvnStatus = getBVNStatus();
+  const ninStatus = getNINStatus();
+  const canApproveBVN = bvnStatus === 'PENDING';
+  const canApproveNIN = ninStatus === 'PENDING';
 
   return (
     <div className="space-y-6">
@@ -189,9 +204,33 @@ export default function KYCDetailPage({ params }: { params: Promise<{ userId: st
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Current KYC Tier</p>
-                  <p className="text-lg font-bold">Tier {kyc.kycTier || 1}</p>
+                  <p className="text-lg font-bold">
+                    {kyc.user?.kycTier?.replace('TIER_', 'TIER ') || 'TIER 0'}
+                  </p>
                 </div>
-                <Link href={`/dashboard/users/${kyc.userId}`}>
+                {kyc.user?.dateOfBirth && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Date of Birth</p>
+                    <p className="text-sm">{formatDate(kyc.user.dateOfBirth)}</p>
+                  </div>
+                )}
+                {kyc.user?.gender && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Gender</p>
+                    <p className="text-sm">{kyc.user.gender}</p>
+                  </div>
+                )}
+                {kyc.user?.address && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Address</p>
+                    <p className="text-sm">
+                      {kyc.user.address}
+                      {kyc.user.city && `, ${kyc.user.city}`}
+                      {kyc.user.state && `, ${kyc.user.state}`}
+                    </p>
+                  </div>
+                )}
+                <Link href={`/dashboard/users/${kyc.user?.id || resolvedParams.userId}`}>
                   <Button variant="outline" size="sm" className="gap-2 w-full">
                     <User className="h-4 w-4" />
                     View User Profile
@@ -211,39 +250,26 @@ export default function KYCDetailPage({ params }: { params: Promise<{ userId: st
           <CardContent className="space-y-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-2">BVN Verification</p>
-              <div>{getKYCStatusBadge(kyc.bvnVerificationStatus || 'NOT_SUBMITTED')}</div>
-              {kyc.bvnVerifiedAt && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Verified: {formatDate(kyc.bvnVerifiedAt)}
-                </p>
-              )}
+              <div>{getKYCStatusBadge(bvnStatus)}</div>
             </div>
 
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-2">NIN Verification</p>
-              <div>{getKYCStatusBadge(kyc.ninVerificationStatus || 'NOT_SUBMITTED')}</div>
-              {kyc.ninVerifiedAt && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Verified: {formatDate(kyc.ninVerifiedAt)}
-                </p>
-              )}
+              <div>{getKYCStatusBadge(ninStatus)}</div>
             </div>
 
             <div className="pt-4 border-t">
-              <p className="text-sm font-medium text-muted-foreground">Submitted</p>
-              <p className="text-sm">{kyc.createdAt ? formatDate(kyc.createdAt) : 'N/A'}</p>
-            </div>
-
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Last Updated</p>
-              <p className="text-sm">{kyc.updatedAt ? formatDate(kyc.updatedAt) : 'N/A'}</p>
+              <p className="text-sm font-medium text-muted-foreground">Account Created</p>
+              <p className="text-sm">
+                {kyc.user?.createdAt ? formatDate(kyc.user.createdAt) : 'N/A'}
+              </p>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* BVN Details */}
-      {kyc.bvn && (
+      {kyc.user?.bvn && (
         <Card>
           <CardHeader>
             <CardTitle>BVN Information</CardTitle>
@@ -253,24 +279,18 @@ export default function KYCDetailPage({ params }: { params: Promise<{ userId: st
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">BVN</p>
-                <p className="text-sm font-mono">{kyc.bvn}</p>
+                <p className="text-sm font-mono text-muted-foreground">
+                  {kyc.user.bvn && kyc.user.bvn.length > 20
+                    ? `${kyc.user.bvn.substring(0, 20)}...`
+                    : kyc.user.bvn || 'N/A'}
+                  <span className="block text-xs mt-1">(Encrypted)</span>
+                </p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Status</p>
-                <div className="mt-1">
-                  {getKYCStatusBadge(kyc.bvnVerificationStatus || 'NOT_SUBMITTED')}
-                </div>
+                <div className="mt-1">{getKYCStatusBadge(bvnStatus)}</div>
               </div>
             </div>
-
-            {kyc.bvnData && Object.keys(kyc.bvnData).length > 0 && (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-2">BVN Data</p>
-                <pre className="text-xs bg-muted p-3 rounded-lg overflow-auto max-h-40">
-                  {JSON.stringify(kyc.bvnData, null, 2)}
-                </pre>
-              </div>
-            )}
 
             {canApproveBVN && (
               <div className="pt-4 border-t space-y-4">
@@ -315,7 +335,7 @@ export default function KYCDetailPage({ params }: { params: Promise<{ userId: st
       )}
 
       {/* NIN Details */}
-      {kyc.nin && (
+      {kyc.user?.nin && (
         <Card>
           <CardHeader>
             <CardTitle>NIN Information</CardTitle>
@@ -325,24 +345,18 @@ export default function KYCDetailPage({ params }: { params: Promise<{ userId: st
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">NIN</p>
-                <p className="text-sm font-mono">{kyc.nin}</p>
+                <p className="text-sm font-mono text-muted-foreground">
+                  {kyc.user.nin && kyc.user.nin.length > 20
+                    ? `${kyc.user.nin.substring(0, 20)}...`
+                    : kyc.user.nin || 'N/A'}
+                  <span className="block text-xs mt-1">(Encrypted)</span>
+                </p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Status</p>
-                <div className="mt-1">
-                  {getKYCStatusBadge(kyc.ninVerificationStatus || 'NOT_SUBMITTED')}
-                </div>
+                <div className="mt-1">{getKYCStatusBadge(ninStatus)}</div>
               </div>
             </div>
-
-            {kyc.ninData && Object.keys(kyc.ninData).length > 0 && (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-2">NIN Data</p>
-                <pre className="text-xs bg-muted p-3 rounded-lg overflow-auto max-h-40">
-                  {JSON.stringify(kyc.ninData, null, 2)}
-                </pre>
-              </div>
-            )}
 
             {canApproveNIN && (
               <div className="pt-4 border-t space-y-4">

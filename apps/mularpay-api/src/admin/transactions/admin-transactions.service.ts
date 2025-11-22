@@ -2,15 +2,22 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QueryTransactionsDto, ReverseTransactionDto } from '../dto';
 import { Prisma, TransactionStatus } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
+import { NotificationDispatcherService } from '../../notifications/notification-dispatcher.service';
 
 @Injectable()
 export class AdminTransactionsService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(AdminTransactionsService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private notificationDispatcher: NotificationDispatcherService,
+  ) {}
 
   /**
    * Get paginated list of transactions with filters
@@ -19,6 +26,7 @@ export class AdminTransactionsService {
     const {
       page = 1,
       limit = 20,
+      search,
       userId,
       type,
       status,
@@ -53,6 +61,25 @@ export class AdminTransactionsService {
       where.createdAt = {};
       if (startDate) where.createdAt.gte = new Date(startDate);
       if (endDate) where.createdAt.lte = new Date(endDate);
+    }
+
+    // Search by user name, email, reference, or description
+    if (search) {
+      where.OR = [
+        { reference: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { narration: { contains: search, mode: 'insensitive' } },
+        {
+          user: {
+            OR: [
+              { email: { contains: search, mode: 'insensitive' } },
+              { firstName: { contains: search, mode: 'insensitive' } },
+              { lastName: { contains: search, mode: 'insensitive' } },
+              { phone: { contains: search, mode: 'insensitive' } },
+            ],
+          },
+        },
+      ];
     }
 
     // Get transactions and total count
@@ -401,11 +428,35 @@ export class AdminTransactionsService {
       return {
         originalTransaction: updatedTransaction,
         reversalTransaction,
+        userId: transaction.userId,
+        amount: transaction.totalAmount,
+        reference: transaction.reference,
       };
     });
 
-    // TODO: Send notification to user about reversal
+    // Send notification to user about reversal
+    this.notificationDispatcher
+      .sendNotification({
+        userId: result.userId,
+        eventType: 'transaction_reversed',
+        category: 'TRANSACTION',
+        channels: ['EMAIL', 'PUSH', 'IN_APP'],
+        title: 'Transaction Reversed',
+        message: `Your transaction of ₦${Number(result.amount).toLocaleString()} (Ref: ${result.reference}) has been reversed. The amount has been credited back to your wallet.`,
+        data: {
+          originalReference: result.reference,
+          reversalReference: result.reversalTransaction.reference,
+          amount: result.amount.toString(),
+          reason: dto.reason,
+        },
+      })
+      .catch((error) => {
+        this.logger.error('Failed to send transaction reversal notification', error);
+      });
 
-    return result;
+    return {
+      originalTransaction: result.originalTransaction,
+      reversalTransaction: result.reversalTransaction,
+    };
   }
 }

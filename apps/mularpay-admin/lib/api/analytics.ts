@@ -10,7 +10,6 @@ export const analyticsApi = {
   getDashboard: async (): Promise<DashboardAnalytics> => {
     const response = await apiClient.get<DashboardAnalytics>('/admin/analytics/dashboard');
 
-    console.log({ response });
     return response.data;
   },
 
