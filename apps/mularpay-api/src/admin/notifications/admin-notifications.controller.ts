@@ -16,12 +16,14 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { GetUser } from '../../auth/decorators/get-user.decorator';
 import { UserRole, NotificationType } from '@prisma/client';
 import { CreateBroadcastDto, UpdateNotificationDto } from '../dto';
+import { BirthdaySchedulerService } from '../../notifications/birthday-scheduler.service';
 
 @Controller('admin/notifications')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AdminNotificationsController {
   constructor(
     private readonly notificationsService: AdminNotificationsService,
+    private readonly birthdaySchedulerService: BirthdaySchedulerService,
   ) {}
 
   /**
@@ -164,5 +166,15 @@ export class AdminNotificationsController {
       isRead ? isRead === 'true' : undefined,
       beforeDate,
     );
+  }
+
+  /**
+   * POST /admin/notifications/birthday-test/:userId
+   * Test birthday notification for a specific user
+   */
+  @Post('birthday-test/:userId')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  async testBirthdayNotification(@Param('userId') userId: string) {
+    return this.birthdaySchedulerService.sendBirthdayNotificationToUser(userId);
   }
 }

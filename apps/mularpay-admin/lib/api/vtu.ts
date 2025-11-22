@@ -1,7 +1,12 @@
 import apiClient from '../api-client';
-import { VTUOrder, PaginatedResponse, VTUStatistics, VTURefundResult } from '@/types';
+import { VTUOrder, PaginatedResponse, VTUStatistics, VTURefundResult, VTPassBalance } from '@/types';
 
 export const vtuApi = {
+  getBalance: async (): Promise<VTPassBalance> => {
+    const response = await apiClient.get<VTPassBalance>('/admin/vtu/balance');
+    return response.data;
+  },
+
   getAll: async (params?: Record<string, unknown>): Promise<PaginatedResponse<VTUOrder>> => {
     const response = await apiClient.get<PaginatedResponse<VTUOrder>>('/admin/vtu/orders', {
       params,

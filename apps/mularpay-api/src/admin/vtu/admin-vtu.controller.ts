@@ -47,6 +47,15 @@ export class AdminVTUController {
   }
 
   /**
+   * GET /admin/vtu/balance
+   * Get VTPass wallet balance
+   */
+  @Get('balance')
+  async getVTPassBalance() {
+    return this.adminVTUService.getVTPassBalance();
+  }
+
+  /**
    * GET /admin/vtu/stats
    * Get VTU statistics
    */

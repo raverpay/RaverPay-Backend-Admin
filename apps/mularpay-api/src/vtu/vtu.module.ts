@@ -19,6 +19,6 @@ import { NotificationsModule } from '../notifications/notifications.module';
   ],
   controllers: [VTUController, VTUWebhooksController],
   providers: [VTUService, VTPassService],
-  exports: [VTUService],
+  exports: [VTUService, VTPassService],
 })
 export class VTUModule {}

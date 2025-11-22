@@ -7,10 +7,14 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma, TransactionStatus, VTUServiceType } from '@prisma/client';
 import { RefundVTUDto } from '../dto';
 import { Decimal } from '@prisma/client/runtime/library';
+import { VTPassService } from '../../vtu/services/vtpass.service';
 
 @Injectable()
 export class AdminVTUService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private vtpassService: VTPassService,
+  ) {}
 
   /**
    * Get VTU orders with filters
@@ -372,5 +376,12 @@ export class AdminVTUService {
     });
 
     return updatedOrder;
+  }
+
+  /**
+   * Get VTPass wallet balance
+   */
+  async getVTPassBalance() {
+    return this.vtpassService.getBalance();
   }
 }

@@ -29,7 +29,7 @@ export class TermiiProvider implements ISmsProvider {
   constructor(private configService: ConfigService) {
     this.apiKey = this.configService.get<string>('TERMII_API_KEY', '');
     this.sender =
-      this.configService.get<string>('TERMII_SENDER_ID') || 'MularPay';
+      this.configService.get<string>('TERMII_SENDER_ID') || 'RaverPay';
     this.enabled =
       this.configService.get<string>('ENABLE_SMS_VERIFICATION') === 'true';
 
@@ -146,7 +146,7 @@ export class TermiiProvider implements ISmsProvider {
 
     try {
       const formattedPhone = this.formatPhoneNumber(phone);
-      const message = `Hi ${firstName}! Your MularPay password reset code is: ${code}. Valid for 10 minutes. Never share this code. - MularPay`;
+      const message = `Hi ${firstName}! Your RaverPay password reset code is: ${code}. Valid for 10 minutes. Never share this code. - RaverPay`;
 
       const payload = {
         to: formattedPhone,
@@ -154,7 +154,7 @@ export class TermiiProvider implements ISmsProvider {
         sms: message,
         type: 'plain',
         api_key: this.apiKey,
-        channel: 'dnd', // Use DND for transactional messages
+        channel: 'generic', // Use DND for transactional messages
       };
 
       const response = await this.client.post<TermiiSendResponse>(
@@ -211,7 +211,7 @@ export class TermiiProvider implements ISmsProvider {
 
     try {
       const formattedPhone = this.formatPhoneNumber(phone);
-      const message = `Hi ${firstName}! Your ${transactionDetails.type} of ₦${transactionDetails.amount} was successful. Ref: ${transactionDetails.reference}. - MularPay`;
+      const message = `Hi ${firstName}! Your ${transactionDetails.type} of ₦${transactionDetails.amount} was successful. Ref: ${transactionDetails.reference}. - RaverPay`;
 
       const payload = {
         to: formattedPhone,
@@ -219,7 +219,7 @@ export class TermiiProvider implements ISmsProvider {
         sms: message,
         type: 'plain',
         api_key: this.apiKey,
-        channel: 'dnd', // Transaction alerts are transactional
+        channel: 'generic', // Transaction alerts are transactional
       };
 
       const response = await this.client.post<TermiiSendResponse>(

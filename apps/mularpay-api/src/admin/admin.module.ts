@@ -30,9 +30,10 @@ import { AdminAdminsService } from './admins/admin-admins.service';
 import { HierarchyService } from '../common/services/hierarchy.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { VTUModule } from '../vtu/vtu.module';
 
 @Module({
-  imports: [PrismaModule, NotificationsModule],
+  imports: [PrismaModule, NotificationsModule, VTUModule],
   controllers: [
     AdminUsersController,
     AdminTransactionsController,

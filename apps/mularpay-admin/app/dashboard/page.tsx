@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { analyticsApi } from '@/lib/api/analytics';
+import { vtuApi } from '@/lib/api/vtu';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -12,6 +13,7 @@ import {
   AlertCircle,
   CheckCircle,
   Trash2,
+  Zap,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,6 +25,12 @@ export default function DashboardPage() {
     queryFn: () => analyticsApi.getDashboard(),
   });
 
+  const { data: vtpassBalance } = useQuery({
+    queryKey: ['vtpass-balance'],
+    queryFn: () => vtuApi.getBalance(),
+    refetchInterval: 60000, // Refresh every minute
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -30,8 +38,8 @@ export default function DashboardPage() {
           <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
           <p className="text-muted-foreground">Overview of your platform</p>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, i) => (
             <Card key={i}>
               <CardHeader className="pb-2">
                 <Skeleton className="h-4 w-24" />
@@ -64,7 +72,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <StatCard
           title="Total Users"
           value={dashboardData?.users?.total?.toLocaleString()}
@@ -76,6 +84,12 @@ export default function DashboardPage() {
           value={formatCurrency(parseFloat(dashboardData?.wallets?.totalBalance))}
           description="Platform wallet balance"
           icon={Wallet}
+        />
+        <StatCard
+          title="VTPass Balance"
+          value={formatCurrency(vtpassBalance?.balance || 0)}
+          description="VTU provider balance"
+          icon={Zap}
         />
         <StatCard
           title="Transactions Today"

@@ -631,6 +631,50 @@ export class VTPassService {
     };
   }
 
+  // ==================== Wallet Balance ====================
+
+  async getBalance(): Promise<{ balance: number }> {
+    const url = `${this.config.baseUrl}/balance`;
+
+    this.logger.log(`[VTPass] GET /balance`);
+
+    try {
+      // GET requests require api-key and public-key (not secret-key)
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'api-key': this.config.apiKey,
+          'public-key': this.config.publicKey,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = (await response.json()) as {
+        code: string | number;
+        contents?: { balance: number };
+      };
+
+      // VTPass balance endpoint returns code: 1 for success (not "000")
+      if (result.code !== 1 && result.code !== '1') {
+        this.logger.error(`[VTPass] Balance API error: ${JSON.stringify(result)}`);
+        throw new BadRequestException('Failed to retrieve VTPass balance');
+      }
+
+      return {
+        balance: result.contents?.balance || 0,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      this.logger.error(`[VTPass] Balance request failed:`, error);
+      throw new BadRequestException(
+        'Failed to retrieve VTPass balance. Please try again.',
+      );
+    }
+  }
+
   // ==================== Webhook Verification ====================
 
   verifyWebhook(signature: string, payload: unknown): boolean {

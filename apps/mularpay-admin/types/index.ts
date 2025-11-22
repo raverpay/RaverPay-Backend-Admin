@@ -579,3 +579,7 @@ export interface VTURefundResult {
   order: VTUOrder;
   refundTransaction: Transaction;
 }
+
+export interface VTPassBalance {
+  balance: number;
+}

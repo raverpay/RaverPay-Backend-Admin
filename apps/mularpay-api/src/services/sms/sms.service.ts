@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { ISmsProvider } from './interfaces/sms-provider.interface';
 import { VTPassProvider } from './providers/vtpass.provider';
 import { TermiiProvider } from './providers/termii.provider';
+import { birthdaySmsTemplate } from './templates/birthday.template';
 
 @Injectable()
 export class SmsService {
@@ -121,6 +122,37 @@ export class SmsService {
       });
     } catch (error) {
       this.logger.error(`Failed to send generic SMS:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Send birthday SMS (always sent regardless of notification preferences)
+   */
+  async sendBirthdaySms(phone: string, firstName: string): Promise<boolean> {
+    // Format phone number (ensure it starts with 234)
+    let formattedPhone = phone.trim();
+    if (formattedPhone.startsWith('0')) {
+      formattedPhone = '234' + formattedPhone.substring(1);
+    } else if (!formattedPhone.startsWith('234')) {
+      formattedPhone = '234' + formattedPhone;
+    }
+
+    const message = birthdaySmsTemplate(firstName);
+
+    this.logger.log(
+      `Sending birthday SMS to ${formattedPhone} via ${this.getProviderName()}`,
+    );
+
+    try {
+      // Use transaction alert as a workaround to send custom message
+      return await this.provider.sendTransactionAlert(phone, firstName, {
+        type: 'BIRTHDAY',
+        amount: '',
+        reference: message,
+      });
+    } catch (error) {
+      this.logger.error(`Failed to send birthday SMS:`, error);
       return false;
     }
   }

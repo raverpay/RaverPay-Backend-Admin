@@ -4,6 +4,7 @@ import { Resend } from 'resend';
 import { verificationCodeTemplate } from './templates/verification-code.template';
 import { welcomeEmailTemplate } from './templates/welcome.template';
 import { vtuTransactionEmailTemplate } from './templates/vtu-transaction.template';
+import { birthdayEmailTemplate } from './templates/birthday.template';
 
 @Injectable()
 export class EmailService {
@@ -454,6 +455,48 @@ export class EmailService {
         `Error sending VTU transaction email to ${email}:`,
         error,
       );
+      return false;
+    }
+  }
+
+  /**
+   * Send birthday email
+   */
+  async sendBirthdayEmail(
+    email: string,
+    firstName: string,
+    lastName?: string,
+  ): Promise<boolean> {
+    // Birthday emails should always be sent regardless of enabled flag
+    if (!this.resend) {
+      this.logger.log(`📧 [MOCK] Birthday email to ${email}`);
+      return true;
+    }
+
+    try {
+      const { html, subject } = birthdayEmailTemplate({ firstName, lastName });
+
+      const result = await this.resend.emails.send({
+        from: `${this.fromName} <${this.fromEmail}>`,
+        to: [email],
+        subject,
+        html,
+      });
+
+      if (result.error) {
+        this.logger.error(
+          `Failed to send birthday email to ${email}:`,
+          result.error,
+        );
+        return false;
+      }
+
+      this.logger.log(
+        `✅ Birthday email sent to ${email} (ID: ${result.data?.id})`,
+      );
+      return true;
+    } catch (error) {
+      this.logger.error(`Error sending birthday email to ${email}:`, error);
       return false;
     }
   }
