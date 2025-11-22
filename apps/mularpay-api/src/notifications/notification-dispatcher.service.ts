@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, forwardRef, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from './notifications.service';
 import { NotificationPreferencesService } from './notification-preferences.service';
@@ -6,6 +6,8 @@ import { NotificationLogService } from './notification-log.service';
 import { ExpoPushService } from './expo-push.service';
 import { EmailService } from '../services/email/email.service';
 import { SmsService } from '../services/sms/sms.service';
+import { NotificationQueueProcessor } from './notification-queue.processor';
+import { NotificationChannel } from '@prisma/client';
 
 /**
  * Notification Event Interface
@@ -50,10 +52,16 @@ export class NotificationDispatcherService {
     private readonly emailService: EmailService,
     private readonly smsService: SmsService,
     private readonly expoPushService: ExpoPushService,
+    @Inject(forwardRef(() => NotificationQueueProcessor))
+    private readonly queueProcessor: NotificationQueueProcessor,
   ) {}
 
   /**
    * Send notification via multiple channels
+   *
+   * Uses a hybrid approach:
+   * - IN_APP: Created immediately (instant user feedback)
+   * - EMAIL, SMS, PUSH: Queued for background processing (rate-limited)
    *
    * @param event - Notification event data
    * @returns Created notification with delivery status
@@ -78,25 +86,29 @@ export class NotificationDispatcherService {
         return null;
       }
 
-      // 2. Create in-app notification (always create if IN_APP is allowed)
-      const notification = await this.createInAppNotification(
-        event,
-        allowedChannels,
-      );
+      // 2. Create in-app notification immediately (if IN_APP is allowed)
+      // This gives users instant feedback in the app
+      let notification: any = null;
+      if (allowedChannels.includes('IN_APP')) {
+        notification = await this.createInAppNotification(
+          event,
+          allowedChannels,
+        );
+      }
 
-      // 3. Send via other channels (email, SMS, push) asynchronously
-      // Don't await - fire and forget to avoid blocking transaction responses
-      this.sendToChannelsAsync(notification.id, event, allowedChannels).catch(
-        (error) => {
-          this.logger.error(
-            `Error in async notification delivery for ${notification.id}`,
-            error,
-          );
-        },
-      );
+      // 3. Queue other channels (EMAIL, SMS, PUSH) for background processing
+      // This prevents rate limit issues when multiple users trigger notifications simultaneously
+      const queuedChannels = allowedChannels.filter(ch => ch !== 'IN_APP');
+
+      if (queuedChannels.length > 0) {
+        await this.queueChannelNotifications(event, queuedChannels);
+        this.logger.log(
+          `Queued ${queuedChannels.join(', ')} notifications for user ${event.userId}`,
+        );
+      }
 
       this.logger.log(
-        `Notification ${notification.id} created, sending to channels: ${allowedChannels.join(', ')}`,
+        `Notification dispatched for ${event.userId}: IN_APP=${allowedChannels.includes('IN_APP') ? 'immediate' : 'skipped'}, queued=${queuedChannels.join(', ') || 'none'}`,
       );
 
       return notification;
@@ -106,6 +118,42 @@ export class NotificationDispatcherService {
         error,
       );
       throw error;
+    }
+  }
+
+  /**
+   * Queue notifications for channels that need rate limiting
+   *
+   * @param event - Notification event
+   * @param channels - Channels to queue (EMAIL, SMS, PUSH)
+   */
+  private async queueChannelNotifications(
+    event: NotificationEvent,
+    channels: string[],
+  ) {
+    const notificationVariables = {
+      eventType: event.eventType,
+      title: event.title,
+      message: event.message,
+      type: event.category,
+      ...event.data,
+    };
+
+    // Priority: PUSH > EMAIL > SMS (PUSH is fastest to deliver)
+    const priorityMap: Record<string, number> = {
+      PUSH: 3,
+      EMAIL: 2,
+      SMS: 1,
+    };
+
+    for (const channel of channels) {
+      await this.queueProcessor.queueNotification({
+        userId: event.userId,
+        channel: channel as NotificationChannel,
+        eventType: event.eventType,
+        variables: notificationVariables,
+        priority: priorityMap[channel] || 0,
+      });
     }
   }
 
@@ -538,62 +586,30 @@ export class NotificationDispatcherService {
   /**
    * Send bulk notifications (for promotional campaigns, etc.)
    *
+   * Now uses the queue for all notifications to handle rate limiting properly.
+   * IN_APP notifications are still created immediately for instant user feedback.
+   *
    * @param userIds - Array of user IDs
    * @param event - Notification event (same for all users)
-   * @returns Array of created notifications
+   * @returns Summary of queued notifications
    */
   async sendBulkNotifications(
     userIds: string[],
     event: Omit<NotificationEvent, 'userId'>,
   ) {
+    this.logger.log(
+      `Bulk notification for ${userIds.length} users via ${event.channels.join(', ')}`,
+    );
+
+    // For each user, dispatch notification (which now uses queue for EMAIL/SMS/PUSH)
     const results: any[] = [];
 
-    // Check if EMAIL is in the channels - if so, we need to rate limit
-    const hasEmailChannel = event.channels?.includes('EMAIL');
-
-    if (hasEmailChannel) {
-      // Process sequentially with delays to respect Resend rate limit (2 req/sec)
-      // We use 600ms delay to stay safely under the limit
-      this.logger.log(
-        `Bulk notification with EMAIL channel - processing ${userIds.length} users with rate limiting`,
-      );
-
-      for (let i = 0; i < userIds.length; i++) {
-        const userId = userIds[i];
-        try {
-          const result = await this.sendNotification({ ...event, userId });
-          results.push({ status: 'fulfilled', value: result });
-        } catch (error) {
-          results.push({ status: 'rejected', reason: error });
-        }
-
-        // Add delay between each email to respect rate limit (2 requests/second)
-        // 600ms ensures we stay under the limit even with some variance
-        if (i < userIds.length - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 600));
-        }
-
-        // Log progress every 10 users
-        if ((i + 1) % 10 === 0) {
-          this.logger.log(
-            `Bulk notification progress: ${i + 1}/${userIds.length} processed`,
-          );
-        }
-      }
-    } else {
-      // For non-email channels, process in batches (push/in-app don't have strict rate limits)
-      const batchSize = 50;
-      for (let i = 0; i < userIds.length; i += batchSize) {
-        const batch = userIds.slice(i, i + batchSize);
-        const batchPromises = batch.map((userId) =>
-          this.sendNotification({ ...event, userId }),
-        );
-
-        const batchResults = await Promise.allSettled(batchPromises);
-        results.push(...batchResults);
-
-        // Add small delay between batches
-        await new Promise((resolve) => setTimeout(resolve, 100));
+    for (const userId of userIds) {
+      try {
+        const result = await this.sendNotification({ ...event, userId });
+        results.push({ status: 'fulfilled', value: result });
+      } catch (error) {
+        results.push({ status: 'rejected', reason: error });
       }
     }
 
@@ -601,7 +617,7 @@ export class NotificationDispatcherService {
     const failed = results.filter((r) => r.status === 'rejected').length;
 
     this.logger.log(
-      `Bulk notification complete: ${successful} successful, ${failed} failed`,
+      `Bulk notification dispatched: ${successful} successful, ${failed} failed. Queued channels will process in background.`,
     );
 
     return { successful, failed, total: results.length };

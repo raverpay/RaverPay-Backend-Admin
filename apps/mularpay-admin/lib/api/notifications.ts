@@ -26,8 +26,7 @@ export interface BroadcastResponse {
   broadcastId: string;
   totalUsers: number;
   eligibleUsers: number;
-  successfulDeliveries: number;
-  failedDeliveries: number;
+  totalQueued: number;
   channels: NotificationChannel[];
   message: string;
 }

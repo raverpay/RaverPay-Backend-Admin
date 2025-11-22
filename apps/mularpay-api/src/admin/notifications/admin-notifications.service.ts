@@ -182,7 +182,7 @@ export class AdminNotificationsService {
 
   /**
    * Create broadcast notification (send to all users)
-   * Uses NotificationDispatcher to send via selected channels
+   * Uses NotificationQueue for efficient async processing
    * Respects user notification preferences
    */
   async createBroadcast(adminUserId: string, dto: CreateBroadcastDto) {
@@ -330,25 +330,46 @@ export class AdminNotificationsService {
     }
 
     this.logger.log(
-      `Sending broadcast to ${eligibleUsers.length} eligible users (filtered from ${users.length} total)`,
+      `Queueing broadcast to ${eligibleUsers.length} eligible users (filtered from ${users.length} total)`,
     );
 
-    // Use NotificationDispatcher to send notifications via bulk method
-    const result = await this.notificationDispatcher.sendBulkNotifications(
-      eligibleUsers,
-      {
+    // Prepare notification variables
+    const notificationVariables = {
+      eventType: dto.eventType || 'admin_broadcast',
+      title: dto.title,
+      message: dto.message,
+      type: dto.type,
+      broadcastId,
+      sentBy: adminUserId,
+      isAdminBroadcast: true,
+    };
+
+    // Queue notifications for each channel
+    let totalQueued = 0;
+
+    for (const channel of dto.channels) {
+      // Map string channel to NotificationChannel enum
+      const channelEnum = channel as NotificationChannel;
+
+      // Set priority based on channel (higher = processed first)
+      // IN_APP: instant, PUSH: fast, EMAIL/SMS: slower due to rate limits
+      const priorityMap: Record<string, number> = {
+        IN_APP: 3,
+        PUSH: 2,
+        EMAIL: 1,
+        SMS: 1,
+      };
+
+      await this.queueProcessor.queueBulkNotifications({
+        userIds: eligibleUsers,
+        channel: channelEnum,
         eventType: dto.eventType || 'admin_broadcast',
-        category: category as any,
-        channels: dto.channels as any[],
-        title: dto.title,
-        message: dto.message,
-        data: {
-          broadcastId,
-          sentBy: adminUserId,
-          isAdminBroadcast: true,
-        },
-      },
-    );
+        variables: notificationVariables,
+        priority: priorityMap[channel] || 0,
+      });
+
+      totalQueued += eligibleUsers.length;
+    }
 
     // Create audit log
     await this.prisma.auditLog.create({
@@ -361,11 +382,11 @@ export class AdminNotificationsService {
           broadcastId,
           totalUsers: users.length,
           eligibleUsers: eligibleUsers.length,
-          successfulDeliveries: result.successful,
-          failedDeliveries: result.failed,
+          totalQueued,
           channels: dto.channels,
           type: dto.type,
           title: dto.title,
+          queuedAt: new Date().toISOString(),
         },
       },
     });
@@ -375,10 +396,9 @@ export class AdminNotificationsService {
       broadcastId,
       totalUsers: users.length,
       eligibleUsers: eligibleUsers.length,
-      successfulDeliveries: result.successful,
-      failedDeliveries: result.failed,
+      totalQueued,
       channels: dto.channels,
-      message: `Broadcast sent to ${result.successful} users via ${dto.channels.join(', ')}`,
+      message: `Broadcast queued: ${totalQueued} notifications for ${eligibleUsers.length} users via ${dto.channels.join(', ')}. Processing in background.`,
     };
   }
 
