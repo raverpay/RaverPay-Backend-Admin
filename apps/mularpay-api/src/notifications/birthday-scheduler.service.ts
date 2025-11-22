@@ -1,22 +1,25 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, forwardRef, Inject } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../services/email/email.service';
 import { SmsService } from '../services/sms/sms.service';
 import { ExpoPushService } from './expo-push.service';
 import { NotificationsService } from './notifications.service';
+import { NotificationQueueProcessor } from './notification-queue.processor';
+import { NotificationChannel } from '@prisma/client';
 
 /**
  * Birthday Scheduler Service
  *
- * Sends birthday notifications to users via:
+ * Queues birthday notifications to users via:
  * - Email
- * - SMS
+ * - SMS (optional)
  * - Push notification
  * - In-app notification
  *
  * Runs daily at 8:00 AM to check for users with birthdays
  * Birthday notifications are always sent regardless of notification preferences
+ * Uses the notification queue for efficient processing of thousands of users
  */
 @Injectable()
 export class BirthdaySchedulerService {
@@ -28,11 +31,14 @@ export class BirthdaySchedulerService {
     private readonly smsService: SmsService,
     private readonly expoPushService: ExpoPushService,
     private readonly notificationsService: NotificationsService,
+    @Inject(forwardRef(() => NotificationQueueProcessor))
+    private readonly queueProcessor: NotificationQueueProcessor,
   ) {}
 
   /**
-   * Cron job that runs daily at 8:00 AM to send birthday notifications
+   * Cron job that runs daily at 8:00 AM to queue birthday notifications
    * Uses Nigeria timezone (WAT - West Africa Time)
+   * Queues notifications for background processing instead of sending immediately
    */
   @Cron('0 8 * * *', {
     name: 'birthday-notifications',
@@ -50,30 +56,48 @@ export class BirthdaySchedulerService {
       }
 
       this.logger.log(
-        `Found ${birthdayUsers.length} users with birthdays today`,
+        `Found ${birthdayUsers.length} users with birthdays today. Queueing notifications...`,
       );
 
-      let successCount = 0;
-      let failureCount = 0;
+      const userIds = birthdayUsers.map((u) => u.id);
+      const birthdayVariables = {
+        eventType: 'birthday',
+        title: 'Happy Birthday! 🎂🎉',
+        message:
+          'On this special day, all of us at RaverPay want to wish you the happiest of birthdays! May this year bring you endless opportunities and success.',
+        type: 'PROMOTIONAL',
+        year: new Date().getFullYear(),
+      };
 
-      for (const user of birthdayUsers) {
-        try {
-          await this.sendBirthdayNotificationsToUser(user);
-          successCount++;
+      // Queue EMAIL notifications (priority 1 - lower, since they're rate limited)
+      await this.queueProcessor.queueBulkNotifications({
+        userIds,
+        channel: NotificationChannel.EMAIL,
+        eventType: 'birthday',
+        variables: birthdayVariables,
+        priority: 1,
+      });
 
-          // Add delay between users to respect rate limits (600ms)
-          await new Promise((resolve) => setTimeout(resolve, 600));
-        } catch (error) {
-          this.logger.error(
-            `Failed to send birthday notifications to user ${user.id}:`,
-            error,
-          );
-          failureCount++;
-        }
-      }
+      // Queue PUSH notifications (priority 2 - higher, faster to send)
+      await this.queueProcessor.queueBulkNotifications({
+        userIds,
+        channel: NotificationChannel.PUSH,
+        eventType: 'birthday',
+        variables: birthdayVariables,
+        priority: 2,
+      });
+
+      // Queue IN_APP notifications (priority 3 - highest, instant)
+      await this.queueProcessor.queueBulkNotifications({
+        userIds,
+        channel: NotificationChannel.IN_APP,
+        eventType: 'birthday',
+        variables: birthdayVariables,
+        priority: 3,
+      });
 
       this.logger.log(
-        `Birthday notification job completed: ${successCount} successful, ${failureCount} failed`,
+        `Birthday notification job completed: Queued ${userIds.length * 3} notifications for ${userIds.length} users`,
       );
     } catch (error) {
       this.logger.error('Birthday notification job failed:', error);

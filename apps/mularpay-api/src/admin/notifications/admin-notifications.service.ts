@@ -5,10 +5,11 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Prisma, NotificationType } from '@prisma/client';
+import { Prisma, NotificationType, NotificationChannel } from '@prisma/client';
 import { CreateBroadcastDto, UpdateNotificationDto } from '../dto';
 import { NotificationDispatcherService } from '../../notifications/notification-dispatcher.service';
 import { NotificationPreferencesService } from '../../notifications/notification-preferences.service';
+import { NotificationQueueProcessor } from '../../notifications/notification-queue.processor';
 
 @Injectable()
 export class AdminNotificationsService {
@@ -18,6 +19,7 @@ export class AdminNotificationsService {
     private prisma: PrismaService,
     private notificationDispatcher: NotificationDispatcherService,
     private preferencesService: NotificationPreferencesService,
+    private queueProcessor: NotificationQueueProcessor,
   ) {}
 
   /**

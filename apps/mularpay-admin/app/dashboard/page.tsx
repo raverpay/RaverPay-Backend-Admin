@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { analyticsApi } from '@/lib/api/analytics';
 import { vtuApi } from '@/lib/api/vtu';
+import { notificationsApi } from '@/lib/api/notifications';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -14,6 +15,8 @@ import {
   CheckCircle,
   Trash2,
   Zap,
+  Bell,
+  Mail,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,6 +32,12 @@ export default function DashboardPage() {
     queryKey: ['vtpass-balance'],
     queryFn: () => vtuApi.getBalance(),
     refetchInterval: 60000, // Refresh every minute
+  });
+
+  const { data: queueStats } = useQuery({
+    queryKey: ['notification-queue-stats'],
+    queryFn: () => notificationsApi.getQueueStats(),
+    refetchInterval: 10000, // Refresh every 10 seconds
   });
 
   if (isLoading) {
@@ -106,7 +115,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Pending Items */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Pending KYC</CardTitle>
@@ -139,6 +148,26 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{dashboardData?.pending?.deletionRequests}</div>
             <p className="text-xs text-muted-foreground mt-1">Pending review</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Notification Queue</CardTitle>
+            <Bell className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {queueStats?.queued || 0}
+              {queueStats?.processing ? (
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  ({queueStats.processing} processing)
+                </span>
+              ) : null}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {queueStats?.sent || 0} sent, {queueStats?.failed || 0} failed
+            </p>
           </CardContent>
         </Card>
       </div>

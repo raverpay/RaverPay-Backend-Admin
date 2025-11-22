@@ -38,6 +38,19 @@ export interface SendNotificationDto {
   message: string;
 }
 
+export interface QueueStats {
+  total: number;
+  queued: number;
+  processing: number;
+  sent: number;
+  failed: number;
+  byChannel: Array<{
+    channel: NotificationChannel;
+    status: string;
+    _count: number;
+  }>;
+}
+
 export const notificationsApi = {
   getAll: async (params?: Record<string, unknown>): Promise<PaginatedResponse<Notification>> => {
     const response = await apiClient.get<PaginatedResponse<Notification>>('/admin/notifications', {
@@ -101,6 +114,18 @@ export const notificationsApi = {
     const response = await apiClient.post<{ deleted: number }>('/admin/notifications/bulk-delete', {
       ids,
     });
+    return response.data;
+  },
+
+  getQueueStats: async (): Promise<QueueStats> => {
+    const response = await apiClient.get<QueueStats>('/admin/notifications/queue/stats');
+    return response.data;
+  },
+
+  testBirthday: async (userId: string): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.post<{ success: boolean; message: string }>(
+      `/admin/notifications/birthday-test/${userId}`,
+    );
     return response.data;
   },
 };

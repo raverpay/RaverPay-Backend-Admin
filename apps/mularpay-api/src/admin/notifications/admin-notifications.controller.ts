@@ -17,6 +17,7 @@ import { GetUser } from '../../auth/decorators/get-user.decorator';
 import { UserRole, NotificationType } from '@prisma/client';
 import { CreateBroadcastDto, UpdateNotificationDto } from '../dto';
 import { BirthdaySchedulerService } from '../../notifications/birthday-scheduler.service';
+import { NotificationQueueProcessor } from '../../notifications/notification-queue.processor';
 
 @Controller('admin/notifications')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -24,6 +25,7 @@ export class AdminNotificationsController {
   constructor(
     private readonly notificationsService: AdminNotificationsService,
     private readonly birthdaySchedulerService: BirthdaySchedulerService,
+    private readonly queueProcessor: NotificationQueueProcessor,
   ) {}
 
   /**
@@ -176,5 +178,15 @@ export class AdminNotificationsController {
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async testBirthdayNotification(@Param('userId') userId: string) {
     return this.birthdaySchedulerService.sendBirthdayNotificationToUser(userId);
+  }
+
+  /**
+   * GET /admin/notifications/queue/stats
+   * Get notification queue statistics
+   */
+  @Get('queue/stats')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SUPPORT)
+  async getQueueStats() {
+    return this.queueProcessor.getQueueStats();
   }
 }

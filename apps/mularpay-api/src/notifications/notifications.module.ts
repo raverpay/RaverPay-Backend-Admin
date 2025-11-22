@@ -9,6 +9,7 @@ import { NotificationLogService } from './notification-log.service';
 import { NotificationDispatcherService } from './notification-dispatcher.service';
 import { ExpoPushService } from './expo-push.service';
 import { BirthdaySchedulerService } from './birthday-scheduler.service';
+import { NotificationQueueProcessor } from './notification-queue.processor';
 // import { OneSignalService } from './onesignal.service'; // Deprecated - replaced by Expo
 import { PrismaModule } from '../prisma/prisma.module';
 import { EmailService } from '../services/email/email.service';
@@ -24,6 +25,7 @@ import { SmsService } from '../services/sms/sms.service';
     NotificationDispatcherService,
     ExpoPushService,
     BirthdaySchedulerService,
+    NotificationQueueProcessor,
     // OneSignalService, // Deprecated
     EmailService,
     SmsService,
@@ -35,6 +37,7 @@ import { SmsService } from '../services/sms/sms.service';
     NotificationDispatcherService,
     ExpoPushService,
     BirthdaySchedulerService,
+    NotificationQueueProcessor,
   ],
 })
 export class NotificationsModule {}
