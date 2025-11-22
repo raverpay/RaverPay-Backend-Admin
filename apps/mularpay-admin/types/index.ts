@@ -352,6 +352,8 @@ export interface TransactionTrendsAnalytics {
 
 // Pagination Types
 export interface PaginationMeta {
+  total: number | undefined;
+  limit: number | undefined;
   currentPage: number;
   perPage: number;
   totalItems: number;

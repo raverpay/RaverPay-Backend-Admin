@@ -224,6 +224,9 @@ model Transaction {
   @@index([type])
   @@index([status])
   @@index([createdAt])
+  @@index([status, createdAt]) // Composite index for admin queries filtering by status
+  @@index([type, createdAt]) // Composite index for admin queries filtering by type
+  @@index([userId, createdAt]) // Composite index for user transaction history
   @@map("transactions")
 }
 
@@ -339,6 +342,9 @@ model VTUOrder {
   @@index([userId])
   @@index([reference])
   @@index([status])
+  @@index([createdAt])
+  @@index([status, createdAt]) // Composite index for admin queries
+  @@index([userId, createdAt]) // Composite index for user order history
   @@map("vtu_orders")
 }
 
@@ -391,6 +397,9 @@ model GiftCardOrder {
   @@index([userId])
   @@index([reference])
   @@index([status])
+  @@index([createdAt])
+  @@index([status, createdAt]) // Composite index for admin queries
+  @@index([userId, createdAt]) // Composite index for user order history
   @@map("giftcard_orders")
 }
 
@@ -441,6 +450,9 @@ model CryptoOrder {
   @@index([userId])
   @@index([reference])
   @@index([status])
+  @@index([createdAt])
+  @@index([status, createdAt]) // Composite index for admin queries
+  @@index([userId, createdAt]) // Composite index for user order history
   @@map("crypto_orders")
 }
 
@@ -495,6 +507,8 @@ model Notification {
   @@index([eventType])
   @@index([category])
   @@index([createdAt])
+  @@index([userId, isRead, createdAt]) // Composite for user unread notifications
+  @@index([userId, createdAt]) // Composite for user notification history
   @@map("notifications")
 }
 
@@ -743,6 +757,9 @@ model AuditLog {
   @@index([userId])
   @@index([action])
   @@index([createdAt])
+  @@index([action, createdAt]) // Composite index for admin queries by action
+  @@index([resource, resourceId]) // Composite index for resource lookups
+  @@index([userId, createdAt]) // Composite index for user activity history
   @@map("audit_logs")
 }
 
