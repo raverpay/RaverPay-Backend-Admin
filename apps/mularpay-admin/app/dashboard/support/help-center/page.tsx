@@ -809,11 +809,12 @@ export default function HelpCenterPage() {
         description={`Are you sure you want to delete "${deletingCollection?.title}"? All articles in this collection will also be deleted.`}
         confirmText="Delete"
         cancelText="Cancel"
-        variant="destructive"
-        onConfirm={() =>
-          deletingCollection &&
-          deleteCollectionMutation.mutate(deletingCollection.id)
-        }
+        variant="danger"
+        onConfirm={() => {
+          if (deletingCollection) {
+            deleteCollectionMutation.mutate(deletingCollection.id);
+          }
+        }}
         isLoading={deleteCollectionMutation.isPending}
       />
 
@@ -825,10 +826,12 @@ export default function HelpCenterPage() {
         description={`Are you sure you want to delete "${deletingArticle?.title}"?`}
         confirmText="Delete"
         cancelText="Cancel"
-        variant="destructive"
-        onConfirm={() =>
-          deletingArticle && deleteArticleMutation.mutate(deletingArticle.id)
-        }
+        variant="danger"
+        onConfirm={() => {
+          if (deletingArticle) {
+            deleteArticleMutation.mutate(deletingArticle.id);
+          }
+        }}
         isLoading={deleteArticleMutation.isPending}
       />
     </div>

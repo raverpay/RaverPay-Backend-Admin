@@ -337,10 +337,12 @@ export default function CannedResponsesPage() {
         description={`Are you sure you want to delete "${deletingResponse?.title}"? This action cannot be undone.`}
         confirmText="Delete"
         cancelText="Cancel"
-        variant="destructive"
-        onConfirm={() =>
-          deletingResponse && deleteMutation.mutate(deletingResponse.id)
-        }
+        variant="danger"
+        onConfirm={() => {
+          if (deletingResponse) {
+            deleteMutation.mutate(deletingResponse.id);
+          }
+        }}
         isLoading={deleteMutation.isPending}
       />
     </div>
