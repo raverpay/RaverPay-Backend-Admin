@@ -96,6 +96,10 @@ model User {
   assignedTickets        Ticket[]        @relation("AssignedTickets")
   cannedResponses        CannedResponse[] @relation("CannedResponseCreator")
 
+  // Cashback Relations
+  cashbackWallet         CashbackWallet?
+  cashbackTransactions   CashbackTransaction[]
+
   @@index([email])
   @@index([phone])
   @@index([status])
@@ -193,9 +197,10 @@ model Transaction {
   type   TransactionType
   status TransactionStatus @default(PENDING)
 
-  amount      Decimal @db.Decimal(15, 2)
-  fee         Decimal @default(0) @db.Decimal(15, 2)
-  totalAmount Decimal @db.Decimal(15, 2) // amount + fee
+  amount           Decimal @db.Decimal(15, 2)
+  fee              Decimal @default(0) @db.Decimal(15, 2)
+  cashbackRedeemed Decimal @default(0) @db.Decimal(15, 2) // Cashback discount applied
+  totalAmount      Decimal @db.Decimal(15, 2) // amount + fee - cashbackRedeemed
 
   balanceBefore Decimal @db.Decimal(15, 2)
   balanceAfter  Decimal @db.Decimal(15, 2)
@@ -340,6 +345,11 @@ model VTUOrder {
 
   // Transaction reference
   transactionId String?
+
+  // Cashback fields
+  cashbackEarned     Decimal @default(0) @db.Decimal(15, 2) // Cashback earned from this purchase
+  cashbackRedeemed   Decimal @default(0) @db.Decimal(15, 2) // Cashback applied to this purchase
+  cashbackPercentage Decimal @default(0) @db.Decimal(5, 2) // Percentage used for calculation
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -1055,4 +1065,96 @@ model CannedResponse {
   @@index([isActive])
   @@index([shortcut])
   @@map("canned_responses")
+}
+
+// ============================================
+// CASHBACK SYSTEM
+// ============================================
+
+model CashbackConfig {
+  id String @id @default(uuid())
+
+  // Service configuration
+  serviceType VTUServiceType
+
+  // Cashback settings
+  percentage Decimal @db.Decimal(5, 2) // E.g., 2.00 for 2%
+  isActive   Boolean @default(true)
+
+  // Optional: Provider-specific rates
+  provider String? // MTN, GLO, AIRTEL, 9MOBILE, DSTV, GOTV, etc.
+
+  // Minimum transaction amount to earn cashback
+  minAmount Decimal @default(0) @db.Decimal(15, 2)
+
+  // Maximum cashback per transaction
+  maxCashback Decimal? @db.Decimal(15, 2)
+
+  // Metadata
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([serviceType, provider])
+  @@index([serviceType])
+  @@index([isActive])
+  @@map("cashback_config")
+}
+
+model CashbackWallet {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Balances
+  totalEarned      Decimal @default(0) @db.Decimal(15, 2) // Lifetime earnings
+  availableBalance Decimal @default(0) @db.Decimal(15, 2) // Current spendable
+  totalRedeemed    Decimal @default(0) @db.Decimal(15, 2) // Lifetime redemptions
+
+  // Status
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("cashback_wallets")
+}
+
+model CashbackTransaction {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Transaction details
+  type   CashbackTransactionType
+  amount Decimal @db.Decimal(15, 2)
+
+  // Balance tracking
+  balanceBefore Decimal @db.Decimal(15, 2)
+  balanceAfter  Decimal @db.Decimal(15, 2)
+
+  // Source transaction reference
+  sourceReference String? // Reference to original VTU transaction
+
+  // Metadata
+  description String
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([sourceReference])
+  @@index([type])
+  @@index([createdAt])
+  @@index([userId, createdAt]) // Composite index for user history
+  @@map("cashback_transactions")
+}
+
+enum CashbackTransactionType {
+  EARNED
+  REDEEMED
+  EXPIRED
+  REVERSED
 }

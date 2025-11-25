@@ -54,6 +54,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Pagination } from '@/components/ui/pagination';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils';
+import { toast } from 'sonner';
 
 // Notification types that can be selected for broadcast
 const broadcastTypes: NotificationType[] = ['SYSTEM', 'PROMOTIONAL', 'SECURITY'];
@@ -217,11 +218,12 @@ export default function NotificationsPage() {
 
   const handleBroadcast = () => {
     if (!broadcastForm.title || !broadcastForm.message) {
-      alert('Please fill in all fields');
+      toast.error('Please fill in all fields');
+
       return;
     }
     if (!broadcastForm.channels || broadcastForm.channels.length === 0) {
-      alert('Please select at least one channel');
+      toast.error('Please select at least one channel');
       return;
     }
     setBroadcastResult(null);

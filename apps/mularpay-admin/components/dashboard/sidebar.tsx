@@ -23,6 +23,7 @@ import {
   UserCog,
   Headphones,
   LucideIcon,
+  Percent,
 } from 'lucide-react';
 
 interface NavItem {
@@ -33,19 +34,90 @@ interface NavItem {
 }
 
 const navigation: NavItem[] = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'] },
-  { name: 'Users', href: '/dashboard/users', icon: Users, roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'] },
-  { name: 'Wallets', href: '/dashboard/wallets', icon: Wallet, roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'] },
-  { name: 'Transactions', href: '/dashboard/transactions', icon: CreditCard, roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'] },
-  { name: 'KYC Verification', href: '/dashboard/kyc', icon: CheckCircle, roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'] },
-  { name: 'VTU Orders', href: '/dashboard/vtu', icon: Smartphone, roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'] },
-  { name: 'Gift Cards', href: '/dashboard/giftcards', icon: Gift, roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'] },
-  { name: 'Crypto Orders', href: '/dashboard/crypto', icon: Bitcoin, roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'] },
-  { name: 'Virtual Accounts', href: '/dashboard/virtual-accounts', icon: Building2, roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'] },
-  { name: 'Support', href: '/dashboard/support', icon: Headphones, roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'] },
-  { name: 'Deletions', href: '/dashboard/deletions', icon: Trash2, roles: ['SUPER_ADMIN', 'ADMIN'] },
-  { name: 'Notifications', href: '/dashboard/notifications', icon: Bell, roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'] },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'] },
+  {
+    name: 'Dashboard',
+    href: '/dashboard',
+    icon: LayoutDashboard,
+    roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
+  },
+  {
+    name: 'Users',
+    href: '/dashboard/users',
+    icon: Users,
+    roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
+  },
+  {
+    name: 'Wallets',
+    href: '/dashboard/wallets',
+    icon: Wallet,
+    roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
+  },
+  {
+    name: 'Transactions',
+    href: '/dashboard/transactions',
+    icon: CreditCard,
+    roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
+  },
+  {
+    name: 'KYC Verification',
+    href: '/dashboard/kyc',
+    icon: CheckCircle,
+    roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
+  },
+  {
+    name: 'VTU Orders',
+    href: '/dashboard/vtu',
+    icon: Smartphone,
+    roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
+  },
+  {
+    name: 'Gift Cards',
+    href: '/dashboard/giftcards',
+    icon: Gift,
+    roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
+  },
+  {
+    name: 'Crypto Orders',
+    href: '/dashboard/crypto',
+    icon: Bitcoin,
+    roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
+  },
+  {
+    name: 'Cashback',
+    href: '/dashboard/cashback',
+    icon: Percent,
+    roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
+  },
+  {
+    name: 'Virtual Accounts',
+    href: '/dashboard/virtual-accounts',
+    icon: Building2,
+    roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
+  },
+  {
+    name: 'Support',
+    href: '/dashboard/support',
+    icon: Headphones,
+    roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
+  },
+  {
+    name: 'Deletions',
+    href: '/dashboard/deletions',
+    icon: Trash2,
+    roles: ['SUPER_ADMIN', 'ADMIN'],
+  },
+  {
+    name: 'Notifications',
+    href: '/dashboard/notifications',
+    icon: Bell,
+    roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
+  },
+  {
+    name: 'Analytics',
+    href: '/dashboard/analytics',
+    icon: BarChart3,
+    roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
+  },
   { name: 'Audit Logs', href: '/dashboard/audit', icon: FileText, roles: ['SUPER_ADMIN', 'ADMIN'] },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings, roles: ['SUPER_ADMIN'] },
   { name: 'Admins', href: '/dashboard/admins', icon: UserCog, roles: ['SUPER_ADMIN'] },
@@ -100,12 +172,17 @@ export function Sidebar() {
       {userRole && (
         <div className="border-t p-4">
           <div className="flex items-center justify-center">
-            <span className={cn(
-              'px-3 py-1 rounded-full text-xs font-medium',
-              userRole === 'SUPER_ADMIN' && 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100',
-              userRole === 'ADMIN' && 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100',
-              userRole === 'SUPPORT' && 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
-            )}>
+            <span
+              className={cn(
+                'px-3 py-1 rounded-full text-xs font-medium',
+                userRole === 'SUPER_ADMIN' &&
+                  'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100',
+                userRole === 'ADMIN' &&
+                  'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100',
+                userRole === 'SUPPORT' &&
+                  'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
+              )}
+            >
               {userRole.replace('_', ' ')}
             </span>
           </div>

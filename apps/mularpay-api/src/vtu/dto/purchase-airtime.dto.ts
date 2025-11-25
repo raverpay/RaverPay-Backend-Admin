@@ -1,4 +1,13 @@
-import { IsString, IsNumber, Min, Max, Matches, Length } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  Min,
+  Max,
+  Matches,
+  Length,
+  IsOptional,
+  IsBoolean,
+} from 'class-validator';
 
 export class PurchaseAirtimeDto {
   @IsString()
@@ -22,4 +31,14 @@ export class PurchaseAirtimeDto {
   @Length(4, 4, { message: 'PIN must be exactly 4 digits' })
   @Matches(/^\d{4}$/, { message: 'PIN must contain only digits' })
   pin: string;
+
+  // Cashback fields
+  @IsOptional()
+  @IsBoolean()
+  useCashback?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  cashbackAmount?: number;
 }

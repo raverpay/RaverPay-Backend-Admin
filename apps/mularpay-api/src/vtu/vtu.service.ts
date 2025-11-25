@@ -10,6 +10,7 @@ import { VTPassService } from './services/vtpass.service';
 import { WalletService } from '../wallet/wallet.service';
 import { UsersService } from '../users/users.service';
 import { NotificationDispatcherService } from '../notifications/notification-dispatcher.service';
+import { CashbackService } from '../cashback/cashback.service';
 import {
   PurchaseAirtimeDto,
   PurchaseDataDto,
@@ -53,6 +54,7 @@ export class VTUService {
     private readonly walletService: WalletService,
     private readonly usersService: UsersService,
     private readonly notificationDispatcher: NotificationDispatcherService,
+    private readonly cashbackService: CashbackService,
   ) {}
 
   // ==================== Product Catalog ====================
@@ -190,20 +192,8 @@ export class VTUService {
   // ==================== Fee Calculation ====================
 
   calculateFee(amount: number, serviceType: VTUServiceType): number {
-    switch (serviceType) {
-      case 'AIRTIME':
-      case 'DATA':
-        // 2% with max of ₦100
-        return Math.min(amount * 0.02, 100);
-
-      case 'CABLE_TV':
-      case 'ELECTRICITY':
-        // Flat ₦50
-        return 50;
-
-      default:
-        return 0;
-    }
+    // No convenience fees - all services are free
+    return 0;
   }
 
   // ==================== Generate Reference ====================
@@ -549,11 +539,35 @@ export class VTUService {
 
     const amount = Number(product.variation_amount);
 
-    // 3. Calculate total
-    const fee = this.calculateFee(amount, 'DATA');
-    const total = amount + fee;
+    // 3. Calculate cashback to earn
+    const cashbackToEarn = await this.cashbackService.calculateCashback(
+      'DATA',
+      dto.network.toUpperCase(),
+      amount,
+    );
 
-    // 4. Check balance
+    // 4. Handle cashback redemption if requested
+    let cashbackRedeemed = 0;
+    if (dto.useCashback && dto.cashbackAmount && dto.cashbackAmount > 0) {
+      const userCashbackBalance = await this.cashbackService.getCashbackBalance(
+        userId,
+      );
+
+      if (dto.cashbackAmount > userCashbackBalance.availableBalance) {
+        throw new BadRequestException(
+          `Insufficient cashback balance. Available: ₦${userCashbackBalance.availableBalance}`,
+        );
+      }
+
+      // User can't redeem more than the purchase amount
+      cashbackRedeemed = Math.min(dto.cashbackAmount, amount);
+    }
+
+    // 5. Calculate total (fee is now 0, subtract cashback)
+    const fee = this.calculateFee(amount, 'DATA');
+    const total = amount + fee - cashbackRedeemed;
+
+    // 6. Check balance
     await this.checkWalletBalance(userId, total);
 
     // 5. Check duplicate
@@ -578,6 +592,8 @@ export class VTUService {
           productName: product.name,
           amount: new Decimal(amount),
           status: 'PENDING',
+          cashbackPercentage: new Decimal(cashbackToEarn.percentage),
+          cashbackRedeemed: new Decimal(cashbackRedeemed),
         },
       });
 
@@ -604,6 +620,7 @@ export class VTUService {
             type: 'VTU_DATA',
             amount: new Decimal(amount),
             fee: new Decimal(fee),
+            cashbackRedeemed: new Decimal(cashbackRedeemed),
             totalAmount: new Decimal(total),
             balanceBefore,
             balanceAfter,
@@ -616,12 +633,26 @@ export class VTUService {
               productCode: dto.productCode,
               productName: product.name,
               orderId: order.id,
+              cashbackToEarn: cashbackToEarn.cashbackAmount,
+              cashbackRedeemed,
             },
           },
         }),
       ]);
 
-      // 11. Call VTPass API
+      // 11. Redeem cashback from user's cashback wallet (before calling VTPass)
+      if (cashbackRedeemed > 0) {
+        await this.cashbackService.redeemCashback(
+          userId,
+          cashbackRedeemed,
+          order.id,
+        );
+        this.logger.log(
+          `[Data] Redeemed ₦${cashbackRedeemed} cashback for user ${userId}`,
+        );
+      }
+
+      // 12. Call VTPass API
       let vtpassResult: VTPassPurchaseResult;
       try {
         vtpassResult = await this.vtpassService.purchaseData({
@@ -642,6 +673,14 @@ export class VTUService {
           },
         });
 
+        // Reverse cashback redemption if any
+        if (cashbackRedeemed > 0) {
+          await this.cashbackService.reverseCashbackRedemption(userId, order.id);
+          this.logger.log(
+            `[Data] Reversed ₦${cashbackRedeemed} cashback for failed order`,
+          );
+        }
+
         await this.refundFailedOrder(order.id);
 
         throw new BadRequestException(
@@ -649,13 +688,15 @@ export class VTUService {
         );
       }
 
-      // 11. Prepare response data FIRST (before async operations)
+      // 13. Prepare response data FIRST (before async operations)
       const response = {
         reference,
         orderId: order.id,
         status: vtpassResult.status === 'success' ? 'COMPLETED' : 'FAILED',
         amount,
         fee,
+        cashbackRedeemed,
+        cashbackEarned: cashbackToEarn.cashbackAmount,
         totalAmount: total,
         provider: dto.network.toUpperCase(),
         recipient: dto.phone,
@@ -666,7 +707,7 @@ export class VTUService {
             : 'Data purchase failed. Wallet refunded.',
       };
 
-      // 12. Update order asynchronously (fire-and-forget)
+      // 14. Update order asynchronously (fire-and-forget)
       this.prisma.vTUOrder
         .update({
           where: { id: order.id },
@@ -674,6 +715,10 @@ export class VTUService {
             status: vtpassResult.status === 'success' ? 'COMPLETED' : 'FAILED',
             providerRef: vtpassResult.transactionId,
             providerToken: vtpassResult.token,
+            cashbackEarned:
+              vtpassResult.status === 'success'
+                ? new Decimal(cashbackToEarn.cashbackAmount)
+                : undefined,
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             providerResponse: JSON.parse(JSON.stringify(vtpassResult)),
             completedAt:
@@ -684,11 +729,44 @@ export class VTUService {
           this.logger.error('Failed to update order status', error),
         );
 
-      // 13. If failed, refund asynchronously
+      // 15. If failed, refund and reverse cashback asynchronously
       if (vtpassResult.status !== 'success') {
         this.refundFailedOrder(order.id).catch((error) =>
           this.logger.error('Failed to refund order', error),
         );
+
+        // Reverse cashback redemption if any
+        if (cashbackRedeemed > 0) {
+          this.cashbackService
+            .reverseCashbackRedemption(userId, order.id)
+            .catch((error) =>
+              this.logger.error('Failed to reverse cashback redemption', error),
+            );
+        }
+      }
+
+      // 16. If successful, award cashback asynchronously
+      if (
+        vtpassResult.status === 'success' &&
+        cashbackToEarn.isEligible &&
+        cashbackToEarn.cashbackAmount > 0
+      ) {
+        this.cashbackService
+          .awardCashback(
+            userId,
+            order.id,
+            'DATA',
+            dto.network.toUpperCase(),
+            amount,
+          )
+          .then(() => {
+            this.logger.log(
+              `[Data] Awarded ₦${cashbackToEarn.cashbackAmount} cashback to user ${userId}`,
+            );
+          })
+          .catch((error) =>
+            this.logger.error('Failed to award cashback (non-critical)', error),
+          );
       }
 
       // 14. Auto-save recipient asynchronously (fire-and-forget)

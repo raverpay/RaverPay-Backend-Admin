@@ -4,6 +4,8 @@ import {
   IsOptional,
   IsBoolean,
   Length,
+  IsNumber,
+  Min,
 } from 'class-validator';
 
 export class PurchaseDataDto {
@@ -30,4 +32,14 @@ export class PurchaseDataDto {
   @Length(4, 4, { message: 'PIN must be exactly 4 digits' })
   @Matches(/^\d{4}$/, { message: 'PIN must contain only digits' })
   pin: string;
+
+  // Cashback fields
+  @IsOptional()
+  @IsBoolean()
+  useCashback?: boolean; // Whether user wants to apply cashback
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  cashbackAmount?: number; // Amount of cashback to redeem
 }

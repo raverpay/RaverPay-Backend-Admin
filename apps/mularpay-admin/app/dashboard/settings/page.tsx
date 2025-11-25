@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Settings, DollarSign, Shield, Bell, Server } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { usePermissions } from '@/lib/permissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,15 +49,15 @@ export default function SettingsPage() {
   });
 
   const handleSaveGeneral = () => {
-    alert('Settings saved! (This is a demo - implement API call)');
+    toast.success('Settings saved! (This is a demo - implement API call)');
   };
 
   const handleSaveFees = () => {
-    alert('Fee settings saved! (This is a demo - implement API call)');
+    toast.success('Fee settings saved! (This is a demo - implement API call)');
   };
 
   const handleSaveKYC = () => {
-    alert('KYC settings saved! (This is a demo - implement API call)');
+    toast.success('KYC settings saved! (This is a demo - implement API call)');
   };
 
   if (!canModifySettings) {

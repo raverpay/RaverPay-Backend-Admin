@@ -8,6 +8,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { WalletModule } from '../wallet/wallet.module';
 import { UsersModule } from '../users/users.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { CashbackModule } from '../cashback/cashback.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     WalletModule,
     UsersModule,
     NotificationsModule,
+    CashbackModule,
   ],
   controllers: [VTUController, VTUWebhooksController],
   providers: [VTUService, VTPassService],

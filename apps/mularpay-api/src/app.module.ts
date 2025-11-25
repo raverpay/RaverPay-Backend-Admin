@@ -16,6 +16,7 @@ import { VTUModule } from './vtu/vtu.module';
 import { WalletModule } from './wallet/wallet.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { SupportModule } from './support/support.module';
+import { CashbackModule } from './cashback/cashback.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { SupportModule } from './support/support.module';
     VirtualAccountsModule,
     WebhooksModule,
     VTUModule,
+    CashbackModule, // Cashback rewards system
     CloudinaryModule,
     NotificationsModule,
     SupportModule, // Support system (chat, tickets, help center)
