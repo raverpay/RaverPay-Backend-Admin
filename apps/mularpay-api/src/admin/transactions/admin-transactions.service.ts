@@ -3,12 +3,19 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QueryTransactionsDto, ReverseTransactionDto } from '../dto';
 import { Prisma, TransactionStatus } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { NotificationDispatcherService } from '../../notifications/notification-dispatcher.service';
+import { TransactionsService } from '../../transactions/transactions.service';
+import {
+  CreateWithdrawalConfigDto,
+  UpdateWithdrawalConfigDto,
+} from '../../transactions/dto';
 
 @Injectable()
 export class AdminTransactionsService {
@@ -17,6 +24,8 @@ export class AdminTransactionsService {
   constructor(
     private prisma: PrismaService,
     private notificationDispatcher: NotificationDispatcherService,
+    @Inject(forwardRef(() => TransactionsService))
+    private transactionsService: TransactionsService,
   ) {}
 
   /**
@@ -458,5 +467,40 @@ export class AdminTransactionsService {
       originalTransaction: result.originalTransaction,
       reversalTransaction: result.reversalTransaction,
     };
+  }
+
+  /**
+   * Get all withdrawal configurations
+   */
+  async getAllWithdrawalConfigs() {
+    return this.transactionsService.getAllWithdrawalConfigs();
+  }
+
+  /**
+   * Get withdrawal configuration by ID
+   */
+  async getWithdrawalConfigById(id: string) {
+    return this.transactionsService.getWithdrawalConfigById(id);
+  }
+
+  /**
+   * Create withdrawal configuration
+   */
+  async createWithdrawalConfig(dto: CreateWithdrawalConfigDto) {
+    return this.transactionsService.createWithdrawalConfig(dto);
+  }
+
+  /**
+   * Update withdrawal configuration
+   */
+  async updateWithdrawalConfig(id: string, dto: UpdateWithdrawalConfigDto) {
+    return this.transactionsService.updateWithdrawalConfig(id, dto);
+  }
+
+  /**
+   * Delete withdrawal configuration
+   */
+  async deleteWithdrawalConfig(id: string) {
+    return this.transactionsService.deleteWithdrawalConfig(id);
   }
 }

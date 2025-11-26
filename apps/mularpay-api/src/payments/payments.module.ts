@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PaystackService } from './paystack.service';
 import { PaymentsController } from './payments.controller';
@@ -10,7 +10,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
   imports: [
     ConfigModule,
     PrismaModule,
-    TransactionsModule,
+    forwardRef(() => TransactionsModule),
     NotificationsModule,
   ],
   controllers: [PaymentsController],

@@ -24,6 +24,7 @@ import {
   Headphones,
   LucideIcon,
   Percent,
+  Banknote,
 } from 'lucide-react';
 
 interface NavItem {
@@ -87,6 +88,12 @@ const navigation: NavItem[] = [
     href: '/dashboard/cashback',
     icon: Percent,
     roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
+  },
+  {
+    name: 'Withdrawal Config',
+    href: '/dashboard/withdrawal-config',
+    icon: Banknote,
+    roles: ['SUPER_ADMIN'],
   },
   {
     name: 'Virtual Accounts',

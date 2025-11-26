@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Post,
+  Put,
+  Delete,
   Param,
   Body,
   Query,
@@ -14,6 +16,10 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminTransactionsService } from './admin-transactions.service';
 import { QueryTransactionsDto, ReverseTransactionDto } from '../dto';
+import {
+  CreateWithdrawalConfigDto,
+  UpdateWithdrawalConfigDto,
+} from '../../transactions/dto';
 
 @Controller('admin/transactions')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -85,6 +91,54 @@ export class AdminTransactionsController {
   @Get('reference/:reference')
   async getTransactionByReference(@Param('reference') reference: string) {
     return this.adminTransactionsService.getTransactionByReference(reference);
+  }
+
+  /**
+   * GET /admin/transactions/withdrawal-configs
+   * Get all withdrawal configurations
+   */
+  @Get('withdrawal-configs')
+  async getAllWithdrawalConfigs() {
+    return this.adminTransactionsService.getAllWithdrawalConfigs();
+  }
+
+  /**
+   * GET /admin/transactions/withdrawal-configs/:id
+   * Get withdrawal configuration by ID
+   */
+  @Get('withdrawal-configs/:id')
+  async getWithdrawalConfigById(@Param('id') id: string) {
+    return this.adminTransactionsService.getWithdrawalConfigById(id);
+  }
+
+  /**
+   * POST /admin/transactions/withdrawal-configs
+   * Create withdrawal configuration
+   */
+  @Post('withdrawal-configs')
+  async createWithdrawalConfig(@Body() dto: CreateWithdrawalConfigDto) {
+    return this.adminTransactionsService.createWithdrawalConfig(dto);
+  }
+
+  /**
+   * PUT /admin/transactions/withdrawal-configs/:id
+   * Update withdrawal configuration
+   */
+  @Put('withdrawal-configs/:id')
+  async updateWithdrawalConfig(
+    @Param('id') id: string,
+    @Body() dto: UpdateWithdrawalConfigDto,
+  ) {
+    return this.adminTransactionsService.updateWithdrawalConfig(id, dto);
+  }
+
+  /**
+   * DELETE /admin/transactions/withdrawal-configs/:id
+   * Delete withdrawal configuration
+   */
+  @Delete('withdrawal-configs/:id')
+  async deleteWithdrawalConfig(@Param('id') id: string) {
+    return this.adminTransactionsService.deleteWithdrawalConfig(id);
   }
 
   /**

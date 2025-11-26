@@ -1160,3 +1160,42 @@ enum CashbackTransactionType {
   EXPIRED
   REVERSED
 }
+
+// ============================================
+// WITHDRAWAL CONFIGURATION
+// ============================================
+
+model WithdrawalConfig {
+  id String @id @default(uuid())
+
+  // Fee configuration
+  feeType  WithdrawalFeeType @default(PERCENTAGE)
+  feeValue Decimal           @db.Decimal(15, 2) // e.g., 50 for ₦50 flat, or 1.5 for 1.5%
+  minFee   Decimal           @default(0) @db.Decimal(15, 2)
+  maxFee   Decimal?          @db.Decimal(15, 2)
+
+  // Limits per KYC tier (optional - if null, uses default from code)
+  tierLevel KYCTier? // Which tier this config applies to
+
+  // Global limits (used if tierLevel is null)
+  minWithdrawal Decimal @default(100) @db.Decimal(15, 2)
+  maxWithdrawal Decimal @default(50000) @db.Decimal(15, 2)
+
+  // Status
+  isActive Boolean @default(true)
+
+  // Metadata
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tierLevel]) // Only one config per tier
+  @@index([isActive])
+  @@map("withdrawal_config")
+}
+
+enum WithdrawalFeeType {
+  FLAT       // Fixed amount (e.g., ₦50 per withdrawal)
+  PERCENTAGE // Percentage of amount (e.g., 1.5%)
+}

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { AdminUsersController } from './users/admin-users.controller';
 import { AdminUsersService } from './users/admin-users.service';
 import { AdminTransactionsController } from './transactions/admin-transactions.controller';
@@ -32,9 +32,15 @@ import { HierarchyService } from '../common/services/hierarchy.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { VTUModule } from '../vtu/vtu.module';
+import { TransactionsModule } from '../transactions/transactions.module';
 
 @Module({
-  imports: [PrismaModule, NotificationsModule, VTUModule],
+  imports: [
+    PrismaModule,
+    NotificationsModule,
+    VTUModule,
+    forwardRef(() => TransactionsModule),
+  ],
   controllers: [
     AdminUsersController,
     AdminTransactionsController,

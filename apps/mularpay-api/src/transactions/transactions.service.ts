@@ -44,12 +44,102 @@ export class TransactionsService {
   }
 
   /**
+   * Get withdrawal configuration from database
+   * Falls back to default hardcoded config if database config not found
+   */
+  private async getWithdrawalConfig(kycTier?: KYCTier): Promise<{
+    feeType: string;
+    feeValue: number;
+    minFee: number;
+    maxFee: number | null;
+    minWithdrawal: number;
+    maxWithdrawal: number;
+  }> {
+    // Try to get tier-specific config first
+    if (kycTier) {
+      const tierConfig = await this.prisma.withdrawalConfig.findUnique({
+        where: { tierLevel: kycTier },
+      });
+      if (tierConfig && tierConfig.isActive) {
+        return {
+          feeType: tierConfig.feeType,
+          feeValue: Number(tierConfig.feeValue),
+          minFee: Number(tierConfig.minFee),
+          maxFee: tierConfig.maxFee ? Number(tierConfig.maxFee) : null,
+          minWithdrawal: Number(tierConfig.minWithdrawal),
+          maxWithdrawal: Number(tierConfig.maxWithdrawal),
+        };
+      }
+    }
+
+    // Fall back to global config (tierLevel = null)
+    const globalConfig = await this.prisma.withdrawalConfig.findFirst({
+      where: { tierLevel: null, isActive: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (globalConfig) {
+      return {
+        feeType: globalConfig.feeType,
+        feeValue: Number(globalConfig.feeValue),
+        minFee: Number(globalConfig.minFee),
+        maxFee: globalConfig.maxFee ? Number(globalConfig.maxFee) : null,
+        minWithdrawal: Number(globalConfig.minWithdrawal),
+        maxWithdrawal: Number(globalConfig.maxWithdrawal),
+      };
+    }
+
+    // If no config in database, use hardcoded defaults
+    return {
+      feeType: 'PERCENTAGE',
+      feeValue: 1.5,
+      minFee: 50,
+      maxFee: 500,
+      minWithdrawal: 100,
+      maxWithdrawal: 50000,
+    };
+  }
+
+  /**
+   * Calculate withdrawal fee based on database configuration
+   */
+  private async calculateWithdrawalFee(
+    amount: number,
+    kycTier?: KYCTier,
+  ): Promise<number> {
+    const config = await this.getWithdrawalConfig(kycTier);
+
+    let fee = 0;
+
+    if (config.feeType === 'FLAT') {
+      // Fixed fee
+      fee = config.feeValue;
+    } else {
+      // Percentage fee
+      fee = (amount * config.feeValue) / 100;
+    }
+
+    // Apply minimum fee
+    if (fee < config.minFee) {
+      fee = config.minFee;
+    }
+
+    // Apply maximum fee cap if set
+    if (config.maxFee !== null && fee > config.maxFee) {
+      fee = config.maxFee;
+    }
+
+    return fee;
+  }
+
+  /**
    * Calculate transaction fee
    */
-  private calculateFee(
+  private async calculateFee(
     amount: number,
     type: 'deposit' | 'withdrawal',
-  ): FeeCalculation {
+    kycTier?: KYCTier,
+  ): Promise<FeeCalculation> {
     let fee = 0;
 
     if (type === 'deposit') {
@@ -67,14 +157,8 @@ export class TransactionsService {
         fee = Math.min(paystackFee, 2000);
       }
     } else {
-      // Withdrawal fees (customize based on your business model)
-      if (amount < 5000) {
-        fee = 10;
-      } else if (amount <= 50000) {
-        fee = 25;
-      } else {
-        fee = 50;
-      }
+      // Withdrawal fees from database configuration
+      fee = await this.calculateWithdrawalFee(amount, kycTier);
     }
 
     // For deposits: user pays (amount + fee), receives (amount)
@@ -161,7 +245,7 @@ export class TransactionsService {
     const reference = this.generateReference('deposit');
 
     // Calculate fee (Paystack charges us, we pass to customer)
-    const feeCalc = this.calculateFee(amount, 'deposit');
+    const feeCalc = await this.calculateFee(amount, 'deposit');
 
     // Total amount customer will pay = desired amount + fee
     const totalToCharge = amount + feeCalc.fee;
@@ -489,8 +573,8 @@ export class TransactionsService {
       );
     }
 
-    // Calculate fee
-    const feeCalc = this.calculateFee(amount, 'withdrawal');
+    // Calculate fee with user's KYC tier for tier-specific config
+    const feeCalc = await this.calculateFee(amount, 'withdrawal', user.kycTier);
 
     // Check sufficient balance
     if (wallet.balance.lessThan(feeCalc.totalAmount)) {
@@ -635,5 +719,175 @@ export class TransactionsService {
           active: bank.active,
         })),
     };
+  }
+
+  /**
+   * Get withdrawal configuration for user (mobile app)
+   * Returns fee info and limits based on user's KYC tier
+   */
+  async getWithdrawalConfigForUser(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { kycTier: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const config = await this.getWithdrawalConfig(user.kycTier);
+    const limits = this.getTransactionLimits(user.kycTier);
+
+    return {
+      feeType: config.feeType,
+      feeValue: config.feeValue,
+      minFee: config.minFee,
+      maxFee: config.maxFee,
+      minWithdrawal: Math.max(config.minWithdrawal, limits.minWithdrawal),
+      maxWithdrawal: Math.min(config.maxWithdrawal, limits.maxWithdrawal),
+      kycTier: user.kycTier,
+    };
+  }
+
+  /**
+   * Calculate withdrawal fee preview (mobile app)
+   */
+  async previewWithdrawalFee(userId: string, amount: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { kycTier: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const fee = await this.calculateWithdrawalFee(amount, user.kycTier);
+
+    return {
+      amount,
+      fee,
+      totalDebit: amount + fee,
+      amountToReceive: amount,
+    };
+  }
+
+  /**
+   * Get all withdrawal configurations (admin)
+   */
+  async getAllWithdrawalConfigs() {
+    return this.prisma.withdrawalConfig.findMany({
+      orderBy: { tierLevel: 'asc' },
+    });
+  }
+
+  /**
+   * Get withdrawal configuration by ID (admin)
+   */
+  async getWithdrawalConfigById(id: string) {
+    const config = await this.prisma.withdrawalConfig.findUnique({
+      where: { id },
+    });
+
+    if (!config) {
+      throw new NotFoundException('Withdrawal configuration not found');
+    }
+
+    return config;
+  }
+
+  /**
+   * Create withdrawal configuration (admin)
+   */
+  async createWithdrawalConfig(data: {
+    feeType: string;
+    feeValue: number;
+    minFee: number;
+    maxFee?: number;
+    tierLevel?: KYCTier;
+    minWithdrawal: number;
+    maxWithdrawal: number;
+    isActive?: boolean;
+    description?: string;
+  }) {
+    return this.prisma.withdrawalConfig.create({
+      data: {
+        feeType: data.feeType as any,
+        feeValue: new Decimal(data.feeValue),
+        minFee: new Decimal(data.minFee),
+        maxFee: data.maxFee ? new Decimal(data.maxFee) : null,
+        tierLevel: data.tierLevel || null,
+        minWithdrawal: new Decimal(data.minWithdrawal),
+        maxWithdrawal: new Decimal(data.maxWithdrawal),
+        isActive: data.isActive ?? true,
+        description: data.description,
+      },
+    });
+  }
+
+  /**
+   * Update withdrawal configuration (admin)
+   */
+  async updateWithdrawalConfig(
+    id: string,
+    data: {
+      feeType?: string;
+      feeValue?: number;
+      minFee?: number;
+      maxFee?: number;
+      tierLevel?: KYCTier;
+      minWithdrawal?: number;
+      maxWithdrawal?: number;
+      isActive?: boolean;
+      description?: string;
+    },
+  ) {
+    const config = await this.prisma.withdrawalConfig.findUnique({
+      where: { id },
+    });
+
+    if (!config) {
+      throw new NotFoundException('Withdrawal configuration not found');
+    }
+
+    return this.prisma.withdrawalConfig.update({
+      where: { id },
+      data: {
+        ...(data.feeType && { feeType: data.feeType as any }),
+        ...(data.feeValue !== undefined && {
+          feeValue: new Decimal(data.feeValue),
+        }),
+        ...(data.minFee !== undefined && { minFee: new Decimal(data.minFee) }),
+        ...(data.maxFee !== undefined && {
+          maxFee: data.maxFee ? new Decimal(data.maxFee) : null,
+        }),
+        ...(data.tierLevel !== undefined && { tierLevel: data.tierLevel }),
+        ...(data.minWithdrawal !== undefined && {
+          minWithdrawal: new Decimal(data.minWithdrawal),
+        }),
+        ...(data.maxWithdrawal !== undefined && {
+          maxWithdrawal: new Decimal(data.maxWithdrawal),
+        }),
+        ...(data.isActive !== undefined && { isActive: data.isActive }),
+        ...(data.description !== undefined && { description: data.description }),
+      },
+    });
+  }
+
+  /**
+   * Delete withdrawal configuration (admin)
+   */
+  async deleteWithdrawalConfig(id: string) {
+    const config = await this.prisma.withdrawalConfig.findUnique({
+      where: { id },
+    });
+
+    if (!config) {
+      throw new NotFoundException('Withdrawal configuration not found');
+    }
+
+    return this.prisma.withdrawalConfig.delete({
+      where: { id },
+    });
   }
 }

@@ -21,7 +21,7 @@ export class WithdrawFundsDto {
   accountName: string;
 
   @IsString()
-  @Length(3, 3, { message: 'Bank code must be exactly 3 digits' })
+  @Length(3, 10, { message: 'Bank code must be between 3 and 10 characters' })
   bankCode: string;
 
   @IsOptional()

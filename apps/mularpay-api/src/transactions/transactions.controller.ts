@@ -85,4 +85,27 @@ export class TransactionsController {
       dto.narration,
     );
   }
+
+  /**
+   * Get withdrawal configuration for user
+   * GET /api/transactions/withdrawal-config
+   */
+  @Get('withdrawal-config')
+  @UseGuards(JwtAuthGuard)
+  async getWithdrawalConfig(@GetUser('id') userId: string) {
+    return this.transactionsService.getWithdrawalConfigForUser(userId);
+  }
+
+  /**
+   * Preview withdrawal fee
+   * POST /api/transactions/withdrawal-preview
+   */
+  @Post('withdrawal-preview')
+  @UseGuards(JwtAuthGuard)
+  async previewWithdrawalFee(
+    @GetUser('id') userId: string,
+    @Body() dto: { amount: number },
+  ) {
+    return this.transactionsService.previewWithdrawalFee(userId, dto.amount);
+  }
 }
