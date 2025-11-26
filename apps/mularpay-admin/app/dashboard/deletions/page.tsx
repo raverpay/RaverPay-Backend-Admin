@@ -70,6 +70,8 @@ export default function DeletionsPage() {
     queryFn: () => deletionsApi.getPending({ limit: 100 }),
   });
 
+  console.log({ pendingData });
+
   const approveMutation = useMutation({
     mutationFn: (requestId: string) => deletionsApi.approve(requestId),
     onSuccess: () => {
@@ -88,7 +90,11 @@ export default function DeletionsPage() {
   });
 
   const handleApprove = async (requestId: string) => {
-    if (confirm('Are you sure you want to approve this deletion request? This action cannot be undone.')) {
+    if (
+      confirm(
+        'Are you sure you want to approve this deletion request? This action cannot be undone.',
+      )
+    ) {
       approveMutation.mutate(requestId);
     }
   };
@@ -119,9 +125,7 @@ export default function DeletionsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
-              {pendingData?.meta?.totalItems || 0}
-            </div>
+            <div className="text-2xl font-bold text-yellow-600">{pendingData?.length || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -131,15 +135,13 @@ export default function DeletionsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {deletionsData?.meta?.totalItems || 0}
-            </div>
+            <div className="text-2xl font-bold">{deletionsData?.meta?.totalItems || 0}</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Pending Requests Alert */}
-      {pendingData?.data && pendingData.data.length > 0 && (
+      {pendingData && pendingData.length > 0 && (
         <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
@@ -147,7 +149,7 @@ export default function DeletionsPage() {
               Pending Deletion Requests
             </CardTitle>
             <CardDescription className="text-yellow-700 dark:text-yellow-300">
-              {pendingData.data.length} request(s) awaiting review
+              {pendingData.length} request(s) awaiting review
             </CardDescription>
           </CardHeader>
         </Card>
@@ -214,9 +216,7 @@ export default function DeletionsPage() {
                             <p className="font-medium">
                               {request.user?.firstName} {request.user?.lastName}
                             </p>
-                            <p className="text-sm text-muted-foreground">
-                              {request.user?.email}
-                            </p>
+                            <p className="text-sm text-muted-foreground">{request.user?.email}</p>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -226,7 +226,15 @@ export default function DeletionsPage() {
                           </span>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={getStatusBadgeVariant(request.status) as 'default' | 'secondary' | 'destructive' | 'outline'}>
+                          <Badge
+                            variant={
+                              getStatusBadgeVariant(request.status) as
+                                | 'default'
+                                | 'secondary'
+                                | 'destructive'
+                                | 'outline'
+                            }
+                          >
                             {request.status}
                           </Badge>
                         </TableCell>

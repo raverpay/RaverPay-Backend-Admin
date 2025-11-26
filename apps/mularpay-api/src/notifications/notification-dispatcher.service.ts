@@ -135,7 +135,7 @@ export class NotificationDispatcherService {
       eventType: event.eventType,
       title: event.title,
       message: event.message,
-      type: event.category,
+      // Don't include 'type' (category) in email data - it's internal metadata
       ...event.data,
     };
 

@@ -15,6 +15,7 @@ import { AdminVirtualAccountsController } from './virtual-accounts/admin-virtual
 import { AdminVirtualAccountsService } from './virtual-accounts/admin-virtual-accounts.service';
 import { AdminDeletionsController } from './deletions/admin-deletions.controller';
 import { AdminDeletionsService } from './deletions/admin-deletions.service';
+import { DeletionSchedulerService } from './deletions/deletion-scheduler.service';
 import { AdminGiftCardsController } from './giftcards/admin-giftcards.controller';
 import { AdminGiftCardsService } from './giftcards/admin-giftcards.service';
 import { AdminCryptoController } from './crypto/admin-crypto.controller';
@@ -59,6 +60,7 @@ import { VTUModule } from '../vtu/vtu.module';
     AdminWalletsService,
     AdminVirtualAccountsService,
     AdminDeletionsService,
+    DeletionSchedulerService,
     AdminGiftCardsService,
     AdminCryptoService,
     AdminNotificationsService,

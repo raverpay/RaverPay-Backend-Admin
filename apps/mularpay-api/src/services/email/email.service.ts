@@ -315,6 +315,11 @@ export class EmailService {
         'adminId',
         'internalRef',
         'systemGenerated',
+        'requestId',
+        'type',
+        'rejectionReason',
+        'notes',
+        'scheduledFor',
       ];
 
       const filteredData = data

@@ -55,6 +55,7 @@ model User {
   // Account Deletion
   deletionRequested   Boolean   @default(false)
   deletionRequestedAt DateTime?
+  deletedAt           DateTime? // Soft delete timestamp
 
   // Profile Edit Tracking
   profileEditedOnce Boolean   @default(false)
@@ -119,6 +120,7 @@ enum UserStatus {
   BANNED
   PENDING_VERIFICATION
   PENDING_DELETION
+  DELETED
 }
 
 enum KYCTier {

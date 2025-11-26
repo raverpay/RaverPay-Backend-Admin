@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -12,6 +12,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { formatDate } from '@/lib/utils';
 
 const getStatusBadgeVariant = (status: string) => {
@@ -29,15 +40,14 @@ const getStatusBadgeVariant = (status: string) => {
   }
 };
 
-export default function DeletionDetailPage({
-  params,
-}: {
-  params: Promise<{ requestId: string }>;
-}) {
+export default function DeletionDetailPage({ params }: { params: Promise<{ requestId: string }> }) {
   const { requestId } = use(params);
   const router = useRouter();
   const queryClient = useQueryClient();
   const { canApproveDeletions } = usePermissions();
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
 
   const { data: request, isLoading } = useQuery({
     queryKey: ['deletion', requestId],
@@ -49,6 +59,7 @@ export default function DeletionDetailPage({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deletion', requestId] });
       queryClient.invalidateQueries({ queryKey: ['deletions'] });
+      setApproveDialogOpen(false);
     },
   });
 
@@ -57,19 +68,27 @@ export default function DeletionDetailPage({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deletion', requestId] });
       queryClient.invalidateQueries({ queryKey: ['deletions'] });
+      setRejectDialogOpen(false);
+      setRejectionReason('');
     },
   });
 
-  const handleApprove = async () => {
-    if (confirm('Are you sure you want to approve this deletion request? This action cannot be undone.')) {
-      approveMutation.mutate();
-    }
+  const handleApprove = () => {
+    setApproveDialogOpen(true);
   };
 
-  const handleReject = async () => {
-    const reason = prompt('Please provide a reason for rejection:');
-    if (reason) {
-      rejectMutation.mutate(reason);
+  const handleApproveConfirm = () => {
+    approveMutation.mutate();
+  };
+
+  const handleReject = () => {
+    setRejectionReason('');
+    setRejectDialogOpen(true);
+  };
+
+  const handleRejectConfirm = () => {
+    if (rejectionReason.trim()) {
+      rejectMutation.mutate(rejectionReason.trim());
     }
   };
 
@@ -108,7 +127,15 @@ export default function DeletionDetailPage({
             <p className="text-muted-foreground">Request ID: {request.id}</p>
           </div>
         </div>
-        <Badge variant={getStatusBadgeVariant(request.status) as 'default' | 'secondary' | 'destructive' | 'outline'}>
+        <Badge
+          variant={
+            getStatusBadgeVariant(request.status) as
+              | 'default'
+              | 'secondary'
+              | 'destructive'
+              | 'outline'
+          }
+        >
           {request.status}
         </Badge>
       </div>
@@ -249,6 +276,64 @@ export default function DeletionDetailPage({
           </Card>
         )}
       </div>
+
+      {/* Approval Confirmation Dialog */}
+      <ConfirmDialog
+        open={approveDialogOpen}
+        onOpenChange={setApproveDialogOpen}
+        title="Approve Deletion Request"
+        description="Are you sure you want to approve this deletion request? This action cannot be undone."
+        confirmText="Approve"
+        cancelText="Cancel"
+        onConfirm={handleApproveConfirm}
+        variant="danger"
+        icon="warning"
+        isLoading={approveMutation.isPending}
+      />
+
+      {/* Rejection Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Deletion Request</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this deletion request. This reason will be
+              visible to the user.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="rejection-reason">Rejection Reason *</Label>
+              <Textarea
+                id="rejection-reason"
+                placeholder="Enter the reason for rejection..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRejectDialogOpen(false);
+                setRejectionReason('');
+              }}
+              disabled={rejectMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleRejectConfirm}
+              disabled={rejectMutation.isPending || !rejectionReason.trim()}
+            >
+              {rejectMutation.isPending ? 'Rejecting...' : 'Reject Request'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

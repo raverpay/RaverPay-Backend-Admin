@@ -1,10 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { DeletionRequestStatus } from '@prisma/client';
+import { NotificationDispatcherService } from '../../notifications/notification-dispatcher.service';
 
 @Injectable()
 export class AdminDeletionsService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(AdminDeletionsService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private notificationDispatcher: NotificationDispatcherService,
+  ) {}
 
   /**
    * Get all deletion requests
@@ -174,7 +180,34 @@ export class AdminDeletionsService {
       },
     });
 
-    // TODO: Send notification to user
+    // Send notification to user
+    const scheduledDate = updatedRequest.scheduledFor
+      ? new Date(updatedRequest.scheduledFor).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+      : 'the scheduled date';
+
+    this.notificationDispatcher
+      .sendNotification({
+        userId: request.userId,
+        eventType: 'deletion_approved',
+        category: 'ACCOUNT',
+        channels: ['EMAIL', 'PUSH', 'IN_APP'],
+        title: 'Account Deletion Request Approved',
+        message: `Your account deletion request has been approved. Your account will be permanently deleted on ${scheduledDate}. If you change your mind, please contact support before this date.`,
+        data: {
+          // Only include user-friendly data, technical details are stored in notification record
+          scheduledDate,
+        },
+      })
+      .catch((error) => {
+        this.logger.error(
+          'Failed to send deletion approval notification',
+          error,
+        );
+      });
 
     return updatedRequest;
   }
@@ -208,12 +241,13 @@ export class AdminDeletionsService {
       },
     });
 
-    // Update user deletion flag
+    // Update user deletion flag and restore status to ACTIVE
     await this.prisma.user.update({
       where: { id: request.userId },
       data: {
         deletionRequested: false,
         deletionRequestedAt: null,
+        status: 'ACTIVE', // Restore user status from PENDING_DELETION to ACTIVE
       },
     });
 
@@ -232,7 +266,28 @@ export class AdminDeletionsService {
       },
     });
 
-    // TODO: Send notification to user with reason
+    // Send notification to user with reason
+    this.notificationDispatcher
+      .sendNotification({
+        userId: request.userId,
+        eventType: 'deletion_rejected',
+        category: 'ACCOUNT',
+        channels: ['EMAIL', 'PUSH', 'IN_APP'],
+        title: 'Account Deletion Request Rejected',
+        message: `Your account deletion request has been rejected. Reason: ${reason}. Your account remains active. If you have any questions, please contact our support team.`,
+        // Don't include technical data in email - the message already contains the reason
+        data: {},
+        variables: {
+          reason,
+          userName: `${request.user.firstName} ${request.user.lastName}`,
+        },
+      })
+      .catch((error) => {
+        this.logger.error(
+          'Failed to send deletion rejection notification',
+          error,
+        );
+      });
 
     return updatedRequest;
   }

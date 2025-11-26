@@ -361,6 +361,7 @@ export interface PaginationMeta {
 }
 
 export interface PaginatedResponse<T> {
+  length: number;
   data: T[];
   meta: PaginationMeta;
 }
