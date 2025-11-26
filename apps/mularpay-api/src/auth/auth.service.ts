@@ -132,6 +132,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // Check if account is deleted
+    if (user.deletedAt || user.status === UserStatus.DELETED) {
+      throw new UnauthorizedException('This account does not exist.');
+    }
+
     // Check if account is banned or suspended
     if (user.status === UserStatus.BANNED) {
       throw new UnauthorizedException(
@@ -247,6 +252,8 @@ export class AuthService {
 
     // Check account status
     if (
+      user.deletedAt ||
+      user.status === UserStatus.DELETED ||
       user.status === UserStatus.BANNED ||
       user.status === UserStatus.SUSPENDED ||
       user.status === UserStatus.PENDING_DELETION
