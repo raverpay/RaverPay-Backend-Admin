@@ -3,7 +3,7 @@
 import { use } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Ban, CheckCircle, Shield } from 'lucide-react';
+import { ArrowLeft, Ban, CheckCircle, Shield, Lock, Unlock } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { usersApi } from '@/lib/api/users';
@@ -61,6 +61,32 @@ export default function UserDetailPage({ params }: { params: Promise<{ userId: s
     onError: (error: unknown) => {
       toast.error('Failed to update role', {
         description: getApiErrorMessage(error, 'Unable to update role'),
+      });
+    },
+  });
+
+  const lockAccountMutation = useMutation({
+    mutationFn: (reason?: string) => usersApi.lockAccount(resolvedParams.userId, reason, 30), // Default 30 minutes
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user', resolvedParams.userId] });
+      toast.success('Account locked successfully');
+    },
+    onError: (error: unknown) => {
+      toast.error('Failed to lock account', {
+        description: getApiErrorMessage(error, 'Unable to lock account'),
+      });
+    },
+  });
+
+  const unlockAccountMutation = useMutation({
+    mutationFn: (reason?: string) => usersApi.unlockAccount(resolvedParams.userId, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user', resolvedParams.userId] });
+      toast.success('Account unlocked successfully');
+    },
+    onError: (error: unknown) => {
+      toast.error('Failed to unlock account', {
+        description: getApiErrorMessage(error, 'Unable to unlock account'),
       });
     },
   });
@@ -166,6 +192,31 @@ export default function UserDetailPage({ params }: { params: Promise<{ userId: s
                 <p className="text-sm">{formatDate(user.updatedAt)}</p>
               </div>
             </div>
+
+            {/* Account Lock Status */}
+            {(user.lockedUntil || (user.failedLoginAttempts && user.failedLoginAttempts >= 3)) && (
+              <div className="rounded-lg border border-destructive bg-destructive/10 p-4 mt-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Lock className="h-4 w-4 text-destructive" />
+                  <p className="text-sm font-medium text-destructive">Account Locked</p>
+                </div>
+                {user.lockedUntil && (
+                  <p className="text-xs text-muted-foreground mb-1">
+                    Locked until: {formatDate(user.lockedUntil)}
+                  </p>
+                )}
+                {user.failedLoginAttempts !== undefined && user.failedLoginAttempts > 0 && (
+                  <p className="text-xs text-muted-foreground mb-1">
+                    Failed login attempts: {user.failedLoginAttempts}/3
+                  </p>
+                )}
+                {user.lastFailedLoginAt && (
+                  <p className="text-xs text-muted-foreground">
+                    Last failed login: {formatDate(user.lastFailedLoginAt)}
+                  </p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -319,6 +370,50 @@ export default function UserDetailPage({ params }: { params: Promise<{ userId: s
                 </Button>
               ))}
             </div>
+          </div>
+
+          {/* Account Security Actions */}
+          <div className="space-y-2">
+            <Label>Account Security</Label>
+            <div className="flex gap-2">
+              {!(
+                user.lockedUntil ||
+                (user.failedLoginAttempts && user.failedLoginAttempts >= 3)
+              ) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    lockAccountMutation.mutate('Manually locked by admin via dashboard')
+                  }
+                  disabled={lockAccountMutation.isPending}
+                  className="flex-1"
+                >
+                  <Lock className="h-4 w-4 mr-2" />
+                  Lock Account
+                </Button>
+              )}
+              {(user.lockedUntil ||
+                (user.failedLoginAttempts && user.failedLoginAttempts >= 3)) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    unlockAccountMutation.mutate('Manually unlocked by admin via dashboard')
+                  }
+                  disabled={unlockAccountMutation.isPending}
+                  className="flex-1"
+                >
+                  <Unlock className="h-4 w-4 mr-2" />
+                  Unlock Account
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {!(user.lockedUntil || (user.failedLoginAttempts && user.failedLoginAttempts >= 3))
+                ? 'Lock account for 30 minutes. User will be notified via email.'
+                : 'This will reset failed login attempts and unlock the account immediately. User will be notified via email.'}
+            </p>
           </div>
         </CardContent>
       </Card>

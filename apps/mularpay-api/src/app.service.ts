@@ -6,7 +6,7 @@ export class AppService {
   constructor(private readonly prisma: PrismaService) {}
 
   getHello(): string {
-    return 'Welcome to RaverPay API 🇳🇬';
+    return 'Welcome to RaverPay API';
   }
 
   /**

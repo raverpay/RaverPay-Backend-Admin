@@ -12,6 +12,7 @@ import { PaystackService } from '../payments/paystack.service';
 import { UsersService } from '../users/users.service';
 import { WalletService } from '../wallet/wallet.service';
 import { NotificationDispatcherService } from '../notifications/notification-dispatcher.service';
+import { LimitsService, TransactionLimitType } from '../limits/limits.service';
 import { TransactionType, TransactionStatus, KYCTier } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import {
@@ -36,6 +37,7 @@ export class TransactionsService {
     @Inject(forwardRef(() => WalletService))
     private walletService: WalletService,
     private notificationDispatcher: NotificationDispatcherService,
+    private limitsService: LimitsService,
   ) {}
 
   /**
@@ -568,6 +570,13 @@ export class TransactionsService {
       throw new ForbiddenException('Wallet is locked');
     }
 
+    // Check daily transaction limit
+    await this.limitsService.enforceLimit(
+      userId,
+      amount,
+      TransactionLimitType.WITHDRAWAL,
+    );
+
     // Get limits
     const limits = this.getTransactionLimits(user.kycTier);
 
@@ -655,6 +664,16 @@ export class TransactionsService {
           },
         },
       });
+
+      // Increment daily spending limit asynchronously
+      this.limitsService
+        .incrementDailySpend(userId, amount, TransactionLimitType.WITHDRAWAL)
+        .catch((error) =>
+          this.logger.error(
+            'Failed to increment daily limit (non-critical)',
+            error,
+          ),
+        );
 
       // Send notification for withdrawal initiation
       try {

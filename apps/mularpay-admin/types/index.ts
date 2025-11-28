@@ -1,6 +1,14 @@
 // User Types
 export type UserRole = 'USER' | 'SUPPORT' | 'ADMIN' | 'SUPER_ADMIN';
-export type UserStatus = 'ACTIVE' | 'SUSPENDED' | 'BANNED' | 'PENDING_VERIFICATION' | 'DEACTIVATED';
+export type UserStatus =
+  | 'ACTIVE'
+  | 'SUSPENDED'
+  | 'BANNED'
+  | 'LOCKED'
+  | 'PENDING_VERIFICATION'
+  | 'PENDING_DELETION'
+  | 'DELETED'
+  | 'DEACTIVATED';
 export type KYCTier = 'TIER_0' | 'TIER_1' | 'TIER_2' | 'TIER_3';
 
 export interface User {
@@ -28,6 +36,10 @@ export interface User {
   state?: string | null;
   createdAt: string;
   updatedAt: string;
+  // Account lock fields
+  lockedUntil?: string | null;
+  failedLoginAttempts?: number;
+  lastFailedLoginAt?: string | null;
 }
 
 // Wallet Types

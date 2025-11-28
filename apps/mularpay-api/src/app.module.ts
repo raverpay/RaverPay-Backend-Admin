@@ -18,6 +18,8 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { SupportModule } from './support/support.module';
 import { CashbackModule } from './cashback/cashback.module';
 import { CryptoModule } from './crypto/crypto.module';
+import { DeviceModule } from './device/device.module';
+import { LimitsModule } from './limits/limits.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -28,6 +30,8 @@ import { ScheduleModule } from '@nestjs/schedule';
     PrismaModule,
     AuthModule,
     UsersModule,
+    DeviceModule, // Device fingerprinting and management
+    LimitsModule, // Daily transaction limits by KYC tier
     WalletModule,
     TransactionsModule,
     PaymentsModule,

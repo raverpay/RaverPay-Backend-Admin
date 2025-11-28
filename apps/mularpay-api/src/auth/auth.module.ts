@@ -7,6 +7,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { PrismaModule } from '../prisma/prisma.module';
 import { VirtualAccountsModule } from '../virtual-accounts/virtual-accounts.module';
 import { UsersModule } from '../users/users.module';
+import { DeviceModule } from '../device/device.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 /**
  * Authentication Module
@@ -23,6 +25,8 @@ import { UsersModule } from '../users/users.module';
     }),
     VirtualAccountsModule,
     UsersModule,
+    DeviceModule,
+    NotificationsModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

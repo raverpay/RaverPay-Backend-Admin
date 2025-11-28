@@ -22,6 +22,7 @@ import { EmailService } from '../services/email/email.service';
 import { SmsService } from '../services/sms/sms.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { BVNEncryptionService } from '../utils/bvn-encryption.service';
+import { randomInt } from 'crypto';
 
 /**
  * User profile response type with wallet
@@ -159,16 +160,17 @@ export class UsersService {
       twoFactorEnabled: user.twoFactorEnabled,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      wallet: user.wallets && user.wallets.length > 0
-        ? {
-            id: user.wallets[0].id,
-            balance: user.wallets[0].balance.toString(),
-            currency: user.wallets[0].currency,
-            dailySpent: user.wallets[0].dailySpent.toString(),
-            monthlySpent: user.wallets[0].monthlySpent.toString(),
-            isLocked: user.wallets[0].isLocked,
-          }
-        : null,
+      wallet:
+        user.wallets && user.wallets.length > 0
+          ? {
+              id: user.wallets[0].id,
+              balance: user.wallets[0].balance.toString(),
+              currency: user.wallets[0].currency,
+              dailySpent: user.wallets[0].dailySpent.toString(),
+              monthlySpent: user.wallets[0].monthlySpent.toString(),
+              isLocked: user.wallets[0].isLocked,
+            }
+          : null,
     };
 
     return response;
@@ -554,8 +556,7 @@ export class UsersService {
     }
 
     // Generate new code using crypto for security
-    const crypto = require('crypto');
-    const verificationCode = crypto.randomInt(100000, 999999).toString();
+    const verificationCode = randomInt(100000, 999999).toString();
 
     // Send email with verification code
     this.logger.log(
@@ -853,8 +854,7 @@ export class UsersService {
     }
 
     // Generate new code using crypto for security
-    const crypto = require('crypto');
-    const verificationCode = crypto.randomInt(100000, 999999).toString();
+    const verificationCode = randomInt(100000, 999999).toString();
 
     // Send SMS with verification code
     const smsSent = await this.smsService.sendVerificationCode(
@@ -1529,7 +1529,8 @@ export class UsersService {
     }
 
     // Check if wallet balance is zero
-    const nairaWallet = user.wallets && user.wallets.length > 0 ? user.wallets[0] : null;
+    const nairaWallet =
+      user.wallets && user.wallets.length > 0 ? user.wallets[0] : null;
     if (nairaWallet && parseFloat(nairaWallet.balance.toString()) > 0) {
       throw new BadRequestException(
         'Please withdraw all funds before requesting account deletion. Current balance: ₦' +

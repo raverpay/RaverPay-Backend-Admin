@@ -6,7 +6,9 @@ import {
   HttpStatus,
   Get,
   UseGuards,
+  Req,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { AuthService } from './auth.service';
 import {
   RegisterDto,
@@ -46,16 +48,33 @@ export class AuthController {
   }
 
   /**
-   * Login user
+   * Login user with device fingerprinting and account locking
    *
    * @param dto - Login credentials
-   * @returns User object and auth tokens
+   * @param req - Express request object for IP and device info
+   * @returns User object and auth tokens, or device verification required
    */
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  async login(@Body() dto: LoginDto, @Req() req: Request) {
+    // Extract IP address
+    const ipAddress =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0] ||
+      (req.headers['x-real-ip'] as string) ||
+      req.socket.remoteAddress ||
+      'unknown';
+
+    // Map deviceInfo from DTO to DeviceInfo interface (add IP address)
+    const deviceInfo = dto.deviceInfo
+      ? {
+          ...dto.deviceInfo,
+          ipAddress,
+          userAgent: req.headers['user-agent'] || undefined,
+        }
+      : undefined;
+
+    return this.authService.login(dto, deviceInfo, ipAddress);
   }
 
   /**
@@ -122,6 +141,25 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto.resetToken, dto.newPassword);
+  }
+
+  /**
+   * Verify device with OTP after new device detected
+   *
+   * @param dto - Contains deviceId and OTP code
+   * @returns Auth tokens after device verification
+   */
+  @Public()
+  @Post('verify-device')
+  @HttpCode(HttpStatus.OK)
+  async verifyDevice(
+    @Body() dto: { deviceId: string; code: string; userId: string },
+  ) {
+    return this.authService.verifyDeviceLogin(
+      dto.userId,
+      dto.deviceId,
+      dto.code,
+    );
   }
 
   /**

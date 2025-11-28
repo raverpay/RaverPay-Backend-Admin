@@ -50,4 +50,23 @@ export const usersApi = {
     );
     return response.data;
   },
+
+  lockAccount: async (
+    userId: string,
+    reason?: string,
+    lockDurationMinutes?: number,
+  ): Promise<User> => {
+    const response = await apiClient.patch<User>(`/admin/users/${userId}/lock-account`, {
+      reason,
+      lockDurationMinutes,
+    });
+    return response.data;
+  },
+
+  unlockAccount: async (userId: string, reason?: string): Promise<User> => {
+    const response = await apiClient.patch<User>(`/admin/users/${userId}/unlock-account`, {
+      reason,
+    });
+    return response.data;
+  },
 };

@@ -1,4 +1,40 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  ValidateNested,
+  IsIn,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+
+/**
+ * Device Info DTO (sent from frontend)
+ */
+export class DeviceInfoDto {
+  @IsString()
+  @IsNotEmpty()
+  deviceId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  deviceName: string;
+
+  @IsString()
+  @IsIn(['ios', 'android', 'web'])
+  deviceType: 'ios' | 'android' | 'web';
+
+  @IsString()
+  @IsOptional()
+  deviceModel?: string;
+
+  @IsString()
+  @IsOptional()
+  osVersion?: string;
+
+  @IsString()
+  @IsOptional()
+  appVersion?: string;
+}
 
 /**
  * Login DTO
@@ -12,4 +48,9 @@ export class LoginDto {
   @IsString()
   @IsNotEmpty({ message: 'Password is required' })
   password: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DeviceInfoDto)
+  deviceInfo?: DeviceInfoDto;
 }

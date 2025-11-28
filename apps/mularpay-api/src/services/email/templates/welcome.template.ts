@@ -5,7 +5,7 @@ export function welcomeEmailTemplate(firstName: string): {
   html: string;
   subject: string;
 } {
-  const subject = 'Welcome to RaverPay! 🎉';
+  const subject = 'Welcome to RaverPay!';
 
   const html = `
     <!DOCTYPE html>

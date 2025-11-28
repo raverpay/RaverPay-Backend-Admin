@@ -45,12 +45,16 @@ model User {
   paystackCustomerCode String? @unique // Paystack customer code for DVA
 
   // Security
-  pin                String? // Encrypted 4-digit transaction PIN
-  pinSetAt           DateTime?
-  twoFactorEnabled   Boolean   @default(false)
-  twoFactorSecret    String?
-  passwordResetAt    DateTime? // Track when password was last reset
-  lastPasswordChange DateTime? // Track when password was last changed
+  pin                  String? // Encrypted 4-digit transaction PIN
+  pinSetAt             DateTime?
+  twoFactorEnabled     Boolean   @default(false)
+  twoFactorSecret      String?
+  passwordResetAt      DateTime? // Track when password was last reset
+  lastPasswordChange   DateTime? // Track when password was last changed
+  failedLoginAttempts  Int       @default(0)
+  lockedUntil          DateTime? // Account lock expiry time
+  lastFailedLoginAt    DateTime? // Last failed login attempt
+  lastSuccessfulLoginIp String?  // Last successful login IP address
 
   // Account Deletion
   deletionRequested   Boolean   @default(false)
@@ -106,6 +110,9 @@ model User {
   cryptoTransactions     CryptoTransaction[]
   cryptoConversions      CryptoConversion[]
 
+  // Device Management
+  devices                Device[]
+
   @@index([email])
   @@index([phone])
   @@index([status])
@@ -123,6 +130,7 @@ enum UserStatus {
   ACTIVE
   SUSPENDED
   BANNED
+  LOCKED // Account temporarily locked due to failed login attempts
   PENDING_VERIFICATION
   PENDING_DELETION
   DELETED
@@ -160,6 +168,47 @@ model RefreshToken {
   @@index([userId])
   @@index([token])
   @@map("refresh_tokens")
+}
+
+// Device Management for single device login
+model Device {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Device Identification
+  deviceId          String   @unique // Unique device fingerprint
+  deviceName        String // e.g., "iPhone 13 Pro"
+  deviceType        String // "ios", "android", "web"
+  deviceModel       String? // e.g., "iPhone13,3"
+  osVersion         String? // e.g., "iOS 16.0"
+  appVersion        String? // App version at time of registration
+
+  // Location & Network
+  ipAddress         String
+  lastIpAddress     String?
+  location          String? // e.g., "Lagos, Nigeria"
+  userAgent         String?
+
+  // Status
+  isActive          Boolean  @default(true) // Only one device can be active
+  isVerified        Boolean  @default(false) // Device verified via OTP
+  isTrusted         Boolean  @default(false) // Trusted device (no OTP needed)
+
+  // Timestamps
+  firstLoginAt      DateTime @default(now())
+  lastLoginAt       DateTime @default(now())
+  lastActivityAt    DateTime @default(now())
+  verifiedAt        DateTime?
+  deactivatedAt     DateTime?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+  @@index([deviceId])
+  @@index([isActive])
+  @@map("devices")
 }
 
 // ============================================
@@ -268,6 +317,35 @@ model Transaction {
   @@index([type, createdAt]) // Composite index for admin queries filtering by type
   @@index([userId, createdAt]) // Composite index for user transaction history
   @@map("transactions")
+}
+
+// Daily Transaction Limits Tracking
+model DailyTransactionLimit {
+  id     String @id @default(uuid())
+  userId String
+  date   DateTime @default(now()) // Date for this limit tracking (YYYY-MM-DD)
+
+  // Spending tracking
+  totalTransferred  Decimal @default(0) @db.Decimal(15, 2) // Total transfers + withdrawals
+  totalWithdrawn    Decimal @default(0) @db.Decimal(15, 2) // Withdrawals only
+  totalAirtime      Decimal @default(0) @db.Decimal(15, 2) // Airtime purchases
+  totalData         Decimal @default(0) @db.Decimal(15, 2) // Data purchases
+  totalBillPayments Decimal @default(0) @db.Decimal(15, 2) // Cable TV + Electricity
+
+  // Transaction counts
+  transferCount     Int @default(0)
+  withdrawalCount   Int @default(0)
+  airtimeCount      Int @default(0)
+  dataCount         Int @default(0)
+  billPaymentCount  Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+  @@map("daily_transaction_limits")
 }
 
 enum TransactionType {

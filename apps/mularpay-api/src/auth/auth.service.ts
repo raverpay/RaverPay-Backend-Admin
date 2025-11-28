@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   Injectable,
   UnauthorizedException,
@@ -10,9 +11,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { VirtualAccountsService } from '../virtual-accounts/virtual-accounts.service';
 import { RegisterDto, LoginDto } from './dto';
 import * as argon2 from 'argon2';
-import { randomUUID } from 'crypto';
+import { randomUUID, randomInt } from 'crypto';
 import { User, UserStatus } from '@prisma/client';
 import { UsersService } from '../users/users.service';
+import { DeviceService, DeviceInfo } from '../device/device.service';
+import { NotificationDispatcherService } from '../notifications/notification-dispatcher.service';
 
 /**
  * Authentication Service
@@ -29,6 +32,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly virtualAccountsService: VirtualAccountsService,
     private readonly usersService: UsersService,
+    private readonly deviceService: DeviceService,
+    private readonly notificationDispatcher: NotificationDispatcherService,
   ) {}
 
   /**
@@ -50,6 +55,7 @@ export class AuthService {
     const existingPhone = await this.prisma.user.findUnique({
       where: { phone: dto.phone },
     });
+
     if (existingPhone) {
       throw new ConflictException('Phone number already registered');
     }
@@ -108,12 +114,14 @@ export class AuthService {
   }
 
   /**
-   * Login user
+   * Login user with device verification and account locking
    *
    * @param dto - Login credentials (email/phone and password)
-   * @returns User object and auth tokens
+   * @param deviceInfo - Device information for fingerprinting
+   * @param ipAddress - IP address of the login request
+   * @returns User object and auth tokens, or device verification required
    */
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, deviceInfo?: DeviceInfo, ipAddress?: string) {
     // Find user by email or phone
     const user = await this.prisma.user.findFirst({
       where: {
@@ -147,19 +155,153 @@ export class AuthService {
       );
     }
 
+    // NEW: Check if account is locked
+    if (user.status === UserStatus.LOCKED || user.lockedUntil) {
+      const now = new Date();
+
+      if (user.lockedUntil && user.lockedUntil > now) {
+        const remainingMinutes = Math.ceil(
+          (user.lockedUntil.getTime() - now.getTime()) / 60000,
+        );
+
+        throw new UnauthorizedException(
+          `Your account is temporarily locked due to multiple failed login attempts. Please try again in ${remainingMinutes} minute(s) or reset your password.`,
+        );
+      } else if (user.lockedUntil && user.lockedUntil <= now) {
+        // Lock expired, unlock the account
+        await this.unlockAccount(user.id);
+      }
+    }
+
     // Verify password
     const isPasswordValid = await this.verifyPassword(
       user.password,
       dto.password,
     );
+
     if (!isPasswordValid) {
+      // NEW: Handle failed login attempt
+      await this.handleFailedLogin(user.id);
+
+      // Check if this was the 3rd failed attempt
+      const updatedUser = await this.prisma.user.findUnique({
+        where: { id: user.id },
+      });
+
+      if (updatedUser?.status === UserStatus.LOCKED) {
+        throw new UnauthorizedException(
+          'Your account has been locked due to multiple failed login attempts. Please try again in 30 minutes or reset your password.',
+        );
+      }
+
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Update last login
+    // Password is valid - reset failed attempts
+    await this.resetFailedLoginAttempts(user.id);
+
+    // NEW: Device verification (if deviceInfo provided)
+    let deviceId: string | undefined;
+
+    if (deviceInfo) {
+      const deviceCheck = await this.deviceService.checkDeviceAuthorization(
+        user.id,
+        deviceInfo,
+      );
+
+      if (!deviceCheck.authorized) {
+        // New device detected, register it
+        const device = await this.deviceService.registerNewDevice(
+          user.id,
+          deviceInfo,
+        );
+        deviceId = device.deviceId;
+
+        this.logger.log(
+          `[Login] New device detected for ${user.email}, OTP verification required`,
+        );
+
+        // Generate device verification code
+        const verificationCode = randomInt(100000, 999999).toString();
+
+        // Store verification code with expiry
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 10); // 10 minutes expiry
+
+        await this.prisma.systemConfig.upsert({
+          where: { key: `device_verification_${user.id}_${device.deviceId}` },
+          create: {
+            key: `device_verification_${user.id}_${device.deviceId}`,
+            value: JSON.stringify({
+              code: verificationCode,
+              expiresAt: expiresAt.toISOString(),
+              attempts: 0,
+              deviceId: device.deviceId,
+              createdAt: new Date().toISOString(),
+            }),
+          },
+          update: {
+            value: JSON.stringify({
+              code: verificationCode,
+              expiresAt: expiresAt.toISOString(),
+              attempts: 0,
+              deviceId: device.deviceId,
+              createdAt: new Date().toISOString(),
+            }),
+          },
+        });
+
+        // Send OTP notification via email and SMS
+        this.notificationDispatcher
+          .sendNotification({
+            userId: user.id,
+            eventType: 'device_verification_required',
+            category: 'SECURITY',
+            channels: ['EMAIL'],
+            title: 'Device Verification Required',
+            message: `Your verification code is ${verificationCode}. This code will expire in 10 minutes.`,
+            data: {
+              code: verificationCode,
+              deviceId: device.deviceId,
+              deviceName: deviceInfo.deviceName,
+              deviceType: deviceInfo.deviceType,
+              expiresIn: '10 minutes',
+            },
+          })
+          .catch((error) => {
+            this.logger.error(
+              'Failed to send device verification notification',
+              error,
+            );
+            // Don't fail the login flow if notification fails
+          });
+
+        // Return special response indicating OTP verification needed
+        return {
+          requiresDeviceVerification: true,
+          deviceId: device.deviceId,
+          message:
+            'New device detected. Please verify with OTP sent to your email/phone.',
+          user: {
+            id: user.id,
+            email: user.email,
+            phone: user.phone,
+            firstName: user.firstName,
+            lastName: user.lastName,
+          },
+        };
+      }
+
+      deviceId = deviceCheck.device?.deviceId;
+    }
+
+    // Update last login and IP address
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { lastLoginAt: new Date() },
+      data: {
+        lastLoginAt: new Date(),
+        lastSuccessfulLoginIp: ipAddress,
+      },
     });
 
     this.logger.log(`User logged in: ${user.email}`);
@@ -171,8 +313,214 @@ export class AuthService {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = user;
 
+    // TODO: Send login notification email (implement in next step)
+    // this.sendLoginNotificationEmail(user, deviceInfo, ipAddress);
+
     return {
       user: userWithoutPassword,
+      deviceId,
+      ...tokens,
+    };
+  }
+
+  /**
+   * Handle failed login attempt
+   * Increments failed attempts and locks account after 3 failures
+   */
+  private async handleFailedLogin(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) return;
+
+    const failedAttempts = user.failedLoginAttempts + 1;
+    const now = new Date();
+
+    if (failedAttempts >= 3) {
+      // Lock account for 30 minutes
+      const lockUntil = new Date(now.getTime() + 30 * 60 * 1000);
+
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          failedLoginAttempts: failedAttempts,
+          lastFailedLoginAt: now,
+          status: UserStatus.LOCKED,
+          lockedUntil: lockUntil,
+        },
+      });
+
+      this.logger.warn(
+        `[AccountLock] User ${user.email} locked after 3 failed attempts until ${lockUntil.toISOString()}`,
+      );
+
+      // TODO: Send account locked email notification
+    } else {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          failedLoginAttempts: failedAttempts,
+          lastFailedLoginAt: now,
+        },
+      });
+
+      this.logger.warn(
+        `[FailedLogin] User ${user.email} failed login attempt ${failedAttempts}/3`,
+      );
+    }
+  }
+
+  /**
+   * Reset failed login attempts after successful login
+   */
+  private async resetFailedLoginAttempts(userId: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        failedLoginAttempts: 0,
+        lastFailedLoginAt: null,
+      },
+    });
+  }
+
+  /**
+   * Unlock account after lock period expires
+   */
+  private async unlockAccount(userId: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        status: UserStatus.ACTIVE,
+        lockedUntil: null,
+        failedLoginAttempts: 0,
+        lastFailedLoginAt: null,
+      },
+    });
+
+    this.logger.log(`[AccountUnlock] Account ${userId} automatically unlocked`);
+  }
+
+  /**
+   * Verify device with OTP after new device detected during login
+   *
+   * @param userId - User ID
+   * @param deviceId - Device fingerprint ID
+   * @param code - OTP code (from email or phone)
+   * @returns Auth tokens after successful verification
+   */
+  async verifyDeviceLogin(
+    userId: string,
+    deviceId: string,
+    code: string,
+  ): Promise<any> {
+    this.logger.log(
+      `[DeviceVerify] Verifying device ${deviceId} for user ${userId}`,
+    );
+
+    // Get stored device verification code
+    const storedData = await this.prisma.systemConfig.findUnique({
+      where: { key: `device_verification_${userId}_${deviceId}` },
+    });
+
+    if (!storedData) {
+      throw new BadRequestException(
+        'No verification code found. Please try logging in again.',
+      );
+    }
+
+    // Parse stored data
+    let verificationData: {
+      code: string;
+      expiresAt: string;
+      attempts: number;
+      deviceId: string;
+    };
+
+    try {
+      verificationData = JSON.parse(storedData.value as string) as {
+        code: string;
+        expiresAt: string;
+        attempts: number;
+        deviceId: string;
+      };
+    } catch {
+      throw new BadRequestException('Invalid verification data');
+    }
+
+    // Check expiration
+    if (new Date() > new Date(verificationData.expiresAt)) {
+      // Delete expired code
+      await this.prisma.systemConfig.delete({
+        where: { key: `device_verification_${userId}_${deviceId}` },
+      });
+      throw new BadRequestException(
+        'Verification code has expired. Please try logging in again.',
+      );
+    }
+
+    // Check attempts (max 5 attempts)
+    if (verificationData.attempts >= 5) {
+      throw new BadRequestException(
+        'Too many failed attempts. Please try logging in again to get a new code.',
+      );
+    }
+
+    // Verify code
+    if (verificationData.code !== code) {
+      // Increment attempts
+      await this.prisma.systemConfig.update({
+        where: { key: `device_verification_${userId}_${deviceId}` },
+        data: {
+          value: JSON.stringify({
+            ...verificationData,
+            attempts: verificationData.attempts + 1,
+          }),
+        },
+      });
+
+      throw new UnauthorizedException('Invalid verification code');
+    }
+
+    // Code verified - delete the verification code
+    await this.prisma.systemConfig.delete({
+      where: { key: `device_verification_${userId}_${deviceId}` },
+    });
+
+    this.logger.log(
+      `[DeviceVerify] Device verification code verified successfully`,
+    );
+
+    // OTP verified, now activate the device
+    const device = await this.deviceService.verifyDevice(deviceId);
+
+    // Get user
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Update last login
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { lastLoginAt: new Date() },
+    });
+
+    // Generate tokens
+    const tokens = await this.generateTokens(user);
+
+    // Remove password from response
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...userWithoutPassword } = user;
+
+    this.logger.log(`[DeviceVerify] Device ${deviceId} verified and activated`);
+
+    return {
+      user: userWithoutPassword,
+      deviceId: device.deviceId,
       ...tokens,
     };
   }
@@ -356,7 +704,7 @@ export class AuthService {
     }
 
     // Generate 6-digit code
-    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const resetCode = randomInt(100000, 999999).toString();
 
     // Store in SystemConfig (same pattern as email verification)
     await this.prisma.systemConfig.upsert({

@@ -9,6 +9,7 @@ import { WalletModule } from '../wallet/wallet.module';
 import { UsersModule } from '../users/users.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { CashbackModule } from '../cashback/cashback.module';
+import { LimitsModule } from '../limits/limits.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { CashbackModule } from '../cashback/cashback.module';
     UsersModule,
     NotificationsModule,
     CashbackModule,
+    LimitsModule,
   ],
   controllers: [VTUController, VTUWebhooksController],
   providers: [VTUService, VTPassService],

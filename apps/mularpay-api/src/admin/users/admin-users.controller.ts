@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { GetUser } from '../../auth/decorators/get-user.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminUsersService } from './admin-users.service';
@@ -18,6 +19,8 @@ import {
   UpdateUserRoleDto,
   UpdateUserStatusDto,
   UpdateKYCTierDto,
+  LockAccountDto,
+  UnlockAccountDto,
 } from '../dto';
 
 @Controller('admin/users')
@@ -103,5 +106,31 @@ export class AdminUsersController {
     @Query('limit') limit?: number,
   ) {
     return this.adminUsersService.getUserAuditLogs(userId, page, limit);
+  }
+
+  /**
+   * PATCH /admin/users/:userId/lock-account
+   * Lock user account manually (admin action)
+   */
+  @Patch(':userId/lock-account')
+  async lockAccount(
+    @GetUser('id') adminUserId: string,
+    @Param('userId') userId: string,
+    @Body() dto: LockAccountDto,
+  ) {
+    return this.adminUsersService.lockAccount(adminUserId, userId, dto);
+  }
+
+  /**
+   * PATCH /admin/users/:userId/unlock-account
+   * Unlock user account that was locked due to failed login attempts
+   */
+  @Patch(':userId/unlock-account')
+  async unlockAccount(
+    @GetUser('id') adminUserId: string,
+    @Param('userId') userId: string,
+    @Body() dto: UnlockAccountDto,
+  ) {
+    return this.adminUsersService.unlockAccount(adminUserId, userId, dto);
   }
 }

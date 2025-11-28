@@ -11,6 +11,7 @@ import { WalletService } from '../wallet/wallet.service';
 import { UsersService } from '../users/users.service';
 import { NotificationDispatcherService } from '../notifications/notification-dispatcher.service';
 import { CashbackService } from '../cashback/cashback.service';
+import { LimitsService, TransactionLimitType } from '../limits/limits.service';
 import {
   PurchaseAirtimeDto,
   PurchaseDataDto,
@@ -55,6 +56,7 @@ export class VTUService {
     private readonly usersService: UsersService,
     private readonly notificationDispatcher: NotificationDispatcherService,
     private readonly cashbackService: CashbackService,
+    private readonly limitsService: LimitsService,
   ) {}
 
   // ==================== Product Catalog ====================
@@ -287,8 +289,8 @@ export class VTUService {
       where: {
         userId_type: {
           userId,
-          type: 'NAIRA'
-        }
+          type: 'NAIRA',
+        },
       },
       data: { isLocked: true },
     });
@@ -301,8 +303,8 @@ export class VTUService {
       where: {
         userId_type: {
           userId,
-          type: 'NAIRA'
-        }
+          type: 'NAIRA',
+        },
       },
       data: { isLocked: false },
     });
@@ -321,7 +323,14 @@ export class VTUService {
     // 2. Validate phone
     this.validatePhone(dto.phone);
 
-    // 3. Calculate cashback to earn
+    // 3. Check daily transaction limit
+    await this.limitsService.enforceLimit(
+      userId,
+      dto.amount,
+      TransactionLimitType.AIRTIME,
+    );
+
+    // 4. Calculate cashback to earn
     const cashbackToEarn = await this.cashbackService.calculateCashback(
       'AIRTIME',
       dto.network.toUpperCase(),
@@ -331,9 +340,8 @@ export class VTUService {
     // 4. Handle cashback redemption if requested
     let cashbackRedeemed = 0;
     if (dto.useCashback && dto.cashbackAmount && dto.cashbackAmount > 0) {
-      const userCashbackBalance = await this.cashbackService.getCashbackBalance(
-        userId,
-      );
+      const userCashbackBalance =
+        await this.cashbackService.getCashbackBalance(userId);
 
       if (dto.cashbackAmount > userCashbackBalance.availableBalance) {
         throw new BadRequestException(
@@ -392,8 +400,8 @@ export class VTUService {
           where: {
             userId_type: {
               userId,
-              type: 'NAIRA'
-            }
+              type: 'NAIRA',
+            },
           },
           data: {
             balance: { decrement: new Decimal(total) },
@@ -461,7 +469,10 @@ export class VTUService {
 
         // Reverse cashback redemption if any
         if (cashbackRedeemed > 0) {
-          await this.cashbackService.reverseCashbackRedemption(userId, order.id);
+          await this.cashbackService.reverseCashbackRedemption(
+            userId,
+            order.id,
+          );
           this.logger.log(
             `[Airtime] Reversed ₦${cashbackRedeemed} cashback for failed order`,
           );
@@ -555,6 +566,18 @@ export class VTUService {
           );
       }
 
+      // 19. Increment daily spending limit asynchronously
+      if (vtpassResult.status === 'success') {
+        this.limitsService
+          .incrementDailySpend(userId, dto.amount, TransactionLimitType.AIRTIME)
+          .catch((error) =>
+            this.logger.error(
+              'Failed to increment daily limit (non-critical)',
+              error,
+            ),
+          );
+      }
+
       // 13. Auto-save recipient asynchronously (fire-and-forget)
       if (vtpassResult.status === 'success') {
         this.upsertSavedRecipient(
@@ -638,7 +661,7 @@ export class VTUService {
     // 2. Validate phone
     this.validatePhone(dto.phone);
 
-    // 2. Get product details from VTPass (SME or regular)
+    // 3. Get product details from VTPass (SME or regular)
     const dataPlans = dto.isSME
       ? await this.getSMEDataPlans(dto.network)
       : await this.getDataPlans(dto.network);
@@ -650,7 +673,14 @@ export class VTUService {
 
     const amount = Number(product.variation_amount);
 
-    // 3. Calculate cashback to earn
+    // 4. Check daily transaction limit
+    await this.limitsService.enforceLimit(
+      userId,
+      amount,
+      TransactionLimitType.DATA,
+    );
+
+    // 5. Calculate cashback to earn
     const cashbackToEarn = await this.cashbackService.calculateCashback(
       'DATA',
       dto.network.toUpperCase(),
@@ -660,9 +690,8 @@ export class VTUService {
     // 4. Handle cashback redemption if requested
     let cashbackRedeemed = 0;
     if (dto.useCashback && dto.cashbackAmount && dto.cashbackAmount > 0) {
-      const userCashbackBalance = await this.cashbackService.getCashbackBalance(
-        userId,
-      );
+      const userCashbackBalance =
+        await this.cashbackService.getCashbackBalance(userId);
 
       if (dto.cashbackAmount > userCashbackBalance.availableBalance) {
         throw new BadRequestException(
@@ -721,8 +750,8 @@ export class VTUService {
           where: {
             userId_type: {
               userId,
-              type: 'NAIRA'
-            }
+              type: 'NAIRA',
+            },
           },
           data: {
             balance: { decrement: new Decimal(total) },
@@ -794,7 +823,10 @@ export class VTUService {
 
         // Reverse cashback redemption if any
         if (cashbackRedeemed > 0) {
-          await this.cashbackService.reverseCashbackRedemption(userId, order.id);
+          await this.cashbackService.reverseCashbackRedemption(
+            userId,
+            order.id,
+          );
           this.logger.log(
             `[Data] Reversed ₦${cashbackRedeemed} cashback for failed order`,
           );
@@ -885,6 +917,18 @@ export class VTUService {
           })
           .catch((error) =>
             this.logger.error('Failed to award cashback (non-critical)', error),
+          );
+      }
+
+      // 17. Increment daily spending limit asynchronously
+      if (vtpassResult.status === 'success') {
+        this.limitsService
+          .incrementDailySpend(userId, amount, TransactionLimitType.DATA)
+          .catch((error) =>
+            this.logger.error(
+              'Failed to increment daily limit (non-critical)',
+              error,
+            ),
           );
       }
 
@@ -1013,11 +1057,18 @@ export class VTUService {
       productName = product.name;
     }
 
-    // 2. Calculate total
+    // 2. Check daily transaction limit
+    await this.limitsService.enforceLimit(
+      userId,
+      amount,
+      TransactionLimitType.BILL_PAYMENT,
+    );
+
+    // 3. Calculate total
     const fee = this.calculateFee(amount, 'CABLE_TV');
     const total = amount + fee;
 
-    // 3. Check balance
+    // 4. Check balance
     await this.checkWalletBalance(userId, total);
 
     // 4. Check duplicate
@@ -1063,8 +1114,8 @@ export class VTUService {
           where: {
             userId_type: {
               userId,
-              type: 'NAIRA'
-            }
+              type: 'NAIRA',
+            },
           },
           data: {
             balance: { decrement: new Decimal(total) },
@@ -1167,6 +1218,22 @@ export class VTUService {
         );
       }
 
+      // 12a. Increment daily spending limit asynchronously
+      if (vtpassResult.status === 'success') {
+        this.limitsService
+          .incrementDailySpend(
+            userId,
+            amount,
+            TransactionLimitType.BILL_PAYMENT,
+          )
+          .catch((error) =>
+            this.logger.error(
+              'Failed to increment daily limit (non-critical)',
+              error,
+            ),
+          );
+      }
+
       // 13. Invalidate wallet and transaction caches (fire-and-forget)
       this.walletService
         .invalidateWalletCache(userId)
@@ -1251,11 +1318,18 @@ export class VTUService {
 
     const amount = Number(product.variation_amount);
 
-    // 2. Calculate total (Showmax has convenience fee)
+    // 2. Check daily transaction limit
+    await this.limitsService.enforceLimit(
+      userId,
+      amount,
+      TransactionLimitType.BILL_PAYMENT,
+    );
+
+    // 3. Calculate total (Showmax has convenience fee)
     const fee = this.calculateFee(amount, 'CABLE_TV');
     const total = amount + fee;
 
-    // 3. Check balance
+    // 4. Check balance
     await this.checkWalletBalance(userId, total);
 
     // 4. Check duplicate
@@ -1296,8 +1370,8 @@ export class VTUService {
           where: {
             userId_type: {
               userId,
-              type: 'NAIRA'
-            }
+              type: 'NAIRA',
+            },
           },
           data: {
             balance: { decrement: new Decimal(total) },
@@ -1395,6 +1469,22 @@ export class VTUService {
         );
       }
 
+      // 13a. Increment daily spending limit asynchronously
+      if (vtpassResult.status === 'success') {
+        this.limitsService
+          .incrementDailySpend(
+            userId,
+            amount,
+            TransactionLimitType.BILL_PAYMENT,
+          )
+          .catch((error) =>
+            this.logger.error(
+              'Failed to increment daily limit (non-critical)',
+              error,
+            ),
+          );
+      }
+
       // 14. Invalidate wallet and transaction caches (fire-and-forget)
       this.walletService
         .invalidateWalletCache(userId)
@@ -1464,11 +1554,18 @@ export class VTUService {
     // 1. Verify PIN
     await this.usersService.verifyPin(userId, dto.pin);
 
-    // 2. Calculate total
+    // 2. Check daily transaction limit
+    await this.limitsService.enforceLimit(
+      userId,
+      dto.amount,
+      TransactionLimitType.BILL_PAYMENT,
+    );
+
+    // 3. Calculate total
     const fee = this.calculateFee(dto.amount, 'ELECTRICITY');
     const total = dto.amount + fee;
 
-    // 2. Check balance
+    // 4. Check balance
     await this.checkWalletBalance(userId, total);
 
     // 3. Check duplicate
@@ -1514,8 +1611,8 @@ export class VTUService {
           where: {
             userId_type: {
               userId,
-              type: 'NAIRA'
-            }
+              type: 'NAIRA',
+            },
           },
           data: {
             balance: { decrement: new Decimal(total) },
@@ -1650,6 +1747,22 @@ export class VTUService {
         );
       }
 
+      // 12a. Increment daily spending limit asynchronously
+      if (vtpassResult.status === 'success') {
+        this.limitsService
+          .incrementDailySpend(
+            userId,
+            dto.amount,
+            TransactionLimitType.BILL_PAYMENT,
+          )
+          .catch((error) =>
+            this.logger.error(
+              'Failed to increment daily limit (non-critical)',
+              error,
+            ),
+          );
+      }
+
       // 13. Invalidate wallet and transaction caches (fire-and-forget)
       this.walletService
         .invalidateWalletCache(userId)
@@ -1749,7 +1862,14 @@ export class VTUService {
     const fee = 50; // Flat fee for international services
     const total = amount + fee;
 
-    // 3. Check balance
+    // 3. Check daily transaction limit
+    await this.limitsService.enforceLimit(
+      userId,
+      amount,
+      TransactionLimitType.AIRTIME,
+    );
+
+    // 4. Check balance
     await this.checkWalletBalance(userId, total);
 
     // 4. Check duplicate
@@ -1790,8 +1910,8 @@ export class VTUService {
           where: {
             userId_type: {
               userId,
-              type: 'NAIRA'
-            }
+              type: 'NAIRA',
+            },
           },
           data: {
             balance: { decrement: new Decimal(total) },
@@ -1890,6 +2010,18 @@ export class VTUService {
         );
       }
 
+      // 13a. Increment daily spending limit asynchronously
+      if (vtpassResult.status === 'success') {
+        this.limitsService
+          .incrementDailySpend(userId, amount, TransactionLimitType.AIRTIME)
+          .catch((error) =>
+            this.logger.error(
+              'Failed to increment daily limit (non-critical)',
+              error,
+            ),
+          );
+      }
+
       // 14. Invalidate wallet and transaction caches (fire-and-forget)
       this.walletService
         .invalidateWalletCache(userId)
@@ -1984,8 +2116,8 @@ export class VTUService {
         where: {
           userId_type: {
             userId: order.userId,
-            type: 'NAIRA'
-          }
+            type: 'NAIRA',
+          },
         },
         data: {
           balance: { increment: transaction.totalAmount },

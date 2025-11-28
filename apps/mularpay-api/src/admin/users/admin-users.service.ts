@@ -1,19 +1,25 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { HierarchyService } from '../../common/services/hierarchy.service';
+import { NotificationDispatcherService } from '../../notifications/notification-dispatcher.service';
 import {
   QueryUsersDto,
   UpdateUserRoleDto,
   UpdateUserStatusDto,
   UpdateKYCTierDto,
+  LockAccountDto,
+  UnlockAccountDto,
 } from '../dto';
 import { UserRole, UserStatus, KYCTier, Prisma } from '@prisma/client';
 
 @Injectable()
 export class AdminUsersService {
+  private readonly logger = new Logger(AdminUsersService.name);
+
   constructor(
     private prisma: PrismaService,
     private hierarchyService: HierarchyService,
+    private notificationDispatcher: NotificationDispatcherService,
   ) {}
 
   /**
@@ -215,10 +221,17 @@ export class AdminUsersService {
     }
 
     // Remove sensitive data
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, pin, twoFactorSecret, ...userWithoutSensitiveData } =
       user;
 
-    return userWithoutSensitiveData;
+    // Include lock-related fields for admin visibility
+    return {
+      ...userWithoutSensitiveData,
+      lockedUntil: user.lockedUntil,
+      failedLoginAttempts: user.failedLoginAttempts,
+      lastFailedLoginAt: user.lastFailedLoginAt,
+    };
   }
 
   /**
@@ -425,6 +438,214 @@ export class AdminUsersService {
         limit,
         totalPages: Math.ceil(total / limit),
       },
+    };
+  }
+
+  /**
+   * Unlock user account that was locked due to failed login attempts
+   */
+  async unlockAccount(
+    adminUserId: string,
+    targetUserId: string,
+    dto: UnlockAccountDto,
+  ) {
+    // Validate hierarchy
+    await this.hierarchyService.validateCanModifyUser(
+      adminUserId,
+      targetUserId,
+    );
+
+    const targetUser = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+    });
+
+    if (!targetUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if account is actually locked
+    const isLocked =
+      targetUser.status === UserStatus.LOCKED ||
+      (targetUser.lockedUntil && targetUser.lockedUntil > new Date());
+
+    if (!isLocked) {
+      return {
+        message: 'Account is not locked',
+        user: {
+          id: targetUser.id,
+          email: targetUser.email,
+          status: targetUser.status,
+        },
+      };
+    }
+
+    // Unlock the account
+    const updatedUser = await this.prisma.user.update({
+      where: { id: targetUserId },
+      data: {
+        status:
+          targetUser.status === UserStatus.LOCKED
+            ? UserStatus.ACTIVE
+            : targetUser.status,
+        lockedUntil: null,
+        failedLoginAttempts: 0,
+        lastFailedLoginAt: null,
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        status: true,
+        lockedUntil: true,
+        failedLoginAttempts: true,
+      },
+    });
+
+    // Create audit log
+    await this.prisma.auditLog.create({
+      data: {
+        userId: adminUserId,
+        action: 'ACCOUNT_UNLOCKED',
+        resource: 'User',
+        resourceId: targetUserId,
+        metadata: {
+          previousStatus: targetUser.status,
+          newStatus: updatedUser.status,
+          reason: dto.reason || 'Manually unlocked by admin',
+          failedLoginAttempts: targetUser.failedLoginAttempts,
+        },
+      },
+    });
+
+    // Send notification to user about account unlock
+    this.notificationDispatcher
+      .sendNotification({
+        userId: targetUserId,
+        eventType: 'account_unlocked',
+        category: 'SECURITY',
+        channels: ['EMAIL', 'PUSH', 'IN_APP'],
+        title: 'Account Unlocked',
+        message: `Your account has been unlocked. You can now log in and access your account. If you did not request this, please contact support immediately.`,
+        data: {
+          reason: dto.reason || 'Manually unlocked by admin',
+          unlockedAt: new Date().toISOString(),
+        },
+      })
+      .catch((error) => {
+        this.logger.error('Failed to send account unlock notification', error);
+      });
+
+    return {
+      message: 'Account unlocked successfully',
+      user: updatedUser,
+    };
+  }
+
+  /**
+   * Lock user account manually (admin action)
+   */
+  async lockAccount(
+    adminUserId: string,
+    targetUserId: string,
+    dto: LockAccountDto,
+  ) {
+    // Validate hierarchy
+    await this.hierarchyService.validateCanModifyUser(
+      adminUserId,
+      targetUserId,
+    );
+
+    const targetUser = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+    });
+
+    if (!targetUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if account is already locked
+    const isLocked =
+      targetUser.status === UserStatus.LOCKED ||
+      (targetUser.lockedUntil && targetUser.lockedUntil > new Date());
+
+    if (isLocked) {
+      return {
+        message: 'Account is already locked',
+        user: {
+          id: targetUser.id,
+          email: targetUser.email,
+          status: targetUser.status,
+          lockedUntil: targetUser.lockedUntil,
+        },
+      };
+    }
+
+    // Calculate lock duration (default: 30 minutes)
+    const lockDurationMinutes = dto.lockDurationMinutes || 30;
+    const lockUntil = new Date();
+    lockUntil.setMinutes(lockUntil.getMinutes() + lockDurationMinutes);
+
+    // Lock the account
+    const updatedUser = await this.prisma.user.update({
+      where: { id: targetUserId },
+      data: {
+        status: UserStatus.LOCKED,
+        lockedUntil: lockUntil,
+        failedLoginAttempts: 3, // Set to max to indicate locked
+        lastFailedLoginAt: new Date(),
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        status: true,
+        lockedUntil: true,
+        failedLoginAttempts: true,
+      },
+    });
+
+    // Create audit log
+    await this.prisma.auditLog.create({
+      data: {
+        userId: adminUserId,
+        action: 'ACCOUNT_LOCKED',
+        resource: 'User',
+        resourceId: targetUserId,
+        metadata: {
+          previousStatus: targetUser.status,
+          newStatus: updatedUser.status,
+          reason: dto.reason || 'Manually locked by admin',
+          lockDurationMinutes,
+          lockedUntil: lockUntil.toISOString(),
+        },
+      },
+    });
+
+    // Send notification to user about account lock
+    this.notificationDispatcher
+      .sendNotification({
+        userId: targetUserId,
+        eventType: 'account_locked',
+        category: 'SECURITY',
+        channels: ['EMAIL', 'PUSH', 'IN_APP'],
+        title: 'Account Locked',
+        message: `Your account has been temporarily locked for security reasons. It will be automatically unlocked in ${lockDurationMinutes} minutes. If you believe this is an error, please contact our support team immediately.`,
+        data: {
+          reason: dto.reason || 'Manually locked by admin',
+          lockedUntil: lockUntil.toISOString(),
+          lockDurationMinutes,
+        },
+      })
+      .catch((error) => {
+        this.logger.error('Failed to send account lock notification', error);
+      });
+
+    return {
+      message: `Account locked successfully for ${lockDurationMinutes} minutes`,
+      user: updatedUser,
+      lockedUntil: lockUntil,
     };
   }
 }
