@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
+import rateLimit from 'express-rate-limit';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -31,6 +32,23 @@ async function bootstrap() {
 
   // API prefix (e.g., /api/auth/login)
   app.setGlobalPrefix('api');
+
+  // Rate limiting for OTP endpoints (10 requests per hour per IP)
+  const otpLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 10, // Max 10 OTP sends per hour per IP
+    message: 'Too many OTP requests from this IP, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  // Apply rate limiting to OTP endpoints
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.use('/api/users/send-email-verification', otpLimiter);
+  expressApp.use('/api/users/send-phone-verification', otpLimiter);
+  expressApp.use('/api/auth/forgot-password', otpLimiter);
+
+  logger.log('✅ Rate limiting enabled for OTP endpoints (10 req/hour per IP)');
 
   const port = process.env.PORT || 3001;
   await app.listen(port);

@@ -87,16 +87,8 @@ export class AuthService {
 
       this.logger.log(`New user registered: ${user.email}`);
 
-      // Send email verification code (async, don't wait)
-      this.logger.log(
-        `Triggering email verification for userId=${user.id}, email=${user.email}`,
-      );
-      this.usersService.sendEmailVerification(user.id).catch((error) => {
-        this.logger.warn(
-          `Failed to send email verification for ${user.email}`,
-          error,
-        );
-      });
+      // Note: Email verification will be sent when user visits verification screen
+      // This prevents duplicate sends and allows frontend to control timing
 
       // Generate tokens
       const tokens = await this.generateTokens(user);

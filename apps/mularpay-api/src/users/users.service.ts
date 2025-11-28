@@ -471,14 +471,95 @@ export class UsersService {
       throw new ConflictException('Email already verified');
     }
 
-    // Generate 6-digit code
-    const verificationCode = Math.floor(
-      100000 + Math.random() * 900000,
-    ).toString();
+    const now = new Date();
+    const existingConfigKey = `email_verification_${userId}`;
+
+    // Check if valid OTP already exists
+    const existingConfig = await this.prisma.systemConfig.findUnique({
+      where: { key: existingConfigKey },
+    });
+
+    if (existingConfig) {
+      const existingData = JSON.parse(existingConfig.value as string);
+      const expiresAt = new Date(existingData.expiresAt);
+
+      // If OTP still valid, check rate limiting
+      if (expiresAt > now) {
+        const lastSentAt = existingData.lastSentAt
+          ? new Date(existingData.lastSentAt)
+          : new Date(0);
+
+        const timeSinceLastSend = (now.getTime() - lastSentAt.getTime()) / 1000;
+
+        // Rate limit: Must wait 120 seconds (2 minutes) between sends
+        if (timeSinceLastSend < 120) {
+          const waitTime = Math.ceil(120 - timeSinceLastSend);
+          this.logger.warn(
+            `[EmailVerify] Rate limit hit for ${user.email}. Wait ${waitTime}s`,
+          );
+          throw new BadRequestException(
+            `Please wait ${waitTime} seconds before requesting a new code`,
+          );
+        }
+
+        // Rate limit: Max 3 sends per OTP lifecycle
+        const sendCount = existingData.sendCount || 1;
+        if (sendCount >= 3) {
+          this.logger.warn(
+            `[EmailVerify] Max resend attempts (3) reached for ${user.email}`,
+          );
+          throw new BadRequestException(
+            'Maximum resend attempts reached. Please try again later.',
+          );
+        }
+
+        // Reuse existing code, just resend it
+        this.logger.log(
+          `[EmailVerify] Reusing existing code for ${user.email}. Send count: ${sendCount + 1}/3`,
+        );
+
+        const emailSent = await this.emailService.sendVerificationCode(
+          user.email,
+          existingData.code,
+          user.firstName,
+        );
+
+        if (!emailSent) {
+          this.logger.warn(
+            `Failed to resend verification email to ${user.email}`,
+          );
+        }
+
+        // Update lastSentAt and increment sendCount
+        await this.prisma.systemConfig.update({
+          where: { key: existingConfigKey },
+          data: {
+            value: JSON.stringify({
+              ...existingData,
+              lastSentAt: now.toISOString(),
+              sendCount: sendCount + 1,
+            }),
+          },
+        });
+
+        const canResendAt = new Date(now.getTime() + 120000); // 2 minutes from now
+
+        return {
+          message: 'Verification code sent to your email',
+          expiresIn: '10 minutes',
+          canResendAt: canResendAt.toISOString(),
+          sendsRemaining: 3 - (sendCount + 1),
+        };
+      }
+    }
+
+    // Generate new code using crypto for security
+    const crypto = require('crypto');
+    const verificationCode = crypto.randomInt(100000, 999999).toString();
 
     // Send email with verification code
     this.logger.log(
-      `[EmailVerify] Generated code for ${user.email}. Attempting email send...`,
+      `[EmailVerify] Generated NEW code for ${user.email}. Attempting email send...`,
     );
     const emailSent = await this.emailService.sendVerificationCode(
       user.email,
@@ -496,18 +577,22 @@ export class UsersService {
       );
     }
 
-    // Store verification code with expiry timestamp
+    // Store verification code with expiry and tracking metadata
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 10); // 10 minutes expiry
+    const canResendAt = new Date(now.getTime() + 120000); // 2 minutes from now
 
     await this.prisma.systemConfig.upsert({
-      where: { key: `email_verification_${userId}` },
+      where: { key: existingConfigKey },
       create: {
-        key: `email_verification_${userId}`,
+        key: existingConfigKey,
         value: JSON.stringify({
           code: verificationCode,
           expiresAt: expiresAt.toISOString(),
           attempts: 0,
+          sendCount: 1,
+          lastSentAt: now.toISOString(),
+          createdAt: now.toISOString(),
         }),
       },
       update: {
@@ -515,6 +600,9 @@ export class UsersService {
           code: verificationCode,
           expiresAt: expiresAt.toISOString(),
           attempts: 0,
+          sendCount: 1,
+          lastSentAt: now.toISOString(),
+          createdAt: now.toISOString(),
         }),
       },
     });
@@ -522,6 +610,8 @@ export class UsersService {
     return {
       message: 'Verification code sent to your email',
       expiresIn: '10 minutes',
+      canResendAt: canResendAt.toISOString(),
+      sendsRemaining: 2,
     };
   }
 
@@ -680,10 +770,91 @@ export class UsersService {
       throw new ConflictException('Phone number already verified');
     }
 
-    // Generate 6-digit code
-    const verificationCode = Math.floor(
-      100000 + Math.random() * 900000,
-    ).toString();
+    const now = new Date();
+    const existingConfigKey = `phone_verification_${userId}`;
+
+    // Check if valid OTP already exists
+    const existingConfig = await this.prisma.systemConfig.findUnique({
+      where: { key: existingConfigKey },
+    });
+
+    if (existingConfig) {
+      const existingData = JSON.parse(existingConfig.value as string);
+      const expiresAt = new Date(existingData.expiresAt);
+
+      // If OTP still valid, check rate limiting
+      if (expiresAt > now) {
+        const lastSentAt = existingData.lastSentAt
+          ? new Date(existingData.lastSentAt)
+          : new Date(0);
+
+        const timeSinceLastSend = (now.getTime() - lastSentAt.getTime()) / 1000;
+
+        // Rate limit: Must wait 120 seconds (2 minutes) between sends
+        if (timeSinceLastSend < 120) {
+          const waitTime = Math.ceil(120 - timeSinceLastSend);
+          this.logger.warn(
+            `[PhoneVerify] Rate limit hit for ${user.phone}. Wait ${waitTime}s`,
+          );
+          throw new BadRequestException(
+            `Please wait ${waitTime} seconds before requesting a new code`,
+          );
+        }
+
+        // Rate limit: Max 3 sends per OTP lifecycle
+        const sendCount = existingData.sendCount || 1;
+        if (sendCount >= 3) {
+          this.logger.warn(
+            `[PhoneVerify] Max resend attempts (3) reached for ${user.phone}`,
+          );
+          throw new BadRequestException(
+            'Maximum resend attempts reached. Please try again later.',
+          );
+        }
+
+        // Reuse existing code, just resend it
+        this.logger.log(
+          `[PhoneVerify] Reusing existing code for ${user.phone}. Send count: ${sendCount + 1}/3`,
+        );
+
+        const smsSent = await this.smsService.sendVerificationCode(
+          user.phone,
+          existingData.code,
+          user.firstName,
+        );
+
+        if (!smsSent) {
+          this.logger.warn(
+            `Failed to resend verification SMS to ${user.phone}`,
+          );
+        }
+
+        // Update lastSentAt and increment sendCount
+        await this.prisma.systemConfig.update({
+          where: { key: existingConfigKey },
+          data: {
+            value: JSON.stringify({
+              ...existingData,
+              lastSentAt: now.toISOString(),
+              sendCount: sendCount + 1,
+            }),
+          },
+        });
+
+        const canResendAt = new Date(now.getTime() + 120000); // 2 minutes from now
+
+        return {
+          message: 'Verification code sent to your phone',
+          expiresIn: '10 minutes',
+          canResendAt: canResendAt.toISOString(),
+          sendsRemaining: 3 - (sendCount + 1),
+        };
+      }
+    }
+
+    // Generate new code using crypto for security
+    const crypto = require('crypto');
+    const verificationCode = crypto.randomInt(100000, 999999).toString();
 
     // Send SMS with verification code
     const smsSent = await this.smsService.sendVerificationCode(
@@ -698,18 +869,22 @@ export class UsersService {
       );
     }
 
-    // Store verification code with expiry timestamp
+    // Store verification code with expiry and tracking metadata
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 10); // 10 minutes expiry
+    const canResendAt = new Date(now.getTime() + 120000); // 2 minutes from now
 
     await this.prisma.systemConfig.upsert({
-      where: { key: `phone_verification_${userId}` },
+      where: { key: existingConfigKey },
       create: {
-        key: `phone_verification_${userId}`,
+        key: existingConfigKey,
         value: JSON.stringify({
           code: verificationCode,
           expiresAt: expiresAt.toISOString(),
           attempts: 0,
+          sendCount: 1,
+          lastSentAt: now.toISOString(),
+          createdAt: now.toISOString(),
         }),
       },
       update: {
@@ -717,6 +892,9 @@ export class UsersService {
           code: verificationCode,
           expiresAt: expiresAt.toISOString(),
           attempts: 0,
+          sendCount: 1,
+          lastSentAt: now.toISOString(),
+          createdAt: now.toISOString(),
         }),
       },
     });
@@ -724,6 +902,8 @@ export class UsersService {
     return {
       message: 'Verification code sent to your phone',
       expiresIn: '10 minutes',
+      canResendAt: canResendAt.toISOString(),
+      sendsRemaining: 2,
     };
   }
 
