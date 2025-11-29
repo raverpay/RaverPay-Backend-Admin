@@ -284,7 +284,7 @@ export class AdminDeletionsService {
         category: 'ACCOUNT',
         channels: ['EMAIL', 'PUSH', 'IN_APP'],
         title: 'Account Deletion Request Rejected',
-        message: `Your account deletion request has been rejected. Reason: ${reason}. Your account remains active. If you have any questions, please contact our support team.`,
+        message: `Your account deletion request has been rejected. Reason: ${reason}. Your account remains active. If you have any questions, please contact our support team support@raverpay.com`,
         // Don't include technical data in email - the message already contains the reason
         data: {},
         variables: {

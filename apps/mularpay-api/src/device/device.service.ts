@@ -5,6 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { IpGeolocationService } from '../common/services/ip-geolocation.service';
 import { Device } from '@prisma/client';
 
 export interface DeviceInfo {
@@ -23,7 +24,10 @@ export interface DeviceInfo {
 export class DeviceService {
   private readonly logger = new Logger(DeviceService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private ipGeolocationService: IpGeolocationService,
+  ) {}
 
   /**
    * Check if device is authorized for this user
@@ -54,7 +58,10 @@ export class DeviceService {
         );
 
         // Update last activity
-        await this.updateDeviceActivity(existingDevice.id, deviceInfo.ipAddress);
+        await this.updateDeviceActivity(
+          existingDevice.id,
+          deviceInfo.ipAddress,
+        );
 
         return {
           authorized: true,
@@ -112,6 +119,20 @@ export class DeviceService {
     // Deactivate all other devices for this user (single device policy)
     await this.deactivateAllUserDevices(userId);
 
+    // Get location from IP address if not already provided
+    let location = deviceInfo.location;
+    if (!location && deviceInfo.ipAddress) {
+      const cityFromIp = this.ipGeolocationService.getCityFromIp(
+        deviceInfo.ipAddress,
+      );
+      if (cityFromIp) {
+        location = cityFromIp;
+        this.logger.log(
+          `[RegisterDevice] Resolved location from IP: ${cityFromIp}`,
+        );
+      }
+    }
+
     // Create new device (inactive and unverified)
     const device = await this.prisma.device.create({
       data: {
@@ -124,7 +145,7 @@ export class DeviceService {
         appVersion: deviceInfo.appVersion,
         ipAddress: deviceInfo.ipAddress,
         lastIpAddress: deviceInfo.ipAddress,
-        location: deviceInfo.location,
+        location: location,
         userAgent: deviceInfo.userAgent,
         isActive: false, // Not active until verified
         isVerified: false,
@@ -174,9 +195,7 @@ export class DeviceService {
     // Revoke all refresh tokens except for this device
     // (We'll handle this in the auth service)
 
-    this.logger.log(
-      `[VerifyDevice] Device ${deviceId} verified and activated`,
-    );
+    this.logger.log(`[VerifyDevice] Device ${deviceId} verified and activated`);
     return updatedDevice;
   }
 

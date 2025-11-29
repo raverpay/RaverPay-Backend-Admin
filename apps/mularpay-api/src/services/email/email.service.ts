@@ -245,7 +245,7 @@ export class EmailService {
                 </table>
               </div>
               
-              <p style="color: #666; font-size: 14px;">If you have any questions, please contact our support team.</p>
+              <p style="color: #666; font-size: 14px;">If you have any questions, please contact our support team. support@raverpay.com</p>
               
               <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center; color: #999; font-size: 12px;">
                 <p>RaverPay - Your Trusted Fintech Partner</p>
@@ -369,11 +369,21 @@ export class EmailService {
                       reference: 'Reference',
                       status: 'Status',
                     };
-                    const friendlyLabel = labelMap[key] || key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1').trim();
+                    const friendlyLabel =
+                      labelMap[key] ||
+                      key.charAt(0).toUpperCase() +
+                        key
+                          .slice(1)
+                          .replace(/([A-Z])/g, ' $1')
+                          .trim();
                     // Format currency values
-                    const formattedValue = (key === 'amount' || key === 'fee' || key === 'totalDebit') && typeof value === 'number'
-                      ? `₦${value.toLocaleString()}`
-                      : value;
+                    const formattedValue =
+                      (key === 'amount' ||
+                        key === 'fee' ||
+                        key === 'totalDebit') &&
+                      typeof value === 'number'
+                        ? `₦${value.toLocaleString()}`
+                        : value;
                     return `<p style="margin: 5px 0;"><strong>${friendlyLabel}:</strong> ${formattedValue}</p>`;
                   })
                   .join('')}

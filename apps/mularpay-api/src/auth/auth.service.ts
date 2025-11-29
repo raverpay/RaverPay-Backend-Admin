@@ -16,6 +16,7 @@ import { User, UserStatus } from '@prisma/client';
 import { UsersService } from '../users/users.service';
 import { DeviceService, DeviceInfo } from '../device/device.service';
 import { NotificationDispatcherService } from '../notifications/notification-dispatcher.service';
+import { IpGeolocationService } from '../common/services/ip-geolocation.service';
 
 /**
  * Authentication Service
@@ -34,6 +35,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly deviceService: DeviceService,
     private readonly notificationDispatcher: NotificationDispatcherService,
+    private readonly ipGeolocationService: IpGeolocationService,
   ) {}
 
   /**
@@ -313,8 +315,92 @@ export class AuthService {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = user;
 
-    // TODO: Send login notification email (implement in next step)
-    // this.sendLoginNotificationEmail(user, deviceInfo, ipAddress);
+    // Always get device info from database if deviceId is available (most reliable source)
+    let finalDeviceInfo = deviceInfo;
+    if (deviceId) {
+      const device = await this.prisma.device.findUnique({
+        where: { deviceId },
+        select: {
+          deviceId: true,
+          deviceName: true,
+          deviceType: true,
+          deviceModel: true,
+          osVersion: true,
+          appVersion: true,
+          ipAddress: true,
+          lastIpAddress: true,
+          location: true,
+          userAgent: true,
+        },
+      });
+
+      if (device) {
+        // If device doesn't have location, try to resolve it from current IP
+        let location = device.location;
+        if (!location && ipAddress && this.ipGeolocationService.isAvailable()) {
+          const cityFromIp = this.ipGeolocationService.getCityFromIp(ipAddress);
+          if (cityFromIp) {
+            location = cityFromIp;
+            // Update device record with location for future use
+            await this.prisma.device
+              .update({
+                where: { deviceId },
+                data: { location: cityFromIp },
+              })
+              .catch((error) => {
+                this.logger.warn(
+                  `Failed to update device location: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                );
+              });
+            this.logger.log(
+              `[Login] Resolved and stored location for device: ${cityFromIp}`,
+            );
+          }
+        }
+
+        // Use database device info as primary source (most up-to-date)
+        finalDeviceInfo = {
+          deviceId: device.deviceId,
+          deviceName: device.deviceName,
+          deviceType: device.deviceType as 'ios' | 'android' | 'web',
+          deviceModel: device.deviceModel || undefined,
+          osVersion: device.osVersion || undefined,
+          appVersion: device.appVersion || undefined,
+          ipAddress:
+            device.lastIpAddress || device.ipAddress || ipAddress || 'Unknown',
+          location: location || undefined,
+          userAgent: device.userAgent || undefined,
+        };
+      } else if (deviceInfo) {
+        // Fallback to deviceInfo from request if device not found in database
+        // Try to resolve location if not provided
+        if (
+          !deviceInfo.location &&
+          ipAddress &&
+          this.ipGeolocationService.isAvailable()
+        ) {
+          const cityFromIp = this.ipGeolocationService.getCityFromIp(ipAddress);
+          if (cityFromIp) {
+            finalDeviceInfo = {
+              ...deviceInfo,
+              location: cityFromIp,
+            };
+          } else {
+            finalDeviceInfo = deviceInfo;
+          }
+        } else {
+          finalDeviceInfo = deviceInfo;
+        }
+      }
+    }
+
+    // Send login notification email
+    this.sendLoginNotification(user, finalDeviceInfo, ipAddress).catch(
+      (error) => {
+        this.logger.error('Failed to send login notification', error);
+        // Don't fail the login flow if notification fails
+      },
+    );
 
     return {
       user: userWithoutPassword,
@@ -517,6 +603,31 @@ export class AuthService {
     const { password, ...userWithoutPassword } = user;
 
     this.logger.log(`[DeviceVerify] Device ${deviceId} verified and activated`);
+
+    // Send login notification email with device info
+    const deviceInfoForNotification: DeviceInfo = {
+      deviceId: device.deviceId,
+      deviceName: device.deviceName,
+      deviceType: device.deviceType as 'ios' | 'android' | 'web',
+      deviceModel: device.deviceModel || undefined,
+      osVersion: device.osVersion || undefined,
+      appVersion: device.appVersion || undefined,
+      ipAddress: device.lastIpAddress || device.ipAddress,
+      location: device.location || undefined,
+      userAgent: device.userAgent || undefined,
+    };
+
+    this.sendLoginNotification(
+      user,
+      deviceInfoForNotification,
+      device.lastIpAddress || device.ipAddress,
+    ).catch((error) => {
+      this.logger.error(
+        'Failed to send login notification after device verification',
+        error,
+      );
+      // Don't fail the login flow if notification fails
+    });
 
     return {
       user: userWithoutPassword,
@@ -872,6 +983,106 @@ export class AuthService {
     this.logger.log(`Password reset completed for user: ${payload.sub}`);
 
     return { success: true, message: 'Password reset successfully' };
+  }
+
+  /**
+   * Send login notification email to user
+   * Rate limited to once per 24 hours
+   *
+   * @param user - User object
+   * @param deviceInfo - Device information (optional)
+   * @param ipAddress - IP address of the login
+   */
+  private async sendLoginNotification(
+    user: User,
+    deviceInfo?: DeviceInfo,
+    ipAddress?: string,
+  ): Promise<void> {
+    const now = new Date();
+
+    // Check rate limit: only send if last email was sent more than 24 hours ago
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    const lastEmailSentAt = (user as any).lastLoginEmailSentAt as
+      | Date
+      | null
+      | undefined;
+    if (lastEmailSentAt) {
+      const hoursSinceLastEmail =
+        (now.getTime() - lastEmailSentAt.getTime()) / (1000 * 60 * 60);
+      if (hoursSinceLastEmail < 24) {
+        this.logger.log(
+          `[LoginNotification] Skipping email for ${user.email} - last sent ${hoursSinceLastEmail.toFixed(1)} hours ago`,
+        );
+        return;
+      }
+    }
+
+    // Format date separately
+    const date = new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }).format(now);
+
+    // Format time separately
+    const time = new Intl.DateTimeFormat('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      timeZoneName: 'short',
+    }).format(now);
+
+    // Build device information string
+    let deviceDetails = 'Unknown device';
+    if (deviceInfo) {
+      const parts: string[] = [];
+      if (deviceInfo.deviceName) parts.push(deviceInfo.deviceName);
+      if (
+        deviceInfo.deviceModel &&
+        deviceInfo.deviceModel !== deviceInfo.deviceName
+      ) {
+        parts.push(`(${deviceInfo.deviceModel})`);
+      }
+      if (deviceInfo.osVersion) parts.push(`- ${deviceInfo.osVersion}`);
+      if (deviceInfo.deviceType) {
+        const deviceTypeLabel = deviceInfo.deviceType.toUpperCase();
+        parts.push(`(${deviceTypeLabel})`);
+      }
+      deviceDetails = parts.length > 0 ? parts.join(' ') : 'Unknown device';
+    }
+
+    // Build simple message without repeating details
+    const message =
+      `You successfully logged into Raverpay.\n\n` +
+      `If you did not make this login attempt, please contact our support team immediately and change your password.`;
+
+    // Send notification
+    await this.notificationDispatcher.sendNotification({
+      userId: user.id,
+      eventType: 'login_successful',
+      category: 'SECURITY',
+      channels: ['EMAIL', 'IN_APP'],
+      title: 'Successful Login to Raverpay',
+      message,
+      data: {
+        date,
+        time,
+        device: deviceDetails,
+        ipAddress: ipAddress || 'Unknown',
+        location: deviceInfo?.location || null,
+      },
+    });
+
+    // Update lastLoginEmailSentAt timestamp
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginEmailSentAt: now } as any,
+    });
+
+    this.logger.log(
+      `[LoginNotification] Email sent to ${user.email} and timestamp updated`,
+    );
   }
 
   /**
