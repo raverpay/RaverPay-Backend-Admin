@@ -51,4 +51,34 @@ export const virtualAccountsApi = {
     );
     return response.data;
   },
+
+  getFailedCreations: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<PaginatedResponse<any>> => {
+    const response = await apiClient.get<PaginatedResponse<any>>(
+      '/admin/virtual-accounts/failed',
+      { params },
+    );
+    return response.data;
+  },
+
+  getCreationStatus: async (userId: string): Promise<any> => {
+    const response = await apiClient.get<any>(
+      `/admin/virtual-accounts/${userId}/status`,
+    );
+    return response.data;
+  },
+
+  createDVAForUser: async (
+    userId: string,
+    preferredBank?: string,
+  ): Promise<VirtualAccount> => {
+    const response = await apiClient.post<VirtualAccount>(
+      `/admin/virtual-accounts/${userId}/create`,
+      { preferred_bank: preferredBank },
+    );
+    return response.data;
+  },
 };

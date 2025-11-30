@@ -226,7 +226,7 @@ export default function EmailsPage() {
         <CardHeader>
           <CardTitle>Emails</CardTitle>
           <CardDescription>
-            {emailsData?.pagination?.total || 0} total emails
+            {emailsData?.meta?.total || 0} total emails
           </CardDescription>
         </CardHeader>
         <CardContent>

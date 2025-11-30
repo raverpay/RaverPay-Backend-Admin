@@ -140,15 +140,37 @@ export class BVNEncryptionService {
     }
 
     try {
-      // Try to decrypt first (in case it's encrypted)
-      const decrypted = this.decrypt(bvn);
-      const last4 = decrypted.slice(-4);
-      return `*******${last4}`;
-    } catch {
-      // If decryption fails, assume it's plain text or invalid
-      if (bvn.length >= 4) {
-        const last4 = bvn.slice(-4);
+      // Check if it's encrypted format first
+      if (this.isEncrypted(bvn)) {
+        const decrypted = this.decrypt(bvn);
+        const last4 = decrypted.slice(-4);
         return `*******${last4}`;
+      } else {
+        // Assume it's plain text
+        if (bvn.length >= 4) {
+          const last4 = bvn.slice(-4);
+          return `*******${last4}`;
+        }
+        return '*******';
+      }
+    } catch (error) {
+      // If decryption fails, log error but don't throw
+      this.logger.warn(
+        'Failed to decrypt BVN for logging, using fallback',
+        error,
+      );
+      // Try to extract last 4 digits from encrypted format or plain text
+      if (bvn.length >= 4) {
+        // If it looks like encrypted format (has colons), try to get last part
+        if (bvn.includes(':')) {
+          const parts = bvn.split(':');
+          if (parts.length === 3 && parts[2].length >= 4) {
+            // Try to get last 4 from encrypted part (though this won't be accurate)
+            return '*******';
+          }
+        }
+        // Fallback: just mask it
+        return '*******';
       }
       return '*******';
     }

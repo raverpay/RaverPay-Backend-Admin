@@ -414,6 +414,7 @@ export class PaystackService {
 
   /**
    * Create a customer on Paystack
+   * Phone number must be in international format (2348012345678 or +2348012345678)
    */
   async createCustomer(
     email: string,
@@ -422,6 +423,9 @@ export class PaystackService {
     phone: string,
   ): Promise<{ customer_code: string; customer_id: number }> {
     try {
+      // Format phone to international format if needed
+      const formattedPhone = this.formatPhoneNumber(phone);
+
       const response = await fetch(`${this.baseUrl}/customer`, {
         method: 'POST',
         headers: {
@@ -432,7 +436,7 @@ export class PaystackService {
           email,
           first_name: firstName,
           last_name: lastName,
-          phone,
+          phone: formattedPhone,
         }),
       });
 
@@ -450,6 +454,88 @@ export class PaystackService {
       this.logger.error('Failed to create customer', error);
       throw new BadRequestException('Failed to create customer');
     }
+  }
+
+  /**
+   * Update an existing customer on Paystack
+   * Used to update phone number or other customer details
+   */
+  async updateCustomer(
+    customerCode: string,
+    data: {
+      email?: string;
+      firstName?: string;
+      lastName?: string;
+      phone?: string;
+    },
+  ): Promise<{ customer_code: string; customer_id: number }> {
+    try {
+      const updateData: any = {};
+      if (data.email) updateData.email = data.email;
+      if (data.firstName) updateData.first_name = data.firstName;
+      if (data.lastName) updateData.last_name = data.lastName;
+      if (data.phone) {
+        // Format phone to international format if needed
+        updateData.phone = this.formatPhoneNumber(data.phone);
+      }
+
+      const response = await fetch(`${this.baseUrl}/customer/${customerCode}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${this.secretKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      const responseData =
+        (await response.json()) as PaystackCreateCustomerResponse;
+
+      if (!responseData.status) {
+        throw new BadRequestException(responseData.message);
+      }
+
+      return {
+        customer_code: responseData.data.customer_code,
+        customer_id: responseData.data.id,
+      };
+    } catch (error) {
+      this.logger.error('Failed to update customer', error);
+      throw new BadRequestException('Failed to update customer');
+    }
+  }
+
+  /**
+   * Format phone number to international format for Paystack
+   * Converts: 08012345678 -> 2348012345678
+   * Accepts: 08012345678, +2348012345678, 2348012345678
+   */
+  private formatPhoneNumber(phone: string): string {
+    if (!phone) {
+      throw new BadRequestException('Phone number is required');
+    }
+
+    // Remove any spaces, dashes, or plus signs
+    let cleaned = phone.replace(/[\s\-+]/g, '');
+
+    // If starts with 0, replace with 234
+    if (cleaned.startsWith('0')) {
+      cleaned = '234' + cleaned.substring(1);
+    }
+
+    // If doesn't start with 234, prepend it
+    if (!cleaned.startsWith('234')) {
+      cleaned = '234' + cleaned;
+    }
+
+    // Validate it's a Nigerian phone number (234 + 10 digits)
+    if (!/^234[789][01]\d{8}$/.test(cleaned)) {
+      throw new BadRequestException(
+        'Invalid phone number format. Please provide a valid Nigerian phone number.',
+      );
+    }
+
+    return cleaned;
   }
 
   /**

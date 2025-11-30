@@ -39,12 +39,14 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { VTUModule } from '../vtu/vtu.module';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { SupportModule } from '../support/support.module';
+import { PaymentsModule } from '../payments/payments.module';
 
 @Module({
   imports: [
     ConfigModule,
     PrismaModule,
     NotificationsModule,
+    PaymentsModule,
     VTUModule,
     SupportModule,
     forwardRef(() => TransactionsModule),

@@ -74,6 +74,7 @@ export interface MessageMetadata {
   quickReplies?: QuickReply[];
   action?: MessageAction;
   transactionRef?: string;
+  emailSent?: boolean;
 }
 
 export interface QuickReply {

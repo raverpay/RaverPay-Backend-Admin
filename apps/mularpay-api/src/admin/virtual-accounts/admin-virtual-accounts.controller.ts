@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Param,
   Query,
@@ -73,6 +74,49 @@ export class AdminVirtualAccountsController {
   @Get('unassigned')
   async getUnassignedUsers() {
     return this.adminVirtualAccountsService.getUnassignedUsers();
+  }
+
+  /**
+   * GET /admin/virtual-accounts/failed
+   * Get users with failed DVA creation (have customer code + BVN but no active DVA)
+   */
+  @Get('failed')
+  async getFailedDVACreations(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('search') search?: string,
+  ) {
+    return this.adminVirtualAccountsService.getFailedDVACreations(
+      page,
+      limit,
+      search,
+    );
+  }
+
+  /**
+   * GET /admin/virtual-accounts/:userId/status
+   * Get DVA creation status for a user
+   */
+  @Get(':userId/status')
+  async getDVACreationStatus(@Param('userId') userId: string) {
+    return this.adminVirtualAccountsService.getDVACreationStatus(userId);
+  }
+
+  /**
+   * POST /admin/virtual-accounts/:userId/create
+   * Manually create DVA for a user
+   */
+  @Post(':userId/create')
+  async createDVAForUser(
+    @Request() req,
+    @Param('userId') userId: string,
+    @Body('preferred_bank') preferredBank?: string,
+  ) {
+    return this.adminVirtualAccountsService.createDVAForUser(
+      req.user.id,
+      userId,
+      preferredBank || 'wema-bank',
+    );
   }
 
   /**

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import Link from 'next/link';
-import { Search, Eye, CreditCard, Activity, Snowflake } from 'lucide-react';
+import { Search, Eye, CreditCard, Activity, Snowflake, AlertCircle } from 'lucide-react';
 
 import { virtualAccountsApi } from '@/lib/api/virtual-accounts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -77,9 +77,17 @@ export default function VirtualAccountsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Virtual Accounts</h2>
-        <p className="text-muted-foreground">Manage user virtual bank accounts</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Virtual Accounts</h2>
+          <p className="text-muted-foreground">Manage user virtual bank accounts</p>
+        </div>
+        <Link href="/dashboard/virtual-accounts/failed">
+          <Button variant="outline" className="gap-2">
+            <AlertCircle className="h-4 w-4" />
+            Failed Creations
+          </Button>
+        </Link>
       </div>
 
       {/* Stats Cards */}
