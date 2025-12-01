@@ -166,7 +166,7 @@ export function Sidebar() {
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold">
               R
             </div>
-            <span className="text-lg font-bold">RaverPay Admin</span>
+            <span className="text-lg font-bold">RaverPay</span>
           </Link>
         ) : (
           <Link href="/dashboard" className="flex items-center">
