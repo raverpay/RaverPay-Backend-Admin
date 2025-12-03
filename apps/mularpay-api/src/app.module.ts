@@ -22,10 +22,36 @@ import { DeviceModule } from './device/device.module';
 import { LimitsModule } from './limits/limits.module';
 import { AppConfigModule } from './app-config/app-config.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule, seconds } from '@nestjs/throttler';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { CustomThrottlerGuard } from './common/guards/custom-throttler.guard';
+import { RedisThrottlerStorage } from './common/storage/redis-throttler.storage';
+import { RateLimitLoggerInterceptor } from './common/interceptors/rate-limit-logger.interceptor';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(), // Enable cron jobs
+    // Global rate limiting with Redis storage for distributed tracking
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        throttlers: [
+          {
+            name: 'default',
+            ttl: seconds(60), // 1 minute window
+            limit: 200, // 200 requests per minute
+          },
+          {
+            name: 'short',
+            ttl: seconds(10), // 10 second window
+            limit: 20, // 20 requests per 10 seconds (burst protection)
+          },
+        ],
+        storage: new RedisThrottlerStorage(configService),
+      }),
+    }),
     CacheModule, // Add cache module first for global availability
     UtilsModule, // Utils module (BVN encryption) - global
     PrismaModule,
@@ -48,6 +74,18 @@ import { ScheduleModule } from '@nestjs/schedule';
     AdminModule, // Admin module for dashboard
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // Apply custom throttler guard globally (tracks by user ID or IP)
+    {
+      provide: APP_GUARD,
+      useClass: CustomThrottlerGuard,
+    },
+    // Log rate limit violations with geolocation
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: RateLimitLoggerInterceptor,
+    },
+  ],
 })
 export class AppModule {}

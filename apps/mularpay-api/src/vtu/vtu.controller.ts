@@ -10,6 +10,7 @@ import {
   HttpStatus,
   BadRequestException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { VTUService } from './vtu.service';
@@ -122,6 +123,7 @@ export class VTUController {
 
   // ==================== Purchases ====================
 
+  @Throttle({ default: { limit: 30, ttl: 3600000 } }) // 30 airtime purchases per hour
   @Post('airtime/purchase')
   @HttpCode(HttpStatus.CREATED)
   purchaseAirtime(
@@ -131,12 +133,14 @@ export class VTUController {
     return this.vtuService.purchaseAirtime(userId, dto);
   }
 
+  @Throttle({ default: { limit: 30, ttl: 3600000 } }) // 30 data purchases per hour
   @Post('data/purchase')
   @HttpCode(HttpStatus.CREATED)
   purchaseData(@GetUser('id') userId: string, @Body() dto: PurchaseDataDto) {
     return this.vtuService.purchaseDataBundle(userId, dto);
   }
 
+  @Throttle({ default: { limit: 20, ttl: 3600000 } }) // 20 cable TV payments per hour
   @Post('cable-tv/pay')
   @HttpCode(HttpStatus.CREATED)
   payCableTVSubscription(
@@ -161,6 +165,7 @@ export class VTUController {
     return this.vtuService.payShowmaxSubscription(userId, dto);
   }
 
+  @Throttle({ default: { limit: 20, ttl: 3600000 } }) // 20 electricity payments per hour
   @Post('electricity/pay')
   @HttpCode(HttpStatus.CREATED)
   payElectricityBill(

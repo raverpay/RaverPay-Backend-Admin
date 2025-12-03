@@ -1,4 +1,11 @@
-import { IsString, IsNumber, IsOptional, IsDate, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsDate,
+  Min,
+  Max,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class SetExchangeRateDto {

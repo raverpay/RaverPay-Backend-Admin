@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { Injectable, Logger } from '@nestjs/common';
 import { CryptoWalletService } from './services/crypto-wallet.service';
 import { CryptoBalanceService } from './services/crypto-balance.service';

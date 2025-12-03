@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma, CryptoTransactionStatus } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
@@ -102,9 +106,10 @@ export class AdminVenlyWalletsService {
       totalUsers,
       usersWithWallets,
       totalWallets,
-      adoptionRate: totalUsers > 0
-        ? ((usersWithWallets / totalUsers) * 100).toFixed(2)
-        : '0',
+      adoptionRate:
+        totalUsers > 0
+          ? ((usersWithWallets / totalUsers) * 100).toFixed(2)
+          : '0',
       transactions: {
         byStatus: transactionStats.map((item) => ({
           status: item.status,
@@ -474,19 +479,22 @@ export class AdminVenlyWalletsService {
     });
 
     // Group by date
-    const dailyVolume = dailyTransactions.reduce((acc, tx) => {
-      const date = tx.createdAt.toISOString().split('T')[0];
-      if (!acc[date]) {
-        acc[date] = {
-          date,
-          count: 0,
-          volume: new Decimal(0),
-        };
-      }
-      acc[date].count += 1;
-      acc[date].volume = acc[date].volume.plus(tx.usdValue);
-      return acc;
-    }, {} as Record<string, { date: string; count: number; volume: Decimal }>);
+    const dailyVolume = dailyTransactions.reduce(
+      (acc, tx) => {
+        const date = tx.createdAt.toISOString().split('T')[0];
+        if (!acc[date]) {
+          acc[date] = {
+            date,
+            count: 0,
+            volume: new Decimal(0),
+          };
+        }
+        acc[date].count += 1;
+        acc[date].volume = acc[date].volume.plus(tx.usdValue);
+        return acc;
+      },
+      {} as Record<string, { date: string; count: number; volume: Decimal }>,
+    );
 
     return {
       byType: transactionsByType.map((item) => ({

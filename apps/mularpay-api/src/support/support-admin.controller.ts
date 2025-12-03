@@ -151,7 +151,8 @@ export class SupportAdminController {
     @Body() dto: CreateMessageDto,
   ) {
     // Get conversation with ticket to check assignment
-    const conversation = await this.supportService.getConversationById(conversationId);
+    const conversation =
+      await this.supportService.getConversationById(conversationId);
     const assignedAgentId = conversation.ticket?.assignedAgentId;
 
     // Check permissions
@@ -169,7 +170,10 @@ export class SupportAdminController {
     if (isUnassigned) {
       await this.supportService.assignConversation(conversationId, agentId);
       // Notify via WebSocket
-      this.supportGateway.notifyConversationUpdate(conversationId, 'AGENT_ASSIGNED');
+      this.supportGateway.notifyConversationUpdate(
+        conversationId,
+        'AGENT_ASSIGNED',
+      );
     }
 
     const message = await this.supportService.sendMessage(
@@ -213,10 +217,16 @@ export class SupportAdminController {
     );
 
     // Send notification to user that an agent has been assigned
-    this.supportNotificationService.notifyAgentAssigned(conversationId, agentId);
+    this.supportNotificationService.notifyAgentAssigned(
+      conversationId,
+      agentId,
+    );
 
     // Notify via WebSocket
-    this.supportGateway.notifyConversationUpdate(conversationId, 'AGENT_ASSIGNED');
+    this.supportGateway.notifyConversationUpdate(
+      conversationId,
+      'AGENT_ASSIGNED',
+    );
 
     return result;
   }
@@ -246,10 +256,7 @@ export class SupportAdminController {
   async endConversation(@Param('id') conversationId: string) {
     const result = await this.supportService.endConversation(conversationId);
     // Notify via WebSocket so mobile app can show rating UI
-    this.supportGateway.notifyConversationUpdate(
-      conversationId,
-      result.status,
-    );
+    this.supportGateway.notifyConversationUpdate(conversationId, result.status);
     // Send push/email notification to user
     this.supportNotificationService.notifyConversationEnded(conversationId);
     return result;

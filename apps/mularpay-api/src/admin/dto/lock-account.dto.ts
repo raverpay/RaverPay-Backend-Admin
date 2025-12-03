@@ -10,4 +10,3 @@ export class LockAccountDto {
   @IsOptional()
   lockDurationMinutes?: number; // Optional: lock duration in minutes (default: 30)
 }
-

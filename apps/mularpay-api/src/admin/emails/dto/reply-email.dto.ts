@@ -9,4 +9,3 @@ export class ReplyEmailDto {
   @IsOptional()
   subject?: string; // Optional, defaults to "Re: {originalSubject}"
 }
-

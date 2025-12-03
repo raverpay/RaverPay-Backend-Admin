@@ -21,7 +21,8 @@ export class VenlyAuthService {
     });
 
     // Determine environment
-    this.environment = (process.env.VENLY_ENV as 'sandbox' | 'production') || 'sandbox';
+    this.environment =
+      (process.env.VENLY_ENV as 'sandbox' | 'production') || 'sandbox';
     this.logger.log(`Venly environment: ${this.environment}`);
   }
 
@@ -82,7 +83,9 @@ export class VenlyAuthService {
       this.tokenExpiresAt = new Date(Date.now() + expires_in * 1000);
 
       this.logger.log('Venly OAuth token fetched successfully');
-      this.logger.debug(`Token expires at: ${this.tokenExpiresAt.toISOString()}`);
+      this.logger.debug(
+        `Token expires at: ${this.tokenExpiresAt.toISOString()}`,
+      );
       this.logger.debug(`Token expires in: ${expires_in} seconds`);
 
       return access_token;

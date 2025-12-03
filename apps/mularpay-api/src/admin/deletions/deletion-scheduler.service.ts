@@ -63,9 +63,7 @@ export class DeletionSchedulerService {
       }
     }
 
-    this.logger.log(
-      `Completed processing ${dueDeletions.length} deletion(s)`,
-    );
+    this.logger.log(`Completed processing ${dueDeletions.length} deletion(s)`);
   }
 
   /**
@@ -141,4 +139,3 @@ export class DeletionSchedulerService {
     await this.processScheduledDeletions();
   }
 }
-

@@ -5,4 +5,3 @@ export class UnlockAccountDto {
   @IsOptional()
   reason?: string;
 }
-

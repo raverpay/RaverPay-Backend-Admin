@@ -882,7 +882,6 @@ export class AuthService {
       throw new BadRequestException('No reset request found');
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const storedData = config.value as any;
 
     // Check expiry
@@ -909,7 +908,7 @@ export class AuthService {
         data: {
           value: {
             ...storedData,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             attempts: storedData.attempts + 1,
           },
         },
@@ -971,7 +970,7 @@ export class AuthService {
     // Update password and timestamp
 
     await this.prisma.user.update({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       where: { id: payload.sub },
       data: {
         password: hashedPassword,
@@ -1001,7 +1000,7 @@ export class AuthService {
     const now = new Date();
 
     // Check rate limit: only send if last email was sent more than 24 hours ago
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const lastEmailSentAt = (user as any).lastLoginEmailSentAt as
       | Date
       | null

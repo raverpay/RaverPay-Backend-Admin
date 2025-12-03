@@ -165,7 +165,8 @@ export class SupportGateway
 
       // For agents, validate they have permission to send messages
       if (isAgent) {
-        const conversation = await this.supportService.getConversationById(conversationId);
+        const conversation =
+          await this.supportService.getConversationById(conversationId);
         const assignedAgentId = conversation.ticket?.assignedAgentId;
         const isSuperAdmin = client.userRole === 'SUPER_ADMIN';
         const isAssignedAgent = assignedAgentId === client.userId;
@@ -174,13 +175,17 @@ export class SupportGateway
         if (!isSuperAdmin && !isAssignedAgent && !isUnassigned) {
           return {
             success: false,
-            error: 'You cannot send messages to a conversation assigned to another agent',
+            error:
+              'You cannot send messages to a conversation assigned to another agent',
           };
         }
 
         // Auto-assign if unassigned
         if (isUnassigned) {
-          await this.supportService.assignConversation(conversationId, client.userId!);
+          await this.supportService.assignConversation(
+            conversationId,
+            client.userId!,
+          );
           this.notifyConversationUpdate(conversationId, 'AGENT_ASSIGNED');
         }
       }
@@ -290,10 +295,12 @@ export class SupportGateway
 
   // Notify conversation participants about status changes
   notifyConversationUpdate(conversationId: string, status: string) {
-    this.server.to(`conversation:${conversationId}`).emit('conversation:updated', {
-      conversationId,
-      status,
-    });
+    this.server
+      .to(`conversation:${conversationId}`)
+      .emit('conversation:updated', {
+        conversationId,
+        status,
+      });
   }
 
   // ============================================

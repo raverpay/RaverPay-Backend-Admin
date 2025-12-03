@@ -58,9 +58,13 @@ export class SupportNotificationService {
         },
       });
 
-      this.logger.log(`Ticket created notification sent for ticket ${ticketId}`);
+      this.logger.log(
+        `Ticket created notification sent for ticket ${ticketId}`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to send ticket created notification: ${error.message}`);
+      this.logger.error(
+        `Failed to send ticket created notification: ${error.message}`,
+      );
     }
   }
 
@@ -106,16 +110,24 @@ export class SupportNotificationService {
         },
       });
 
-      this.logger.log(`Agent assigned notification sent for conversation ${conversationId}`);
+      this.logger.log(
+        `Agent assigned notification sent for conversation ${conversationId}`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to send agent assigned notification: ${error.message}`);
+      this.logger.error(
+        `Failed to send agent assigned notification: ${error.message}`,
+      );
     }
   }
 
   /**
    * Notify user when an agent sends a new message
    */
-  async notifyNewMessage(conversationId: string, messageContent: string, senderType: 'AGENT' | 'USER') {
+  async notifyNewMessage(
+    conversationId: string,
+    messageContent: string,
+    senderType: 'AGENT' | 'USER',
+  ) {
     try {
       const conversation = await this.prisma.conversation.findUnique({
         where: { id: conversationId },
@@ -170,7 +182,9 @@ export class SupportNotificationService {
           },
         });
 
-        this.logger.log(`New message notification sent to user for conversation ${conversationId}`);
+        this.logger.log(
+          `New message notification sent to user for conversation ${conversationId}`,
+        );
       }
 
       // If user sent message, notify assigned agent
@@ -197,10 +211,14 @@ export class SupportNotificationService {
           },
         });
 
-        this.logger.log(`New message notification sent to agent for conversation ${conversationId}`);
+        this.logger.log(
+          `New message notification sent to agent for conversation ${conversationId}`,
+        );
       }
     } catch (error) {
-      this.logger.error(`Failed to send new message notification: ${error.message}`);
+      this.logger.error(
+        `Failed to send new message notification: ${error.message}`,
+      );
     }
   }
 
@@ -248,9 +266,13 @@ export class SupportNotificationService {
         },
       });
 
-      this.logger.log(`Ticket resolved notification sent for ticket ${ticketId}`);
+      this.logger.log(
+        `Ticket resolved notification sent for ticket ${ticketId}`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to send ticket resolved notification: ${error.message}`);
+      this.logger.error(
+        `Failed to send ticket resolved notification: ${error.message}`,
+      );
     }
   }
 
@@ -288,9 +310,13 @@ export class SupportNotificationService {
         },
       });
 
-      this.logger.log(`Conversation ended notification sent for conversation ${conversationId}`);
+      this.logger.log(
+        `Conversation ended notification sent for conversation ${conversationId}`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to send conversation ended notification: ${error.message}`);
+      this.logger.error(
+        `Failed to send conversation ended notification: ${error.message}`,
+      );
     }
   }
 
@@ -344,9 +370,13 @@ export class SupportNotificationService {
         });
       }
 
-      this.logger.log(`New conversation notification sent to ${agents.length} agents`);
+      this.logger.log(
+        `New conversation notification sent to ${agents.length} agents`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to send new conversation notification: ${error.message}`);
+      this.logger.error(
+        `Failed to send new conversation notification: ${error.message}`,
+      );
     }
   }
 }

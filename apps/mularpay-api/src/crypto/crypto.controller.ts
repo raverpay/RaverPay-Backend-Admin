@@ -33,7 +33,10 @@ export class CryptoController {
    */
   @Post('wallet/initialize')
   @UseGuards(JwtAuthGuard)
-  async initializeWallet(@GetUser('id') userId: string, @Body() dto: CreateCryptoWalletDto) {
+  async initializeWallet(
+    @GetUser('id') userId: string,
+    @Body() dto: CreateCryptoWalletDto,
+  ) {
     return this.cryptoService.initializeCryptoWallet(userId, dto);
   }
 
@@ -77,7 +80,10 @@ export class CryptoController {
    */
   @Get('balance/:token')
   @UseGuards(JwtAuthGuard)
-  async getTokenBalance(@GetUser('id') userId: string, @Param('token') token: string) {
+  async getTokenBalance(
+    @GetUser('id') userId: string,
+    @Param('token') token: string,
+  ) {
     return this.cryptoService.getTokenBalance(userId, token);
   }
 
@@ -118,7 +124,10 @@ export class CryptoController {
    */
   @Get('transactions/:id')
   @UseGuards(JwtAuthGuard)
-  async getTransaction(@GetUser('id') userId: string, @Param('id') transactionId: string) {
+  async getTransaction(
+    @GetUser('id') userId: string,
+    @Param('id') transactionId: string,
+  ) {
     return this.cryptoService.getTransactionDetails(userId, transactionId);
   }
 
@@ -132,7 +141,10 @@ export class CryptoController {
    */
   @Post('convert/quote')
   @UseGuards(JwtAuthGuard)
-  async getConversionQuote(@GetUser('id') userId: string, @Body() dto: GetConversionQuoteDto) {
+  async getConversionQuote(
+    @GetUser('id') userId: string,
+    @Body() dto: GetConversionQuoteDto,
+  ) {
     return this.cryptoService.getConversionQuote(userId, dto);
   }
 
@@ -142,7 +154,10 @@ export class CryptoController {
    */
   @Post('convert')
   @UseGuards(JwtAuthGuard)
-  async requestConversion(@GetUser('id') userId: string, @Body() dto: ConvertCryptoDto) {
+  async requestConversion(
+    @GetUser('id') userId: string,
+    @Body() dto: ConvertCryptoDto,
+  ) {
     return this.cryptoService.requestConversion(userId, dto);
   }
 

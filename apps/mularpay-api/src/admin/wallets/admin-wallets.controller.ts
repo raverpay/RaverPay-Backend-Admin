@@ -9,6 +9,7 @@ import {
   Request,
   ParseBoolPipe,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -19,6 +20,7 @@ import { AdjustWalletDto } from '../dto';
 @Controller('admin/wallets')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+@Throttle({ default: { limit: 100, ttl: 60000 } }) // 100 requests per minute for admin endpoints
 export class AdminWalletsController {
   constructor(private readonly adminWalletsService: AdminWalletsService) {}
 
@@ -72,6 +74,7 @@ export class AdminWalletsController {
    * POST /admin/wallets/:userId/lock
    * Lock a wallet
    */
+  @Throttle({ default: { limit: 20, ttl: 3600000 } }) // 20 wallet locks per hour
   @Post(':userId/lock')
   async lockWallet(
     @Request() req,
@@ -85,6 +88,7 @@ export class AdminWalletsController {
    * POST /admin/wallets/:userId/unlock
    * Unlock a wallet
    */
+  @Throttle({ default: { limit: 20, ttl: 3600000 } }) // 20 wallet unlocks per hour
   @Post(':userId/unlock')
   async unlockWallet(
     @Request() req,
@@ -98,6 +102,7 @@ export class AdminWalletsController {
    * POST /admin/wallets/:userId/adjust
    * Adjust wallet balance
    */
+  @Throttle({ default: { limit: 10, ttl: 3600000 } }) // 10 balance adjustments per hour
   @Post(':userId/adjust')
   async adjustBalance(
     @Request() req,

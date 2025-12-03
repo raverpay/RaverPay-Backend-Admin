@@ -104,7 +104,11 @@ export class ExchangeRateService {
   /**
    * Get all exchange rates (for admin)
    */
-  async getAllRates(params?: { page?: number; limit?: number; includeInactive?: boolean }) {
+  async getAllRates(params?: {
+    page?: number;
+    limit?: number;
+    includeInactive?: boolean;
+  }) {
     const page = params?.page || 1;
     const limit = params?.limit || 20;
     const skip = (page - 1) * limit;

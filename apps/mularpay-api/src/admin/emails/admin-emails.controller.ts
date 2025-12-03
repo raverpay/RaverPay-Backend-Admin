@@ -50,7 +50,7 @@ export class AdminEmailsController {
       page: page ? parseInt(page, 10) : undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
       targetEmail,
-      targetRole: targetRole as UserRole | undefined,
+      targetRole: targetRole,
       isProcessed:
         isProcessed === 'true'
           ? true

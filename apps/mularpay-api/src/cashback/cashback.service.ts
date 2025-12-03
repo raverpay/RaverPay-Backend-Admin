@@ -5,7 +5,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { VTUServiceType, Prisma, CashbackTransactionType } from '@prisma/client';
+import {
+  VTUServiceType,
+  Prisma,
+  CashbackTransactionType,
+} from '@prisma/client';
 import {
   CashbackCalculation,
   CashbackWalletBalance,
@@ -513,38 +517,34 @@ export class CashbackService {
    * Get cashback analytics (for admin dashboard)
    */
   async getAnalytics() {
-    const [
-      totalEarned,
-      totalRedeemed,
-      activeUsers,
-      recentTransactions,
-    ] = await Promise.all([
-      // Total cashback earned
-      this.prisma.cashbackWallet.aggregate({
-        _sum: { totalEarned: true },
-      }),
+    const [totalEarned, totalRedeemed, activeUsers, recentTransactions] =
+      await Promise.all([
+        // Total cashback earned
+        this.prisma.cashbackWallet.aggregate({
+          _sum: { totalEarned: true },
+        }),
 
-      // Total cashback redeemed
-      this.prisma.cashbackWallet.aggregate({
-        _sum: { totalRedeemed: true },
-      }),
+        // Total cashback redeemed
+        this.prisma.cashbackWallet.aggregate({
+          _sum: { totalRedeemed: true },
+        }),
 
-      // Active users with cashback
-      this.prisma.cashbackWallet.count({
-        where: {
-          availableBalance: { gt: 0 },
-        },
-      }),
-
-      // Recent transactions
-      this.prisma.cashbackTransaction.count({
-        where: {
-          createdAt: {
-            gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
+        // Active users with cashback
+        this.prisma.cashbackWallet.count({
+          where: {
+            availableBalance: { gt: 0 },
           },
-        },
-      }),
-    ]);
+        }),
+
+        // Recent transactions
+        this.prisma.cashbackTransaction.count({
+          where: {
+            createdAt: {
+              gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
+            },
+          },
+        }),
+      ]);
 
     return {
       totalCashbackEarned: Number(totalEarned._sum.totalEarned || 0),

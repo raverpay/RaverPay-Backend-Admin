@@ -43,7 +43,9 @@ export class CryptoSendService {
     const { userId, tokenSymbol, toAddress, amount, pin, memo } = params;
 
     try {
-      this.logger.log(`User ${userId} sending ${amount} ${tokenSymbol} to ${toAddress}`);
+      this.logger.log(
+        `User ${userId} sending ${amount} ${tokenSymbol} to ${toAddress}`,
+      );
 
       // 1. Validate inputs
       await this.validateSendRequest(params);
@@ -67,7 +69,10 @@ export class CryptoSendService {
       }
 
       // 4. Get signing method
-      const signingMethod = await this.venlyUser.getSigningMethodHeader(userId, pin);
+      const signingMethod = await this.venlyUser.getSigningMethodHeader(
+        userId,
+        pin,
+      );
 
       // 5. Execute transaction via Venly (official API format)
       let venlyTransaction;
@@ -97,13 +102,18 @@ export class CryptoSendService {
         throw new BadRequestException(`Unsupported token: ${tokenSymbol}`);
       }
 
-      this.logger.log(`Venly transaction submitted: ${venlyTransaction.transactionHash}`);
+      this.logger.log(
+        `Venly transaction submitted: ${venlyTransaction.transactionHash}`,
+      );
       if (venlyTransaction.id) {
         this.logger.log(`Venly transaction ID: ${venlyTransaction.id}`);
       }
 
       // 6. Get token details
-      const tokenBalance = await this.cryptoBalance.getTokenBalance(wallet.id, tokenSymbol);
+      const tokenBalance = await this.cryptoBalance.getTokenBalance(
+        wallet.id,
+        tokenSymbol,
+      );
       const usdPrice = Number(tokenBalance?.usdPrice || 0);
       const usdValue = Number(amount) * usdPrice;
 
@@ -172,7 +182,10 @@ export class CryptoSendService {
   /**
    * Get transaction history
    */
-  async getTransactionHistory(userId: string, params?: { page?: number; limit?: number }) {
+  async getTransactionHistory(
+    userId: string,
+    params?: { page?: number; limit?: number },
+  ) {
     const page = params?.page || 1;
     const limit = params?.limit || 20;
     const skip = (page - 1) * limit;
@@ -242,7 +255,10 @@ export class CryptoSendService {
   /**
    * Update transaction status (called by webhook or cron)
    */
-  async updateTransactionStatus(transactionHash: string, status: CryptoTransactionStatus) {
+  async updateTransactionStatus(
+    transactionHash: string,
+    status: CryptoTransactionStatus,
+  ) {
     const transaction = await this.prisma.cryptoTransaction.findUnique({
       where: { transactionHash },
     });
@@ -256,11 +272,14 @@ export class CryptoSendService {
       where: { transactionHash },
       data: {
         status,
-        confirmedAt: status === CryptoTransactionStatus.COMPLETED ? new Date() : undefined,
+        confirmedAt:
+          status === CryptoTransactionStatus.COMPLETED ? new Date() : undefined,
         hasReachedFinality: status === CryptoTransactionStatus.COMPLETED,
       },
     });
 
-    this.logger.log(`Transaction ${transactionHash} status updated to ${status}`);
+    this.logger.log(
+      `Transaction ${transactionHash} status updated to ${status}`,
+    );
   }
 }

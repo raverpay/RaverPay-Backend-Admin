@@ -67,7 +67,10 @@ export class SupportService {
         where: {
           userId,
           status: {
-            notIn: [ConversationStatus.ENDED, ConversationStatus.AWAITING_RATING],
+            notIn: [
+              ConversationStatus.ENDED,
+              ConversationStatus.AWAITING_RATING,
+            ],
           },
         },
       });
@@ -877,7 +880,9 @@ export class SupportService {
       });
     }
 
-    this.logger.log(`Conversation ${conversationId} ended by admin - awaiting rating`);
+    this.logger.log(
+      `Conversation ${conversationId} ended by admin - awaiting rating`,
+    );
 
     return updatedConversation;
   }
@@ -1413,7 +1418,8 @@ export class SupportService {
 
       // Build email headers for threading
       const headers: Record<string, string> = {
-        'In-Reply-To': inboundEmail.messageId || `<${inboundEmail.emailId}@raverpay.com>`,
+        'In-Reply-To':
+          inboundEmail.messageId || `<${inboundEmail.emailId}@raverpay.com>`,
       };
 
       // Get all previous message IDs from the conversation for References header

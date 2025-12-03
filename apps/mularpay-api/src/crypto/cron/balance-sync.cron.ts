@@ -63,7 +63,10 @@ export class BalanceSyncCron {
               await this.cryptoBalance.syncBalances(wallet.user.id);
               successCount++;
             } catch (error) {
-              this.logger.error(`Failed to sync balance for user ${wallet.user.id}`, error);
+              this.logger.error(
+                `Failed to sync balance for user ${wallet.user.id}`,
+                error,
+              );
               failureCount++;
             }
           }),

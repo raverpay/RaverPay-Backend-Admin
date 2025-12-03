@@ -9,6 +9,7 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import {
   RegisterDto,
@@ -41,6 +42,7 @@ export class AuthController {
    * @returns User object and auth tokens
    */
   @Public()
+  @Throttle({ default: { limit: 3, ttl: 3600000 } }) // 3 registrations per hour per IP
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() dto: RegisterDto) {
@@ -55,6 +57,7 @@ export class AuthController {
    * @returns User object and auth tokens, or device verification required
    */
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 900000 } }) // 5 login attempts per 15 minutes per IP
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto, @Req() req: Request) {
@@ -111,6 +114,7 @@ export class AuthController {
    * @returns Success message
    */
   @Public()
+  @Throttle({ default: { limit: 3, ttl: 3600000 } }) // 3 password reset requests per hour per IP
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() dto: ForgotPasswordDto) {

@@ -357,7 +357,8 @@ export class VirtualAccountsService {
             eventType: 'virtual_account_creation_failed',
             category: 'ACCOUNT',
             title: 'Virtual Account Creation Failed',
-            message: 'We encountered an issue creating your virtual account. Our team has been notified and will create it manually. You will be notified when your account is ready.',
+            message:
+              'We encountered an issue creating your virtual account. Our team has been notified and will create it manually. You will be notified when your account is ready.',
             channels: ['EMAIL', 'IN_APP', 'PUSH'],
             data: {
               failureReason: errorMessage,

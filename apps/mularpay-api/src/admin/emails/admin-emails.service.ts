@@ -1,4 +1,10 @@
-import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserRole } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
@@ -113,13 +119,20 @@ export class AdminEmailsService {
         where.targetRole = filters.targetRole;
       } else {
         // For other roles, ensure they can only filter within their allowed roles
-        if (userRole === UserRole.SUPPORT && filters.targetRole !== UserRole.SUPPORT) {
+        if (
+          userRole === UserRole.SUPPORT &&
+          filters.targetRole !== UserRole.SUPPORT
+        ) {
           throw new ForbiddenException('You can only view support emails');
         }
-        if (userRole === UserRole.ADMIN && 
-            filters.targetRole !== UserRole.SUPPORT && 
-            filters.targetRole !== UserRole.ADMIN) {
-          throw new ForbiddenException('You can only view support and admin emails');
+        if (
+          userRole === UserRole.ADMIN &&
+          filters.targetRole !== UserRole.SUPPORT &&
+          filters.targetRole !== UserRole.ADMIN
+        ) {
+          throw new ForbiddenException(
+            'You can only view support and admin emails',
+          );
         }
         // Apply targetRole filter (ticket assignment filter already applied above)
         where.targetRole = filters.targetRole;
@@ -252,7 +265,10 @@ export class AdminEmailsService {
     if (!email.ticket || !email.ticket.assignedAgentId) {
       // Email not linked to a ticket or ticket not assigned
       // Check if user can see unassigned tickets of their role
-      if (userRole === UserRole.SUPPORT && email.targetRole !== UserRole.SUPPORT) {
+      if (
+        userRole === UserRole.SUPPORT &&
+        email.targetRole !== UserRole.SUPPORT
+      ) {
         throw new ForbiddenException('You do not have access to this email');
       }
       if (
@@ -274,7 +290,10 @@ export class AdminEmailsService {
     }
 
     // Additional role check for security
-    if (userRole === UserRole.SUPPORT && email.targetRole !== UserRole.SUPPORT) {
+    if (
+      userRole === UserRole.SUPPORT &&
+      email.targetRole !== UserRole.SUPPORT
+    ) {
       throw new ForbiddenException('You do not have access to this email');
     }
 
@@ -501,7 +520,9 @@ export class AdminEmailsService {
 
     // Fetch from Resend API
     try {
-      const emailContent = await this.resend.emails.receiving.get(email.emailId);
+      const emailContent = await this.resend.emails.receiving.get(
+        email.emailId,
+      );
 
       if (emailContent.error) {
         throw new BadRequestException(
@@ -540,4 +561,3 @@ export class AdminEmailsService {
     }
   }
 }
-

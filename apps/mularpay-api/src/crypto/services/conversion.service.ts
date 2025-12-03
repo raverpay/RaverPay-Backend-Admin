@@ -2,7 +2,12 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CryptoWalletService } from './crypto-wallet.service';
 import { CryptoBalanceService } from './crypto-balance.service';
-import { ConversionStatus, WalletType, TransactionType, TransactionStatus } from '@prisma/client';
+import {
+  ConversionStatus,
+  WalletType,
+  TransactionType,
+  TransactionStatus,
+} from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
 interface ConvertCryptoParams {
@@ -29,7 +34,11 @@ export class ConversionService {
   /**
    * Get conversion quote (preview before confirming)
    */
-  async getConversionQuote(userId: string, tokenSymbol: string, amount: string) {
+  async getConversionQuote(
+    userId: string,
+    tokenSymbol: string,
+    amount: string,
+  ) {
     try {
       const amountNum = Number(amount);
 
@@ -39,7 +48,9 @@ export class ConversionService {
 
       // Check if supported
       if (!['USDT', 'USDC'].includes(tokenSymbol)) {
-        throw new BadRequestException('Only USDT and USDC can be converted to Naira');
+        throw new BadRequestException(
+          'Only USDT and USDC can be converted to Naira',
+        );
       }
 
       // Check balance
@@ -89,7 +100,9 @@ export class ConversionService {
     const { userId, tokenSymbol, amount, pin } = params;
 
     try {
-      this.logger.log(`User ${userId} converting ${amount} ${tokenSymbol} to Naira`);
+      this.logger.log(
+        `User ${userId} converting ${amount} ${tokenSymbol} to Naira`,
+      );
 
       // Get quote
       const quote = await this.getConversionQuote(userId, tokenSymbol, amount);
@@ -132,7 +145,11 @@ export class ConversionService {
       });
 
       // Process conversion in transaction
-      await this.processConversion(conversion.id, cryptoWallet.id, nairaWallet.id);
+      await this.processConversion(
+        conversion.id,
+        cryptoWallet.id,
+        nairaWallet.id,
+      );
 
       this.logger.log(`Conversion completed: ${conversion.reference}`);
 
@@ -149,7 +166,11 @@ export class ConversionService {
   /**
    * Process conversion (internal)
    */
-  private async processConversion(conversionId: string, cryptoWalletId: string, nairaWalletId: string) {
+  private async processConversion(
+    conversionId: string,
+    cryptoWalletId: string,
+    nairaWalletId: string,
+  ) {
     const conversion = await this.prisma.cryptoConversion.findUnique({
       where: { id: conversionId },
     });
@@ -172,7 +193,8 @@ export class ConversionService {
           throw new Error('Token balance not found');
         }
 
-        const newCryptoBalance = Number(cryptoBalance.balance) - Number(conversion.cryptoAmount);
+        const newCryptoBalance =
+          Number(cryptoBalance.balance) - Number(conversion.cryptoAmount);
 
         if (newCryptoBalance < 0) {
           throw new BadRequestException('Insufficient balance');
@@ -194,7 +216,8 @@ export class ConversionService {
           throw new Error('Naira wallet not found');
         }
 
-        const newNairaBalance = Number(nairaWallet.balance) + Number(conversion.netNaira);
+        const newNairaBalance =
+          Number(nairaWallet.balance) + Number(conversion.netNaira);
 
         await tx.wallet.update({
           where: { id: nairaWalletId },
@@ -233,7 +256,9 @@ export class ConversionService {
         });
       });
 
-      this.logger.log(`Conversion processed successfully: ${conversion.reference}`);
+      this.logger.log(
+        `Conversion processed successfully: ${conversion.reference}`,
+      );
     } catch (error) {
       // Mark conversion as failed
       await this.prisma.cryptoConversion.update({
@@ -251,7 +276,10 @@ export class ConversionService {
   /**
    * Get conversion history
    */
-  async getConversionHistory(userId: string, params?: { page?: number; limit?: number }) {
+  async getConversionHistory(
+    userId: string,
+    params?: { page?: number; limit?: number },
+  ) {
     const page = params?.page || 1;
     const limit = params?.limit || 20;
     const skip = (page - 1) * limit;

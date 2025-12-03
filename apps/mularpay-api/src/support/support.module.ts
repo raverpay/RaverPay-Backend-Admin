@@ -46,6 +46,12 @@ import { SupportGateway } from './support.gateway';
     SupportGateway,
     SupportNotificationService,
   ],
-  exports: [SupportService, HelpService, BotService, SupportGateway, SupportNotificationService],
+  exports: [
+    SupportService,
+    HelpService,
+    BotService,
+    SupportGateway,
+    SupportNotificationService,
+  ],
 })
 export class SupportModule {}

@@ -135,6 +135,9 @@ importers:
 
   apps/mularpay-api:
     dependencies:
+      '@nest-lab/throttler-storage-redis':
+        specifier: ^1.1.0
+        version: 1.1.0(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(@nestjs/throttler@6.5.0)(ioredis@5.8.2)(reflect-metadata@0.2.2)
       '@nestjs/cache-manager':
         specifier: ^3.0.1
         version: 3.0.1(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(cache-manager@7.2.4)(keyv@5.5.4)(rxjs@7.8.2)
@@ -162,6 +165,9 @@ importers:
       '@nestjs/schedule':
         specifier: ^6.0.1
         version: 6.0.1(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)
+      '@nestjs/throttler':
+        specifier: ^6.5.0
+        version: 6.5.0(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(reflect-metadata@0.2.2)
       '@nestjs/websockets':
         specifier: ^11.1.9
         version: 11.1.9(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(@nestjs/platform-socket.io@11.1.9)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -3272,6 +3278,23 @@ packages:
     dev: true
     optional: true
 
+  /@nest-lab/throttler-storage-redis@1.1.0(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(@nestjs/throttler@6.5.0)(ioredis@5.8.2)(reflect-metadata@0.2.2):
+    resolution: {integrity: sha512-7DW8MuqoB+ubu8cWby9Vw56eAFqsHFfowEflHbmmAF2sNByRdzcR4ddcyoYLwL3zG53nLmvzUa4EXoHKB4RoaQ==}
+    peerDependencies:
+      '@nestjs/common': ^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0
+      '@nestjs/core': ^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0
+      '@nestjs/throttler': '>=6.0.0'
+      ioredis: '>=5.0.0'
+      reflect-metadata: ^0.2.1
+    dependencies:
+      '@nestjs/common': 11.1.8(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core': 11.1.8(@nestjs/common@11.1.8)(@nestjs/platform-express@11.1.8)(@nestjs/websockets@11.1.9)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/throttler': 6.5.0(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(reflect-metadata@0.2.2)
+      ioredis: 5.8.2
+      reflect-metadata: 0.2.2
+      tslib: 2.8.1
+    dev: false
+
   /@nestjs/cache-manager@3.0.1(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(cache-manager@7.2.4)(keyv@5.5.4)(rxjs@7.8.2):
     resolution: {integrity: sha512-4UxTnR0fsmKL5YDalU2eLFVnL+OBebWUpX+hEduKGncrVKH4PPNoiRn1kXyOCjmzb0UvWgqubpssNouc8e0MCw==}
     peerDependencies:
@@ -3508,6 +3531,18 @@ packages:
       '@nestjs/platform-express': 11.1.8(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)
       tslib: 2.8.1
     dev: true
+
+  /@nestjs/throttler@6.5.0(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(reflect-metadata@0.2.2):
+    resolution: {integrity: sha512-9j0ZRfH0QE1qyrj9JjIRDz5gQLPqq9yVC2nHsrosDVAfI5HHw08/aUAWx9DZLSdQf4HDkmhTTEGLrRFHENvchQ==}
+    peerDependencies:
+      '@nestjs/common': ^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0
+      '@nestjs/core': ^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0
+      reflect-metadata: ^0.1.13 || ^0.2.0
+    dependencies:
+      '@nestjs/common': 11.1.8(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core': 11.1.8(@nestjs/common@11.1.8)(@nestjs/platform-express@11.1.8)(@nestjs/websockets@11.1.9)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      reflect-metadata: 0.2.2
+    dev: false
 
   /@nestjs/websockets@11.1.9(@nestjs/common@11.1.8)(@nestjs/core@11.1.8)(@nestjs/platform-socket.io@11.1.9)(reflect-metadata@0.2.2)(rxjs@7.8.2):
     resolution: {integrity: sha512-kkkdeTVcc3X7ZzvVqUVpOAJoh49kTRUjWNUXo5jmG+27OvZoHfs/vuSiqxidrrbIgydSqN15HUsf1wZwQUrxCQ==}

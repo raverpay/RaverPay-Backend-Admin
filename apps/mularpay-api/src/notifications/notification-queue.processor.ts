@@ -176,7 +176,16 @@ export class NotificationQueueProcessor {
    */
   private async sendNotification(
     item: { variables: any },
-    user: { id: string; email: string; phone: string; firstName: string; lastName: string; expoPushToken: string | null } | undefined,
+    user:
+      | {
+          id: string;
+          email: string;
+          phone: string;
+          firstName: string;
+          lastName: string;
+          expoPushToken: string | null;
+        }
+      | undefined,
     channel: NotificationChannel,
   ): Promise<boolean> {
     if (!user) {

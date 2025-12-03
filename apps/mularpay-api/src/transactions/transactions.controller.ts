@@ -7,6 +7,7 @@ import {
   UseGuards,
   Query,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { TransactionsService } from './transactions.service';
@@ -26,6 +27,7 @@ export class TransactionsController {
    * Initialize card payment
    * POST /api/transactions/fund/card
    */
+  @Throttle({ default: { limit: 10, ttl: 3600000 } }) // 10 card funding attempts per hour per user
   @Post('fund/card')
   @UseGuards(JwtAuthGuard)
   async fundViaCard(@GetUser('id') userId: string, @Body() dto: FundWalletDto) {
@@ -99,6 +101,7 @@ export class TransactionsController {
    * Withdraw funds
    * POST /api/transactions/withdraw
    */
+  @Throttle({ default: { limit: 5, ttl: 3600000 } }) // 5 withdrawals per hour per user
   @Post('withdraw')
   @UseGuards(JwtAuthGuard)
   async withdraw(@GetUser('id') userId: string, @Body() dto: WithdrawFundsDto) {
@@ -154,6 +157,7 @@ export class TransactionsController {
    * Send money to another user by tag
    * POST /api/transactions/send
    */
+  @Throttle({ default: { limit: 20, ttl: 3600000 } }) // 20 P2P transfers per hour per user
   @Post('send')
   @UseGuards(JwtAuthGuard)
   async sendToUser(@GetUser('id') userId: string, @Body() dto: SendToUserDto) {
