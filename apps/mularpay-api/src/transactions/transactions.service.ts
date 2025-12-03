@@ -524,6 +524,60 @@ export class TransactionsService {
   }
 
   /**
+   * Cancel pending transaction (when user closes webview or cancels payment)
+   */
+  async cancelPendingTransaction(
+    userId: string,
+    reference: string,
+  ): Promise<{ message: string }> {
+    console.log(
+      `🔍 [cancelPendingTransaction] START - User: ${userId}, Reference: ${reference}`,
+    );
+
+    const transaction = await this.prisma.transaction.findUnique({
+      where: { reference },
+    });
+
+    if (!transaction) {
+      throw new NotFoundException('Transaction not found');
+    }
+
+    if (transaction.userId !== userId) {
+      throw new BadRequestException('Unauthorized transaction access');
+    }
+
+    if (transaction.status !== TransactionStatus.PENDING) {
+      console.log(
+        `⚠️ [cancelPendingTransaction] Transaction already ${transaction.status}`,
+      );
+      return {
+        message: `Transaction is already ${transaction.status.toLowerCase()}`,
+      };
+    }
+
+    // Update transaction to CANCELLED
+    await this.prisma.transaction.update({
+      where: { reference },
+      data: {
+        status: TransactionStatus.CANCELLED,
+        failedAt: new Date(),
+        metadata: {
+          ...(transaction.metadata as object),
+          cancelledBy: 'user',
+          cancelledAt: new Date().toISOString(),
+          reason: 'User closed payment page',
+        },
+      },
+    });
+
+    console.log(
+      `✅ [cancelPendingTransaction] Transaction cancelled: ${reference}`,
+    );
+
+    return { message: 'Transaction cancelled successfully' };
+  }
+
+  /**
    * Get user's virtual account
    */
   async getVirtualAccount(userId: string): Promise<VirtualAccountResponse> {

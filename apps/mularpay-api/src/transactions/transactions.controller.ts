@@ -50,6 +50,19 @@ export class TransactionsController {
   }
 
   /**
+   * Cancel pending transaction
+   * POST /api/transactions/cancel/:reference
+   */
+  @Post('cancel/:reference')
+  @UseGuards(JwtAuthGuard)
+  async cancelTransaction(
+    @GetUser('id') userId: string,
+    @Param('reference') reference: string,
+  ) {
+    return this.transactionsService.cancelPendingTransaction(userId, reference);
+  }
+
+  /**
    * Get virtual account
    * GET /api/transactions/virtual-account
    */
