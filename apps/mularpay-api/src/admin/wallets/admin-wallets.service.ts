@@ -3,10 +3,14 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma, TransactionStatus } from '@prisma/client';
 import { AdjustWalletDto } from '../dto';
 import { Decimal } from '@prisma/client/runtime/library';
+import { NotificationDispatcherService } from '../../notifications/notification-dispatcher.service';
 
 @Injectable()
 export class AdminWalletsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationDispatcher: NotificationDispatcherService,
+  ) {}
 
   /**
    * Get wallets with filters
@@ -258,6 +262,152 @@ export class AdminWalletsService {
     // TODO: Send notification to user
 
     return result;
+  }
+
+  /**
+   * Lock a wallet
+   */
+  async lockWallet(adminUserId: string, userId: string, reason: string) {
+    const wallet = await this.prisma.wallet.findFirst({
+      where: {
+        userId,
+        type: 'NAIRA',
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    if (!wallet) {
+      throw new NotFoundException('Wallet not found');
+    }
+
+    const updatedWallet = await this.prisma.wallet.update({
+      where: {
+        userId_type: {
+          userId,
+          type: 'NAIRA',
+        },
+      },
+      data: {
+        isLocked: true,
+        lockedReason: reason,
+      },
+    });
+
+    // Create audit log
+    await this.prisma.auditLog.create({
+      data: {
+        userId: adminUserId,
+        action: 'LOCK_WALLET',
+        resource: 'Wallet',
+        resourceId: wallet.id,
+        metadata: {
+          userId,
+          reason,
+          lockedBy: adminUserId,
+        },
+      },
+    });
+
+    // Send notification to user about wallet lock
+    await this.notificationDispatcher.sendNotification({
+      userId,
+      eventType: 'wallet_locked_admin',
+      category: 'SECURITY',
+      channels: ['EMAIL', 'PUSH', 'IN_APP'],
+      title: 'Wallet Locked',
+      message: `Your wallet has been locked by an administrator. Reason: ${reason}`,
+      data: {
+        reason,
+        walletId: wallet.id,
+      },
+    });
+
+    return updatedWallet;
+  }
+
+  /**
+   * Unlock a wallet
+   */
+  async unlockWallet(adminUserId: string, userId: string, reason: string) {
+    const wallet = await this.prisma.wallet.findFirst({
+      where: {
+        userId,
+        type: 'NAIRA',
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    if (!wallet) {
+      throw new NotFoundException('Wallet not found');
+    }
+
+    if (!wallet.isLocked) {
+      throw new Error('Wallet is not locked');
+    }
+
+    const updatedWallet = await this.prisma.wallet.update({
+      where: {
+        userId_type: {
+          userId,
+          type: 'NAIRA',
+        },
+      },
+      data: {
+        isLocked: false,
+        lockedReason: null,
+      },
+    });
+
+    // Create audit log
+    await this.prisma.auditLog.create({
+      data: {
+        userId: adminUserId,
+        action: 'UNLOCK_WALLET',
+        resource: 'Wallet',
+        resourceId: wallet.id,
+        metadata: {
+          userId,
+          reason,
+          previousLockReason: wallet.lockedReason,
+          unlockedBy: adminUserId,
+        },
+      },
+    });
+
+    // Send notification to user about wallet unlock
+    await this.notificationDispatcher.sendNotification({
+      userId,
+      eventType: 'wallet_unlocked_admin',
+      category: 'SECURITY',
+      channels: ['EMAIL', 'PUSH', 'IN_APP'],
+      title: 'Wallet Unlocked',
+      message: `Your wallet has been unlocked by an administrator. ${reason}`,
+      data: {
+        reason,
+        walletId: wallet.id,
+        previousLockReason: wallet.lockedReason,
+      },
+    });
+
+    return updatedWallet;
   }
 
   /**

@@ -28,28 +28,30 @@
 
 ### ✅ Phase 4: Deposit Flow with Wallet Lock
 
-- [x] Updated `processVirtualAccountCredit()` to check deposit limits
+- [x] Updated `processVirtualAccountCredit()` to check deposit limits (DVA/Bank Transfer)
+- [x] Updated `verifyPayment()` to check deposit limits (Card Deposits)
 - [x] Implements wallet lock when limits exceeded
 - [x] Sends multi-channel notifications (Email, Push, SMS)
 - [x] Creates audit log for automated wallet locks
-- [x] Increments daily deposit spending
+- [x] Increments daily deposit spending for both payment methods
 
 ---
 
 ## 🎯 How Option 2 Works
 
-### **Deposit Flow:**
+### **Deposit Flow (Works for BOTH Card & Bank Transfer):**
 
 ```
-1. User transfers ₦100,000 to virtual account
-2. Paystack webhook fires: charge.success
+1. User deposits ₦100,000 (via Card or DVA Bank Transfer)
+2. Backend processes payment (Paystack card or webhook)
 3. Backend checks daily deposit limit (TIER_0: ₦50,000)
 4. Limit exceeded detected: ₦100,000 > ₦50,000
 5. ✅ DEPOSIT ACCEPTED - Money credited to wallet
 6. 🔒 WALLET LOCKED automatically
 7. 📧 Notifications sent via Email + Push + SMS
 8. 📝 Audit log created
-9. User sees locked wallet with upgrade prompt in app
+9. 📊 Daily deposit spending incremented
+10. User sees locked wallet with upgrade prompt in app
 ```
 
 ### **Key Features:**

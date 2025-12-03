@@ -510,11 +510,9 @@ export class NotificationDispatcherService {
     event: NotificationEvent,
   ): Promise<boolean> {
     // Get user's KYC tier and daily limit from event data
-    const kycTier = (event.data?.kycTier as
-      | 'TIER_0'
-      | 'TIER_1'
-      | 'TIER_2'
-      | 'TIER_3') || 'TIER_0';
+    const kycTier =
+      (event.data?.kycTier as 'TIER_0' | 'TIER_1' | 'TIER_2' | 'TIER_3') ||
+      'TIER_0';
 
     // Calculate daily limit based on tier
     const tierLimits: Record<string, number> = {

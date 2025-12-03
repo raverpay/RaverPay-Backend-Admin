@@ -324,6 +324,11 @@ export class EmailService {
         'scheduledFor',
         'transactionId', // Internal ID, don't show to users
         'bankCode', // Technical field, bankName is more user-friendly
+        'kycTier', // Internal field, not user-friendly
+        'upgradeUrl', // Will be shown as button, not text
+        'source', // Internal tracking
+        'senderTag', // Already in message
+        'depositAmount', // Already mentioned in message
       ];
 
       const filteredData = data
@@ -616,9 +621,7 @@ export class EmailService {
     }
 
     if (!this.resend) {
-      this.logger.warn(
-        `📧 [MOCK] Would send wallet locked email to ${email}`,
-      );
+      this.logger.warn(`📧 [MOCK] Would send wallet locked email to ${email}`);
       return true;
     }
 

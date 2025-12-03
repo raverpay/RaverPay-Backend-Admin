@@ -69,6 +69,32 @@ export class AdminWalletsController {
   }
 
   /**
+   * POST /admin/wallets/:userId/lock
+   * Lock a wallet
+   */
+  @Post(':userId/lock')
+  async lockWallet(
+    @Request() req,
+    @Param('userId') userId: string,
+    @Body('reason') reason: string,
+  ) {
+    return this.adminWalletsService.lockWallet(req.user.id, userId, reason);
+  }
+
+  /**
+   * POST /admin/wallets/:userId/unlock
+   * Unlock a wallet
+   */
+  @Post(':userId/unlock')
+  async unlockWallet(
+    @Request() req,
+    @Param('userId') userId: string,
+    @Body('reason') reason: string,
+  ) {
+    return this.adminWalletsService.unlockWallet(req.user.id, userId, reason);
+  }
+
+  /**
    * POST /admin/wallets/:userId/adjust
    * Adjust wallet balance
    */

@@ -160,8 +160,8 @@ export default function WalletDetailPage({ params }: { params: Promise<{ userId:
   }
 
   const wallet = walletData;
-  const canLock = !wallet.isLocked;
-  const canUnlock = wallet.isLocked;
+  const canLock = !wallet.wallet.isLocked;
+  const canUnlock = wallet.wallet.isLocked;
 
   return (
     <div className="space-y-6">

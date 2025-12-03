@@ -312,7 +312,19 @@ export class TransactionsService {
     // Get transaction
     const transaction = await this.prisma.transaction.findUnique({
       where: { reference },
-      include: { user: { include: { wallets: { where: { type: 'NAIRA' } } } } },
+      include: {
+        user: {
+          select: {
+            id: true,
+            kycTier: true,
+            firstName: true,
+            email: true,
+            wallets: {
+              where: { type: 'NAIRA' },
+            },
+          },
+        },
+      },
     });
 
     if (!transaction) {
@@ -370,15 +382,48 @@ export class TransactionsService {
       throw new NotFoundException('Wallet not found');
     }
 
+    // 🚨 NEW: Check deposit limits before processing (Option 2: Allow Deposit, Lock Wallet)
+    const depositAmount = Number(transaction.amount);
+    let shouldLockWallet = false;
+    let lockReason = '';
+
+    try {
+      // Check both per-transaction and daily deposit limits
+      const limitInfo = await this.limitsService.checkDailyLimit(
+        userId,
+        depositAmount,
+        TransactionLimitType.DEPOSIT,
+      );
+
+      if (!limitInfo.canProceed) {
+        shouldLockWallet = true;
+        lockReason = `Deposit of ₦${depositAmount.toLocaleString()} exceeds your ${transaction.user.kycTier} daily limit of ₦${limitInfo.limit.toLocaleString()}. Please upgrade your KYC tier to unlock your wallet.`;
+
+        console.log(
+          `⚠️ [verifyPayment] LIMIT EXCEEDED - Will lock wallet after deposit. User: ${userId}, Amount: ₦${depositAmount}, Limit: ₦${limitInfo.limit}, Spent: ₦${limitInfo.spent}`,
+        );
+      }
+    } catch (error) {
+      console.error(
+        `❌ [verifyPayment] Error checking deposit limits: ${error.message}`,
+      );
+      // Continue with deposit even if limit check fails (fail-open for deposits)
+    }
+
     const newBalance = wallet.balance.plus(transaction.amount);
 
     await this.prisma.$transaction([
-      // Update wallet balance
+      // Update wallet balance (and lock if needed)
       this.prisma.wallet.update({
         where: { id: wallet.id },
         data: {
           balance: newBalance,
           ledgerBalance: newBalance,
+          // Lock wallet if limit exceeded
+          ...(shouldLockWallet && {
+            isLocked: true,
+            lockedReason: lockReason,
+          }),
         },
       }),
       // Update transaction
@@ -397,10 +442,70 @@ export class TransactionsService {
               channel: payment.channel,
               paid_at: payment.paid_at,
             },
+            limitExceeded: shouldLockWallet,
+            lockedWallet: shouldLockWallet,
           },
         },
       }),
     ]);
+
+    // Increment daily deposit spending
+    await this.limitsService.incrementDailySpend(
+      userId,
+      depositAmount,
+      TransactionLimitType.DEPOSIT,
+    );
+
+    console.log(
+      `✅ [verifyPayment] SUCCESS - Wallet credited with ₦${depositAmount}${shouldLockWallet ? ' - WALLET LOCKED' : ''}`,
+    );
+
+    // Send notifications if wallet was locked
+    if (shouldLockWallet) {
+      try {
+        await this.notificationDispatcher.sendNotification({
+          userId,
+          eventType: 'wallet_locked_deposit_limit',
+          category: 'SECURITY',
+          channels: ['EMAIL', 'PUSH', 'SMS'],
+          title: 'Wallet Locked - Deposit Limit Exceeded',
+          message: lockReason,
+          data: {
+            depositAmount,
+            kycTier: transaction.user.kycTier,
+            upgradeUrl: '/kyc/upgrade',
+          },
+        });
+
+        console.log(
+          `📧 [verifyPayment] Wallet lock notification sent to user: ${userId}`,
+        );
+      } catch (notifError) {
+        console.error(
+          `❌ [verifyPayment] Failed to send wallet lock notification: ${notifError.message}`,
+        );
+        // Don't fail the deposit if notification fails
+      }
+
+      // Create audit log for wallet lock
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          action: 'WALLET_LOCKED',
+          resource: 'WALLET',
+          resourceId: wallet.id,
+          ipAddress: '0.0.0.0',
+          userAgent: 'SYSTEM',
+          metadata: {
+            reason: lockReason,
+            depositAmount,
+            reference: transaction.reference,
+            automatedLock: true,
+            paymentMethod: 'card',
+          },
+        },
+      });
+    }
 
     // Invalidate wallet and transaction caches
     await this.walletService.invalidateWalletCache(userId);
@@ -1224,6 +1329,7 @@ export class TransactionsService {
         lastName: true,
         tag: true,
         status: true,
+        kycTier: true, // 🚨 ADDED: Need this for deposit limit checking
       },
     });
 
@@ -1277,6 +1383,10 @@ export class TransactionsService {
       throw new NotFoundException('Recipient wallet not found');
     }
 
+    // Note: We do NOT prevent transfers to locked wallets
+    // Money is always accepted, receiver just can't withdraw until they unlock
+    // This is consistent with DVA deposit behavior
+
     // 7. Calculate fee (free for P2P transfers)
     const fee = 0;
     const totalDebit = amount + fee;
@@ -1288,7 +1398,7 @@ export class TransactionsService {
       );
     }
 
-    // 9. Check daily limit
+    // 9. Check sender's daily P2P transfer limit
     const limitCheck = await this.limitsService.checkDailyLimit(
       senderId,
       amount,
@@ -1299,6 +1409,32 @@ export class TransactionsService {
       throw new BadRequestException(
         `Daily transfer limit exceeded. Limit: ₦${limitCheck.limit.toLocaleString()}, Spent: ₦${limitCheck.spent.toLocaleString()}, Remaining: ₦${limitCheck.remaining.toLocaleString()}`,
       );
+    }
+
+    // 🚨 NEW: Check receiver's daily DEPOSIT limit (P2P is a deposit for receiver)
+    let shouldLockReceiverWallet = false;
+    let receiverLockReason = '';
+
+    try {
+      const receiverLimitCheck = await this.limitsService.checkDailyLimit(
+        receiver.id,
+        amount,
+        TransactionLimitType.DEPOSIT,
+      );
+
+      if (!receiverLimitCheck.canProceed) {
+        shouldLockReceiverWallet = true;
+        receiverLockReason = `Received ₦${amount.toLocaleString()} from @${sender.tag || sender.firstName} which exceeds your ${receiver.kycTier} daily deposit limit of ₦${receiverLimitCheck.limit.toLocaleString()}. Please upgrade your KYC tier to unlock your wallet.`;
+
+        this.logger.warn(
+          `[P2P] Receiver @${receiver.tag} will exceed deposit limit. Amount: ₦${amount}, Limit: ₦${receiverLimitCheck.limit}, Spent: ₦${receiverLimitCheck.spent}`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `[P2P] Error checking receiver deposit limits: ${error.message}`,
+      );
+      // Continue with transfer even if limit check fails (fail-open)
     }
 
     // 10. Generate reference
@@ -1316,13 +1452,18 @@ export class TransactionsService {
         },
       });
 
-      // Credit receiver
+      // Credit receiver (and lock if deposit limit exceeded)
       const newReceiverBalance = receiverWallet.balance.plus(amount);
       await tx.wallet.update({
         where: { id: receiverWallet.id },
         data: {
           balance: newReceiverBalance,
           ledgerBalance: newReceiverBalance,
+          // Lock receiver's wallet if deposit limit exceeded
+          ...(shouldLockReceiverWallet && {
+            isLocked: true,
+            lockedReason: receiverLockReason,
+          }),
         },
       });
 
@@ -1363,13 +1504,15 @@ export class TransactionsService {
           balanceBefore: receiverWallet.balance,
           balanceAfter: newReceiverBalance,
           currency: 'NGN',
-          description: `Received ₦${amount.toLocaleString()} from @${sender.tag || sender.firstName}`,
+          description: `Received ₦${amount.toLocaleString()} from @${sender.tag || sender.firstName}${shouldLockReceiverWallet ? ' (Wallet locked - limit exceeded)' : ''}`,
           metadata: {
             senderTag: sender.tag,
             senderId: sender.id,
             senderName: `${sender.firstName} ${sender.lastName}`,
             message,
             transferType: 'p2p',
+            limitExceeded: shouldLockReceiverWallet,
+            lockedWallet: shouldLockReceiverWallet,
           },
         },
       });
@@ -1393,10 +1536,18 @@ export class TransactionsService {
     });
 
     // 12. Update daily limits (async, non-blocking)
+    // Increment sender's P2P transfer spending
     this.limitsService
       .incrementDailySpend(senderId, amount, TransactionLimitType.P2P_TRANSFER)
       .catch((error) =>
         this.logger.error('Failed to increment P2P daily limit', error),
+      );
+
+    // 🚨 NEW: Increment receiver's DEPOSIT spending (P2P is a deposit for receiver)
+    this.limitsService
+      .incrementDailySpend(receiver.id, amount, TransactionLimitType.DEPOSIT)
+      .catch((error) =>
+        this.logger.error('Failed to increment receiver deposit limit', error),
       );
 
     // 13. Send notifications
@@ -1404,8 +1555,60 @@ export class TransactionsService {
       (error) => this.logger.error('Failed to send P2P notifications', error),
     );
 
+    // 🚨 NEW: Send wallet lock notification to receiver if limit exceeded
+    if (shouldLockReceiverWallet) {
+      try {
+        await this.notificationDispatcher.sendNotification({
+          userId: receiver.id,
+          eventType: 'wallet_locked_deposit_limit',
+          category: 'SECURITY',
+          channels: ['EMAIL', 'PUSH', 'SMS'],
+          title: 'Wallet Locked - Deposit Limit Exceeded',
+          message: receiverLockReason,
+          data: {
+            depositAmount: amount,
+            kycTier: receiver.kycTier,
+            // Don't include these in email data - they're internal
+            // source: 'p2p_transfer',
+            // senderTag: sender.tag,
+            // upgradeUrl: '/kyc/upgrade',
+          },
+        });
+
+        // Create audit log for wallet lock
+        await this.prisma.auditLog.create({
+          data: {
+            userId: receiver.id,
+            action: 'WALLET_LOCKED',
+            resource: 'WALLET',
+            resourceId: receiverWallet.id,
+            ipAddress: '0.0.0.0',
+            userAgent: 'SYSTEM',
+            metadata: {
+              reason: receiverLockReason,
+              depositAmount: amount,
+              reference: result.p2pTransfer.reference,
+              automatedLock: true,
+              paymentMethod: 'p2p_transfer',
+              senderId: sender.id,
+              senderTag: sender.tag,
+            },
+          },
+        });
+
+        this.logger.log(
+          `[P2P] Receiver @${receiver.tag} wallet locked due to deposit limit exceeded`,
+        );
+      } catch (notifError) {
+        this.logger.error(
+          `[P2P] Failed to send wallet lock notification to receiver: ${notifError.message}`,
+        );
+        // Don't fail the transfer if notification fails
+      }
+    }
+
     this.logger.log(
-      `[P2P] Transfer completed: @${sender.tag} → @${receiver.tag} | ₦${amount} | Ref: ${reference}`,
+      `[P2P] Transfer completed: @${sender.tag} → @${receiver.tag} | ₦${amount} | Ref: ${reference}${shouldLockReceiverWallet ? ' | RECEIVER WALLET LOCKED' : ''}`,
     );
 
     return {
