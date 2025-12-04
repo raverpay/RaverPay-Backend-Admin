@@ -827,15 +827,18 @@ export class UsersService {
           `[PhoneVerify] Reusing existing code for ${user.phone}. Send count: ${sendCount + 1}/3`,
         );
 
-        const smsSent = await this.smsService.sendVerificationCode(
-          user.phone,
-          existingData.code,
-          user.firstName,
-        );
+        // DISABLED: SMS provider has poor delivery rates
+        // Phone verification will be re-enabled when a reliable SMS provider is configured
+        // const smsSent = await this.smsService.sendVerificationCode(
+        //   user.phone,
+        //   existingData.code,
+        //   user.firstName,
+        // );
+        const smsSent = false; // Simulating SMS not sent
 
         if (!smsSent) {
           this.logger.warn(
-            `Failed to resend verification SMS to ${user.phone}`,
+            `Phone verification SMS disabled - SMS provider has poor delivery rates`,
           );
         }
 
@@ -854,7 +857,8 @@ export class UsersService {
         const canResendAt = new Date(now.getTime() + 120000); // 2 minutes from now
 
         return {
-          message: 'Verification code sent to your phone',
+          message:
+            'Phone verification is temporarily disabled. Please contact support.',
           expiresIn: '10 minutes',
           canResendAt: canResendAt.toISOString(),
           sendsRemaining: 3 - (sendCount + 1),
@@ -865,16 +869,19 @@ export class UsersService {
     // Generate new code using crypto for security
     const verificationCode = randomInt(100000, 999999).toString();
 
+    // DISABLED: SMS provider has poor delivery rates
+    // Phone verification will be re-enabled when a reliable SMS provider is configured
     // Send SMS with verification code
     const smsSent = await this.smsService.sendVerificationCode(
       user.phone,
       verificationCode,
       user.firstName,
     );
+    // const smsSent = false; // Simulating SMS not sent
 
     if (!smsSent) {
       this.logger.warn(
-        `Failed to send verification SMS to ${user.phone}, but code is stored`,
+        `Phone verification SMS disabled - SMS provider has poor delivery rates`,
       );
     }
 
@@ -909,7 +916,7 @@ export class UsersService {
     });
 
     return {
-      message: 'Verification code sent to your phone',
+      message: 'Phone verification SMS Sent. Please check your messages.',
       expiresIn: '10 minutes',
       canResendAt: canResendAt.toISOString(),
       sendsRemaining: 2,
@@ -1005,11 +1012,8 @@ export class UsersService {
     }
 
     // Determine KYC tier upgrade
-    let newKycTier: KYCTier = user.kycTier;
-    if (user.emailVerified && user.kycTier === KYCTier.TIER_0) {
-      // Both email and phone verified = TIER_1
-      newKycTier = KYCTier.TIER_1;
-    }
+    // After phone verification, upgrade to TIER_2
+    let newKycTier: KYCTier = KYCTier.TIER_2;
 
     // Update user
     await this.prisma.user.update({
@@ -1018,11 +1022,7 @@ export class UsersService {
         phoneVerified: true,
         phoneVerifiedAt: new Date(),
         kycTier: newKycTier,
-        status:
-          user.emailVerified &&
-          (user.bvnVerified || user.ninVerified || user.kycTier === 'TIER_0')
-            ? 'ACTIVE'
-            : 'PENDING_VERIFICATION',
+        status: 'ACTIVE',
       },
     });
 
@@ -1040,8 +1040,16 @@ export class UsersService {
         resourceId: userId,
         ipAddress: '0.0.0.0',
         userAgent: 'API',
+        metadata: {
+          previousTier: user.kycTier,
+          newTier: newKycTier,
+        },
       },
     });
+
+    this.logger.log(
+      `Phone verified for user ${userId}. KYC tier upgraded: ${user.kycTier} → ${newKycTier}`,
+    );
 
     return {
       message: 'Phone number verified successfully',

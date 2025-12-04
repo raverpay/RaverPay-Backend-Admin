@@ -133,4 +133,22 @@ export class AdminUsersController {
   ) {
     return this.adminUsersService.unlockAccount(adminUserId, userId, dto);
   }
+
+  /**
+   * PATCH /admin/users/:userId/unlock
+   * Unlock user account that was locked due to rate limit violations
+   */
+  @Patch(':userId/unlock')
+  async unlockRateLimitAccount(
+    @GetUser('id') adminUserId: string,
+    @Param('userId') userId: string,
+    @Body() body: { reason: string },
+  ) {
+    // This specifically unlocks rate limit locks using AccountLockingService
+    return this.adminUsersService.unlockRateLimitAccount(
+      adminUserId,
+      userId,
+      body.reason,
+    );
+  }
 }

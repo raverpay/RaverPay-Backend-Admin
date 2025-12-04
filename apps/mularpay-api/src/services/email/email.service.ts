@@ -7,6 +7,7 @@ import { vtuTransactionEmailTemplate } from './templates/vtu-transaction.templat
 import { birthdayEmailTemplate } from './templates/birthday.template';
 import { withdrawalTransactionEmailTemplate } from './templates/withdrawal-transaction.template';
 import { walletLockedTemplate } from './templates/wallet-locked.template';
+import { deviceVerificationTemplate } from './templates/device-verification.template';
 
 @Injectable()
 export class EmailService {
@@ -329,6 +330,7 @@ export class EmailService {
         'source', // Internal tracking
         'senderTag', // Already in message
         'depositAmount', // Already mentioned in message
+        'deviceId', // Internal UUID, not user-friendly
       ];
 
       const filteredData = data
@@ -650,6 +652,74 @@ export class EmailService {
     } catch (error) {
       this.logger.error(
         `Error sending wallet locked email to ${email}:`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Send device verification email
+   */
+  async sendDeviceVerificationEmail(
+    email: string,
+    data: {
+      firstName: string;
+      code: string;
+      deviceName: string;
+      deviceType: string;
+      deviceModel?: string;
+      osVersion?: string;
+    },
+  ): Promise<boolean> {
+    if (!this.enabled) {
+      this.logger.log(
+        `📧 [MOCK] Device verification email to ${email}: ${data.code}`,
+      );
+      return true;
+    }
+
+    if (!this.resend) {
+      this.logger.warn(
+        `📧 [MOCK] Would send device verification email to ${email}`,
+      );
+      return true;
+    }
+
+    try {
+      const { html, subject } = deviceVerificationTemplate(
+        data.code,
+        data.firstName,
+        {
+          deviceName: data.deviceName,
+          deviceType: data.deviceType,
+          deviceModel: data.deviceModel,
+          osVersion: data.osVersion,
+        },
+      );
+
+      const result = await this.resend.emails.send({
+        from: `${this.fromName} <${this.fromEmail}>`,
+        to: [email],
+        subject,
+        html,
+      });
+
+      if (result.error) {
+        this.logger.error(
+          `Failed to send device verification email to ${email}:`,
+          result.error,
+        );
+        return false;
+      }
+
+      this.logger.log(
+        `✅ Device verification email sent to ${email} (ID: ${result.data?.id})`,
+      );
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Error sending device verification email to ${email}:`,
         error,
       );
       return false;

@@ -264,9 +264,10 @@ export class AuthService {
             message: `Your verification code is ${verificationCode}. This code will expire in 10 minutes.`,
             data: {
               code: verificationCode,
-              deviceId: device.deviceId,
               deviceName: deviceInfo.deviceName,
               deviceType: deviceInfo.deviceType,
+              deviceModel: deviceInfo.deviceModel,
+              osVersion: deviceInfo.osVersion,
               expiresIn: '10 minutes',
             },
           })
@@ -1085,7 +1086,7 @@ export class AuthService {
   }
 
   /**
-   * Logout user by revoking their refresh token
+   * Logout user by revoking their refresh token and deactivating devices
    *
    * @param userId - User ID from JWT
    * @param refreshToken - Refresh token to revoke (optional - revokes all if not provided)
@@ -1116,6 +1117,17 @@ export class AuthService {
       });
       this.logger.log(`User logged out: ${userId} (all sessions)`);
     }
+
+    // Deactivate all user devices but keep them verified
+    // This ensures devices don't need OTP verification on next login
+    await this.prisma.device.updateMany({
+      where: { userId },
+      data: {
+        isActive: false,
+        deactivatedAt: new Date(),
+        // isVerified stays true so no OTP needed on next login
+      },
+    });
 
     return { success: true, message: 'Logged out successfully' };
   }

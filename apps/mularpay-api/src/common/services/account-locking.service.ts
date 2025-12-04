@@ -137,11 +137,7 @@ export class AccountLockingService {
   /**
    * Manually unlock an account (admin action)
    */
-  async unlockAccount(
-    userId: string,
-    adminId: string,
-    reason?: string,
-  ): Promise<void> {
+  async unlockAccount(userId: string, adminId: string, reason?: string) {
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -152,6 +148,10 @@ export class AccountLockingService {
         id: true,
         email: true,
         firstName: true,
+        lastName: true,
+        lockedUntil: true,
+        rateLimitLockCount: true,
+        rateLimitLockReason: true,
       },
     });
 
@@ -173,6 +173,8 @@ export class AccountLockingService {
         unlockedAt: new Date().toISOString(),
       },
     });
+
+    return { user };
   }
 
   /**

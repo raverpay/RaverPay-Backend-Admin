@@ -52,20 +52,31 @@ export class DeviceService {
     if (existingDevice) {
       // Device exists
       if (existingDevice.isVerified) {
-        // Device is verified, allow login
+        // Device is verified, allow login without OTP
+        // Reactivate the device since user is logging back in
         this.logger.log(
-          `[DeviceCheck] Device ${deviceInfo.deviceId} is verified`,
+          `[DeviceCheck] Device ${deviceInfo.deviceId} is verified, reactivating`,
         );
 
-        // Update last activity
-        await this.updateDeviceActivity(
-          existingDevice.id,
-          deviceInfo.ipAddress,
-        );
+        // Reactivate device and update last activity
+        await this.prisma.device.update({
+          where: { id: existingDevice.id },
+          data: {
+            isActive: true,
+            lastLoginAt: new Date(),
+            lastActivityAt: new Date(),
+            lastIpAddress: deviceInfo.ipAddress,
+          },
+        });
+
+        // Return updated device
+        const updatedDevice = await this.prisma.device.findUnique({
+          where: { id: existingDevice.id },
+        });
 
         return {
           authorized: true,
-          device: existingDevice,
+          device: updatedDevice!,
           requiresOtp: false,
         };
       } else {
@@ -277,6 +288,8 @@ export class DeviceService {
 
   /**
    * Logout (deactivate) a specific device
+   * Note: This only deactivates the device but keeps isVerified=true
+   * so the device doesn't require OTP verification on next login
    */
   async logoutDevice(userId: string, deviceId: string): Promise<void> {
     this.logger.log(`[LogoutDevice] Logging out device ${deviceId}`);
@@ -289,6 +302,7 @@ export class DeviceService {
       data: {
         isActive: false,
         deactivatedAt: new Date(),
+        // Keep isVerified: true so device doesn't need OTP on next login
       },
     });
 

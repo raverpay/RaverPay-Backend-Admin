@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { HierarchyService } from '../../common/services/hierarchy.service';
+import { AccountLockingService } from '../../common/services/account-locking.service';
 import { NotificationDispatcherService } from '../../notifications/notification-dispatcher.service';
 import {
   QueryUsersDto,
@@ -20,6 +21,7 @@ export class AdminUsersService {
     private prisma: PrismaService,
     private hierarchyService: HierarchyService,
     private notificationDispatcher: NotificationDispatcherService,
+    private accountLockingService: AccountLockingService,
   ) {}
 
   /**
@@ -539,6 +541,49 @@ export class AdminUsersService {
     return {
       message: 'Account unlocked successfully',
       user: updatedUser,
+    };
+  }
+
+  /**
+   * Unlock user account that was locked due to rate limit violations
+   * This uses the AccountLockingService for proper handling
+   */
+  async unlockRateLimitAccount(
+    adminUserId: string,
+    targetUserId: string,
+    reason: string,
+  ) {
+    // Validate hierarchy
+    await this.hierarchyService.validateCanModifyUser(
+      adminUserId,
+      targetUserId,
+    );
+
+    // Use AccountLockingService which handles rate limit unlocking
+    const result = await this.accountLockingService.unlockAccount(
+      targetUserId,
+      adminUserId,
+      reason,
+    );
+
+    // Create audit log
+    await this.prisma.auditLog.create({
+      data: {
+        userId: adminUserId,
+        action: 'RATE_LIMIT_ACCOUNT_UNLOCKED',
+        resource: 'User',
+        resourceId: targetUserId,
+        metadata: {
+          reason,
+          rateLimitLockCount: result.user.rateLimitLockCount,
+          previousLockedUntil: result.user.lockedUntil,
+        },
+      },
+    });
+
+    return {
+      message: 'Account unlocked successfully',
+      user: result.user,
     };
   }
 

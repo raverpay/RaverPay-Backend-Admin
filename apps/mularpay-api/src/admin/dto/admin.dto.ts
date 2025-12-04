@@ -38,6 +38,10 @@ export class UpdateAdminDto {
   lastName?: string;
 
   @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
   @IsEnum(['ADMIN', 'SUPPORT', 'SUPER_ADMIN'])
   role?: 'ADMIN' | 'SUPPORT' | 'SUPER_ADMIN';
 

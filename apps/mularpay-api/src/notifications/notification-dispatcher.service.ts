@@ -299,6 +299,9 @@ export class NotificationDispatcherService {
       // Check if this is a wallet locked event
       const walletLockedEventTypes = ['wallet_locked_deposit_limit'];
 
+      // Check if this is a device verification event
+      const deviceVerificationEventTypes = ['device_verification_required'];
+
       if (vtuEventTypes.includes(event.eventType)) {
         // Use VTU-specific template
         emailSent = await this.sendVTUTransactionEmail(user, event);
@@ -308,6 +311,9 @@ export class NotificationDispatcherService {
       } else if (walletLockedEventTypes.includes(event.eventType)) {
         // Use wallet locked-specific template
         emailSent = await this.sendWalletLockedEmail(user, event);
+      } else if (deviceVerificationEventTypes.includes(event.eventType)) {
+        // Use device verification-specific template
+        emailSent = await this.sendDeviceVerificationEmail(user, event);
       } else {
         // Use generic template for other notifications
         emailSent = await this.emailService.sendGenericNotification(
@@ -534,6 +540,27 @@ export class NotificationDispatcherService {
       kycTier,
       dailyLimit,
       upgradeUrl: event.data?.upgradeUrl as string | undefined,
+    });
+  }
+
+  /**
+   * Send device verification email with proper template
+   *
+   * @param user - User data
+   * @param event - Notification event
+   * @returns Whether email was sent successfully
+   */
+  private async sendDeviceVerificationEmail(
+    user: { email: string; firstName: string },
+    event: NotificationEvent,
+  ): Promise<boolean> {
+    return await this.emailService.sendDeviceVerificationEmail(user.email, {
+      firstName: user.firstName,
+      code: (event.data?.code as string) || '',
+      deviceName: (event.data?.deviceName as string) || 'Unknown Device',
+      deviceType: (event.data?.deviceType as string) || 'unknown',
+      deviceModel: event.data?.deviceModel as string | undefined,
+      osVersion: event.data?.osVersion as string | undefined,
     });
   }
 

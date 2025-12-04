@@ -27,9 +27,21 @@ interface RecentViolation {
   limit: number;
 }
 
+interface LockedAccount {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  lockedUntil: string | null;
+  lastRateLimitLockAt: string;
+  rateLimitLockReason: string;
+  rateLimitLockCount: number;
+}
+
 export default function RateLimitsPage() {
   const [stats, setStats] = useState<ViolationStats | null>(null);
   const [recentViolations, setRecentViolations] = useState<RecentViolation[]>([]);
+  const [lockedAccounts, setLockedAccounts] = useState<LockedAccount[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,9 +53,10 @@ export default function RateLimitsPage() {
 
   const fetchDashboardData = async () => {
     try {
-      const [statsRes, violationsRes] = await Promise.all([
+      const [statsRes, violationsRes, lockedRes] = await Promise.all([
         fetch('/api/admin/rate-limits/stats'),
         fetch('/api/admin/rate-limits/violations?limit=10'),
+        fetch('/api/admin/rate-limits/locked-accounts?limit=10'),
       ]);
 
       if (statsRes.ok && violationsRes.ok) {
@@ -51,6 +64,11 @@ export default function RateLimitsPage() {
         const violationsData = await violationsRes.json();
         setStats(statsData);
         setRecentViolations(violationsData.violations);
+      }
+
+      if (lockedRes.ok) {
+        const lockedData = await lockedRes.json();
+        setLockedAccounts(lockedData.users);
       }
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
@@ -77,6 +95,29 @@ export default function RateLimitsPage() {
         <h1 className="text-3xl font-bold tracking-tight">Rate Limit Monitoring</h1>
         <p className="text-muted-foreground">Monitor and manage API rate limiting violations</p>
       </div>
+
+      {/* Locked Accounts Alert */}
+      {lockedAccounts.length > 0 && (
+        <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-yellow-700 dark:text-yellow-500">
+              <AlertTriangle className="h-5 w-5" />
+              {lockedAccounts.length} Account{lockedAccounts.length !== 1 ? 's' : ''} Locked
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-3">
+              These accounts are currently locked due to rate limit violations
+            </p>
+            <Link
+              href="/dashboard/rate-limits/locked-accounts"
+              className="text-sm font-medium text-primary hover:underline"
+            >
+              View and manage locked accounts →
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

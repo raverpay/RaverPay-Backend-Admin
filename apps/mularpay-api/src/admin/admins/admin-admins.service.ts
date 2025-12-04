@@ -301,6 +301,7 @@ export class AdminAdminsService {
       data: {
         ...(dto.firstName && { firstName: dto.firstName }),
         ...(dto.lastName && { lastName: dto.lastName }),
+        ...(dto.phone && { phone: dto.phone }),
         ...(dto.role && { role: dto.role }),
         ...(dto.status && { status: dto.status }),
       },
