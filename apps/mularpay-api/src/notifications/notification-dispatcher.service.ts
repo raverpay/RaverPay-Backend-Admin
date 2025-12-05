@@ -302,6 +302,9 @@ export class NotificationDispatcherService {
       // Check if this is a device verification event
       const deviceVerificationEventTypes = ['device_verification_required'];
 
+      // Check if this is a P2P transfer event
+      const p2pEventTypes = ['p2p_transfer_received', 'p2p_transfer_sent'];
+
       if (vtuEventTypes.includes(event.eventType)) {
         // Use VTU-specific template
         emailSent = await this.sendVTUTransactionEmail(user, event);
@@ -314,6 +317,9 @@ export class NotificationDispatcherService {
       } else if (deviceVerificationEventTypes.includes(event.eventType)) {
         // Use device verification-specific template
         emailSent = await this.sendDeviceVerificationEmail(user, event);
+      } else if (p2pEventTypes.includes(event.eventType)) {
+        // Use P2P transfer-specific template
+        emailSent = await this.sendP2PTransferEmail(user, event);
       } else {
         // Use generic template for other notifications
         emailSent = await this.emailService.sendGenericNotification(
@@ -561,6 +567,35 @@ export class NotificationDispatcherService {
       deviceType: (event.data?.deviceType as string) || 'unknown',
       deviceModel: event.data?.deviceModel as string | undefined,
       osVersion: event.data?.osVersion as string | undefined,
+    });
+  }
+
+  /**
+   * Send P2P transfer email with proper template
+   *
+   * @param user - User data
+   * @param event - Notification event
+   * @returns Whether email was sent successfully
+   */
+  private async sendP2PTransferEmail(
+    user: { email: string; firstName: string },
+    event: NotificationEvent,
+  ): Promise<boolean> {
+    const transactionType =
+      event.eventType === 'p2p_transfer_received' ? 'received' : 'sent';
+
+    return await this.emailService.sendP2PTransferEmail(user.email, {
+      firstName: user.firstName,
+      amount:
+        typeof event.data?.amount === 'number'
+          ? event.data.amount
+          : parseFloat(event.data?.amount?.toString() || '0'),
+      senderName: (event.data?.senderName as string) || 'Unknown',
+      senderTag: event.data?.senderTag as string | undefined,
+      recipientTag: event.data?.recipientTag as string | undefined,
+      message: event.data?.message as string | undefined,
+      reference: (event.data?.reference as string) || 'N/A',
+      transactionType,
     });
   }
 

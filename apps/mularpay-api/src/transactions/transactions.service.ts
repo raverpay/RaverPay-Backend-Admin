@@ -1606,8 +1606,14 @@ export class TransactionsService {
       );
 
     // 13. Send notifications
-    this.sendP2PNotifications(sender, receiver, amount, message).catch(
-      (error) => this.logger.error('Failed to send P2P notifications', error),
+    this.sendP2PNotifications(
+      sender,
+      receiver,
+      amount,
+      message,
+      reference,
+    ).catch((error) =>
+      this.logger.error('Failed to send P2P notifications', error),
     );
 
     // 🚨 NEW: Send wallet lock notification to receiver if limit exceeded
@@ -1698,6 +1704,7 @@ export class TransactionsService {
     },
     amount: number,
     message?: string,
+    reference?: string,
   ) {
     try {
       // Notify sender
@@ -1705,7 +1712,7 @@ export class TransactionsService {
         userId: sender.id,
         eventType: 'p2p_transfer_sent',
         category: 'TRANSACTION',
-        channels: ['IN_APP', 'PUSH'],
+        channels: ['IN_APP', 'PUSH', 'EMAIL'],
         title: 'Money Sent',
         message: `You sent ₦${amount.toLocaleString()} to @${receiver.tag}`,
         data: {
@@ -1713,6 +1720,7 @@ export class TransactionsService {
           recipientTag: receiver.tag,
           recipientName: `${receiver.firstName} ${receiver.lastName}`,
           message,
+          reference,
         },
       });
 
@@ -1729,6 +1737,7 @@ export class TransactionsService {
           senderTag: sender.tag,
           senderName: `${sender.firstName} ${sender.lastName}`,
           message,
+          reference,
         },
       });
 

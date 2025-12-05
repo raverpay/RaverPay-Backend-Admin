@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
@@ -231,6 +232,28 @@ export class NotificationQueueProcessor {
       );
     }
 
+    // Check if this is a P2P transfer event
+    const p2pEventTypes = ['p2p_transfer_received', 'p2p_transfer_sent'];
+
+    if (p2pEventTypes.includes(eventType)) {
+      const transactionType =
+        eventType === 'p2p_transfer_received' ? 'received' : 'sent';
+
+      return this.emailService.sendP2PTransferEmail(user.email, {
+        firstName: user.firstName,
+        amount:
+          typeof data?.amount === 'number'
+            ? data.amount
+            : parseFloat(data?.amount?.toString() || '0'),
+        senderName: data?.senderName || data?.recipientName || 'Unknown',
+        senderTag: data?.senderTag,
+        recipientTag: data?.recipientTag,
+        message: data?.message,
+        reference: data?.reference || 'N/A',
+        transactionType,
+      });
+    }
+
     // Check if this is a withdrawal transaction event
     const withdrawalEventTypes = [
       'withdrawal_initiated',
@@ -326,9 +349,41 @@ export class NotificationQueueProcessor {
 
     const { eventType, title, message, ...data } = variables;
 
+    // Format P2P transfer push notifications
+    let formattedTitle = title || 'RaverPay';
+    let formattedBody = message || '';
+
+    if (eventType === 'p2p_transfer_received') {
+      const amount =
+        typeof data?.amount === 'number'
+          ? `₦${data.amount.toLocaleString()}`
+          : data?.amount;
+      const sender = data?.senderTag
+        ? `@${data.senderTag}`
+        : data?.senderName || 'Someone';
+      formattedTitle = 'Money Received';
+      formattedBody = `${sender} sent you ${amount}`;
+      if (data?.message) {
+        formattedBody += `\n\n"${data.message}"`;
+      }
+    } else if (eventType === 'p2p_transfer_sent') {
+      const amount =
+        typeof data?.amount === 'number'
+          ? `₦${data.amount.toLocaleString()}`
+          : data?.amount;
+      const recipient = data?.recipientTag
+        ? `@${data.recipientTag}`
+        : data?.recipientName || 'recipient';
+      formattedTitle = ' Money Sent';
+      formattedBody = `You sent ${amount} to ${recipient}`;
+      if (data?.message) {
+        formattedBody += `\n\n"${data.message}"`;
+      }
+    }
+
     return this.expoPushService.sendToToken(user.expoPushToken, {
-      title: title || 'RaverPay',
-      body: message || '',
+      title: formattedTitle,
+      body: formattedBody,
       data: {
         eventType,
         userId: user.id,

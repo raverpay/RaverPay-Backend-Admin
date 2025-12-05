@@ -8,6 +8,7 @@ import { birthdayEmailTemplate } from './templates/birthday.template';
 import { withdrawalTransactionEmailTemplate } from './templates/withdrawal-transaction.template';
 import { walletLockedTemplate } from './templates/wallet-locked.template';
 import { deviceVerificationTemplate } from './templates/device-verification.template';
+import { p2pTransferEmailTemplate } from './templates/p2p-transfer.template';
 
 @Injectable()
 export class EmailService {
@@ -722,6 +723,75 @@ export class EmailService {
         `Error sending device verification email to ${email}:`,
         error,
       );
+      return false;
+    }
+  }
+
+  /**
+   * Send P2P transfer email (sent or received)
+   */
+  async sendP2PTransferEmail(
+    email: string,
+    data: {
+      firstName: string;
+      amount: number;
+      senderName: string;
+      senderTag?: string;
+      recipientTag?: string;
+      message?: string;
+      reference: string;
+      transactionType: 'received' | 'sent';
+    },
+  ): Promise<boolean> {
+    if (!this.enabled) {
+      this.logger.log(
+        `📧 [MOCK] P2P transfer email to ${email}: ${data.transactionType}`,
+      );
+      return true;
+    }
+
+    if (!this.resend) {
+      this.logger.warn(`📧 [MOCK] Would send P2P transfer email to ${email}`);
+      return true;
+    }
+
+    try {
+      const { html, subject } = p2pTransferEmailTemplate({
+        firstName: data.firstName,
+        amount: `₦${data.amount.toLocaleString()}`,
+        senderName: data.senderName,
+        senderTag: data.senderTag,
+        recipientTag: data.recipientTag,
+        message: data.message,
+        reference: data.reference,
+        date: new Date().toLocaleString('en-NG', {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        }),
+        transactionType: data.transactionType,
+      });
+
+      const result = await this.resend.emails.send({
+        from: `${this.fromName} <${this.fromEmail}>`,
+        to: [email],
+        subject,
+        html,
+      });
+
+      if (result.error) {
+        this.logger.error(
+          `Failed to send P2P transfer email to ${email}:`,
+          result.error,
+        );
+        return false;
+      }
+
+      this.logger.log(
+        `✅ P2P transfer email sent to ${email} (ID: ${result.data?.id})`,
+      );
+      return true;
+    } catch (error) {
+      this.logger.error(`Error sending P2P transfer email to ${email}:`, error);
       return false;
     }
   }
