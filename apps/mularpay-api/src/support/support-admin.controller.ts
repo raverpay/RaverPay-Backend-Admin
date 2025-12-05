@@ -426,8 +426,19 @@ export class SupportAdminController {
   @Post('help/articles')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @HttpCode(HttpStatus.CREATED)
-  async createHelpArticle(@Body() dto: CreateHelpArticleDto) {
-    return this.helpService.createArticle(dto);
+  async createHelpArticle(@Body() dto: any) {
+    // Transform status to isActive for backend compatibility
+    const transformedDto: CreateHelpArticleDto = {
+      ...dto,
+      isActive:
+        dto.status === 'PUBLISHED'
+          ? true
+          : dto.status === 'DRAFT'
+            ? false
+            : dto.isActive,
+    };
+    delete (transformedDto as any).status;
+    return this.helpService.createArticle(transformedDto);
   }
 
   /**
@@ -438,9 +449,20 @@ export class SupportAdminController {
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async updateHelpArticle(
     @Param('id') articleId: string,
-    @Body() dto: UpdateHelpArticleDto,
+    @Body() dto: any,
   ) {
-    return this.helpService.updateArticle(articleId, dto);
+    // Transform status to isActive for backend compatibility
+    const transformedDto: UpdateHelpArticleDto = {
+      ...dto,
+      isActive:
+        dto.status === 'PUBLISHED'
+          ? true
+          : dto.status === 'DRAFT'
+            ? false
+            : dto.isActive,
+    };
+    delete (transformedDto as any).status;
+    return this.helpService.updateArticle(articleId, transformedDto);
   }
 
   /**
