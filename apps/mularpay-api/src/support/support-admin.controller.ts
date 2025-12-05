@@ -447,10 +447,7 @@ export class SupportAdminController {
    */
   @Patch('help/articles/:id')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  async updateHelpArticle(
-    @Param('id') articleId: string,
-    @Body() dto: any,
-  ) {
+  async updateHelpArticle(@Param('id') articleId: string, @Body() dto: any) {
     // Transform status to isActive for backend compatibility
     const transformedDto: UpdateHelpArticleDto = {
       ...dto,
