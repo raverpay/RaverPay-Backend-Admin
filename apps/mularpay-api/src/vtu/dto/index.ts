@@ -8,3 +8,7 @@ export * from './verify-meter.dto';
 export * from './get-orders.dto';
 export * from './purchase-international-airtime.dto';
 export * from './saved-recipient.dto';
+export * from './verify-jamb-profile.dto';
+export * from './purchase-jamb-pin.dto';
+export * from './purchase-waec-registration.dto';
+export * from './purchase-waec-result.dto';

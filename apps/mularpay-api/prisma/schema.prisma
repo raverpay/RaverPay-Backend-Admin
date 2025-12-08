@@ -1186,6 +1186,9 @@ enum VTUServiceType {
   DATA
   CABLE_TV
   ELECTRICITY
+  JAMB
+  WAEC_REGISTRATION
+  WAEC_RESULT
 }
 
 enum GiftCardType {

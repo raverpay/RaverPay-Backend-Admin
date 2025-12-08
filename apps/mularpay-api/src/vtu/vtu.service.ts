@@ -20,6 +20,10 @@ import {
   PayElectricityDto,
   GetOrdersDto,
   PurchaseInternationalAirtimeDto,
+  VerifyJAMBProfileDto,
+  PurchaseJAMBPinDto,
+  PurchaseWAECRegistrationDto,
+  PurchaseWAECResultDto,
 } from './dto';
 import { VTUServiceType, TransactionStatus } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
@@ -220,6 +224,9 @@ export class VTUService {
       DATA: 'VTU_DATA',
       CABLE_TV: 'VTU_CABLE',
       ELECTRICITY: 'VTU_ELEC',
+      JAMB: 'VTU_JAMB',
+      WAEC_REGISTRATION: 'VTU_WAEC_REG',
+      WAEC_RESULT: 'VTU_WAEC_RES',
     }[serviceType];
 
     // Force Africa/Lagos timezone (+1 hour)
@@ -2346,6 +2353,884 @@ export class VTUService {
     this.logger.log(
       `[Webhook] Order status updated: ${reference} -> ${status}`,
     );
+  }
+
+  // ==================== Education Services ====================
+
+  /**
+   * Get JAMB PIN variations
+   */
+  async getJAMBVariations() {
+    return this.vtpassService.getJAMBVariations();
+  }
+
+  /**
+   * Get WAEC Registration variations
+   */
+  async getWAECRegistrationVariations() {
+    return this.vtpassService.getWAECRegistrationVariations();
+  }
+
+  /**
+   * Get WAEC Result Checker variations
+   */
+  async getWAECResultVariations() {
+    return this.vtpassService.getWAECResultVariations();
+  }
+
+  /**
+   * Verify JAMB Profile ID
+   */
+  async verifyJAMBProfile(profileId: string, variationCode: string) {
+    try {
+      const result = await this.vtpassService.verifyJAMBProfile(
+        profileId,
+        variationCode,
+      );
+
+      return {
+        valid: true,
+        customerName: result.Customer_Name,
+        profileId,
+      };
+    } catch {
+      throw new BadRequestException(
+        'Invalid JAMB Profile ID or profile not found',
+      );
+    }
+  }
+
+  /**
+   * Purchase JAMB PIN
+   */
+  async purchaseJAMBPin(userId: string, dto: PurchaseJAMBPinDto) {
+    this.logger.log(
+      `[JAMB] Purchase request: ${dto.profileId} - ${dto.variationCode}`,
+    );
+
+    // 1. Verify PIN
+    await this.usersService.verifyPin(userId, dto.pin);
+
+    // 2. Verify JAMB Profile ID
+    await this.verifyJAMBProfile(dto.profileId, dto.variationCode);
+
+    // 3. Get product details
+    const variations = await this.getJAMBVariations();
+    const product = variations.find(
+      (p) => p.variation_code === dto.variationCode,
+    );
+
+    if (!product) {
+      throw new BadRequestException('Invalid variation code');
+    }
+
+    const amount = Number(product.variation_amount);
+    const fee = this.calculateFee(amount, 'JAMB');
+
+    // 4. Check daily transaction limit (use AIRTIME type for now)
+    await this.limitsService.enforceLimit(
+      userId,
+      amount,
+      TransactionLimitType.AIRTIME,
+    );
+
+    // 5. Calculate cashback to earn (₦150 commission)
+    const cashbackToEarn = await this.cashbackService.calculateCashback(
+      'JAMB',
+      'JAMB',
+      amount,
+    );
+
+    // 6. Handle cashback redemption
+    let cashbackRedeemed = 0;
+    if (dto.useCashback && dto.cashbackAmount && dto.cashbackAmount > 0) {
+      const userCashbackBalance =
+        await this.cashbackService.getCashbackBalance(userId);
+
+      if (dto.cashbackAmount > userCashbackBalance.availableBalance) {
+        throw new BadRequestException(
+          `Insufficient cashback balance. Available: ₦${userCashbackBalance.availableBalance}`,
+        );
+      }
+
+      cashbackRedeemed = Math.min(dto.cashbackAmount, amount);
+    }
+
+    // 7. Calculate total
+    const total = amount + fee - cashbackRedeemed;
+
+    // 8. Check balance
+    await this.checkWalletBalance(userId, total);
+
+    // 9. Check duplicate
+    await this.checkDuplicateOrder(userId, 'JAMB', dto.profileId, amount);
+
+    // 10. Lock wallet
+    await this.lockWalletForTransaction(userId);
+
+    try {
+      // 11. Generate reference
+      const reference = this.generateReference('JAMB');
+
+      // 12. Get user for phone number
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      // 13. Create order
+      const order = await this.prisma.vTUOrder.create({
+        data: {
+          reference,
+          userId,
+          serviceType: 'JAMB',
+          provider: 'JAMB',
+          recipient: dto.profileId,
+          productCode: dto.variationCode,
+          productName: product.name,
+          amount: new Decimal(amount),
+          status: 'PENDING',
+          cashbackPercentage: new Decimal(cashbackToEarn.percentage),
+          cashbackRedeemed: new Decimal(cashbackRedeemed),
+        },
+      });
+
+      // 14. Debit wallet and create transaction
+      const wallet = await this.prisma.wallet.findFirst({
+        where: { userId, type: 'NAIRA' },
+      });
+      const balanceBefore = wallet!.balance;
+      const balanceAfter = new Decimal(balanceBefore).minus(new Decimal(total));
+
+      await this.prisma.$transaction([
+        this.prisma.wallet.update({
+          where: { userId_type: { userId, type: 'NAIRA' } },
+          data: {
+            balance: { decrement: new Decimal(total) },
+            ledgerBalance: { decrement: new Decimal(total) },
+            dailySpent: { increment: new Decimal(amount) },
+            monthlySpent: { increment: new Decimal(amount) },
+          },
+        }),
+        this.prisma.transaction.create({
+          data: {
+            reference,
+            userId,
+            type: 'VTU_DATA',
+            amount: new Decimal(amount),
+            fee: new Decimal(fee),
+            cashbackRedeemed: new Decimal(cashbackRedeemed),
+            totalAmount: new Decimal(total),
+            balanceBefore,
+            balanceAfter,
+            status: 'COMPLETED',
+            description: `JAMB PIN - ${product.name}`,
+            metadata: {
+              serviceType: 'JAMB',
+              provider: 'JAMB',
+              recipient: dto.profileId,
+              orderId: order.id,
+              cashbackToEarn: cashbackToEarn.cashbackAmount,
+              cashbackRedeemed,
+            },
+          },
+        }),
+      ]);
+
+      // 15. Redeem cashback
+      if (cashbackRedeemed > 0) {
+        await this.cashbackService.redeemCashback(
+          userId,
+          cashbackRedeemed,
+          order.id,
+        );
+      }
+
+      // 16. Call VTPass API
+      let vtpassResult: VTPassPurchaseResult;
+      try {
+        vtpassResult = await this.vtpassService.purchaseJAMBPin({
+          profileId: dto.profileId,
+          variationCode: dto.variationCode,
+          phone: user?.phone || '',
+          reference,
+        });
+      } catch (error) {
+        this.logger.error('[JAMB] VTPass API failed:', error);
+        await this.prisma.vTUOrder.update({
+          where: { id: order.id },
+          data: {
+            status: 'FAILED',
+            providerResponse: { error: 'VTPass API error' },
+          },
+        });
+
+        if (cashbackRedeemed > 0) {
+          await this.cashbackService.reverseCashbackRedemption(
+            userId,
+            order.id,
+          );
+        }
+
+        await this.refundFailedOrder(order.id);
+
+        throw new BadRequestException(
+          'Failed to process JAMB PIN purchase. Your wallet has been refunded.',
+        );
+      }
+
+      // 17. Prepare response
+      const response = {
+        reference,
+        orderId: order.id,
+        status: vtpassResult.status === 'success' ? 'COMPLETED' : 'FAILED',
+        amount,
+        fee,
+        cashbackRedeemed,
+        cashbackEarned: cashbackToEarn.cashbackAmount,
+        totalAmount: total,
+        provider: 'JAMB',
+        recipient: dto.profileId,
+        pin: vtpassResult.token, // The extracted PIN
+        message:
+          vtpassResult.status === 'success'
+            ? 'JAMB PIN purchased successfully'
+            : 'JAMB PIN purchase failed. Wallet refunded.',
+      };
+
+      // 18. Update order async
+      this.prisma.vTUOrder
+        .update({
+          where: { id: order.id },
+          data: {
+            status: vtpassResult.status === 'success' ? 'COMPLETED' : 'FAILED',
+            providerRef: vtpassResult.transactionId,
+            providerToken: vtpassResult.token,
+            providerResponse: (vtpassResult as any).fullResponse,
+            cashbackEarned:
+              vtpassResult.status === 'success'
+                ? new Decimal(cashbackToEarn.cashbackAmount)
+                : undefined,
+            completedAt:
+              vtpassResult.status === 'success' ? new Date() : undefined,
+          },
+        })
+        .catch((error) =>
+          this.logger.error('Failed to update order status', error),
+        );
+
+      // 19. Handle failure
+      if (vtpassResult.status !== 'success') {
+        this.refundFailedOrder(order.id).catch((error) =>
+          this.logger.error('Failed to refund order', error),
+        );
+        if (cashbackRedeemed > 0) {
+          this.cashbackService
+            .reverseCashbackRedemption(userId, order.id)
+            .catch((error) =>
+              this.logger.error('Failed to reverse cashback', error),
+            );
+        }
+      }
+
+      // 20. Award cashback async
+      if (
+        vtpassResult.status === 'success' &&
+        cashbackToEarn.isEligible &&
+        cashbackToEarn.cashbackAmount > 0
+      ) {
+        this.cashbackService
+          .awardCashback(userId, order.id, 'JAMB', 'JAMB', amount)
+          .catch((error) =>
+            this.logger.error('Failed to award cashback', error),
+          );
+      }
+
+      // 21. Increment limit
+      if (vtpassResult.status === 'success') {
+        this.limitsService
+          .incrementDailySpend(userId, amount, TransactionLimitType.AIRTIME)
+          .catch((error) =>
+            this.logger.error('Failed to increment limit', error),
+          );
+      }
+
+      // 22. Notifications
+      if (vtpassResult.status === 'success') {
+        this.notificationDispatcher
+          .sendNotification({
+            userId,
+            eventType: 'vtu_purchase_success',
+            category: 'TRANSACTION',
+            channels: ['PUSH', 'IN_APP', 'EMAIL'],
+            title: 'JAMB PIN Purchase Successful',
+            message: `Your ${product.name} PIN has been generated successfully`,
+            data: {
+              amount,
+              provider: 'JAMB',
+              reference,
+              pin: vtpassResult.token,
+            },
+          })
+          .catch((error) =>
+            this.logger.error('Failed to send notification', error),
+          );
+      }
+
+      // 23. Unlock wallet
+      this.unlockWalletForTransaction(userId).catch((error) =>
+        this.logger.error('Failed to unlock wallet', error),
+      );
+
+      return response;
+    } catch (error) {
+      await this.unlockWalletForTransaction(userId);
+      throw error;
+    }
+  }
+
+  /**
+   * Purchase WAEC Registration PIN
+   */
+  async purchaseWAECRegistration(
+    userId: string,
+    dto: PurchaseWAECRegistrationDto,
+  ) {
+    this.logger.log(`[WAEC Registration] Purchase request: ${dto.phone}`);
+
+    // 1. Verify PIN
+    await this.usersService.verifyPin(userId, dto.pin);
+
+    // 2. Validate phone
+    this.validatePhone(dto.phone);
+
+    // 3. Get product details
+    const variations = await this.getWAECRegistrationVariations();
+    const product = variations[0]; // Only one variation
+
+    if (!product) {
+      throw new BadRequestException('WAEC Registration service unavailable');
+    }
+
+    const amount = Number(product.variation_amount);
+    const fee = this.calculateFee(amount, 'WAEC_REGISTRATION');
+
+    // 4. Check daily transaction limit
+    await this.limitsService.enforceLimit(
+      userId,
+      amount,
+      TransactionLimitType.AIRTIME,
+    );
+
+    // 5. Calculate cashback (₦250 commission)
+    const cashbackToEarn = await this.cashbackService.calculateCashback(
+      'WAEC_REGISTRATION',
+      'WAEC',
+      amount,
+    );
+
+    // 6. Handle cashback redemption
+    let cashbackRedeemed = 0;
+    if (dto.useCashback && dto.cashbackAmount && dto.cashbackAmount > 0) {
+      const userCashbackBalance =
+        await this.cashbackService.getCashbackBalance(userId);
+
+      if (dto.cashbackAmount > userCashbackBalance.availableBalance) {
+        throw new BadRequestException(
+          `Insufficient cashback balance. Available: ₦${userCashbackBalance.availableBalance}`,
+        );
+      }
+
+      cashbackRedeemed = Math.min(dto.cashbackAmount, amount);
+    }
+
+    // 7. Calculate total
+    const total = amount + fee - cashbackRedeemed;
+
+    // 8. Check balance
+    await this.checkWalletBalance(userId, total);
+
+    // 9. Check duplicate
+    await this.checkDuplicateOrder(
+      userId,
+      'WAEC_REGISTRATION',
+      dto.phone,
+      amount,
+    );
+
+    // 10. Lock wallet
+    await this.lockWalletForTransaction(userId);
+
+    try {
+      // 11. Generate reference
+      const reference = this.generateReference('WAEC_REGISTRATION');
+
+      // 12. Create order
+      const order = await this.prisma.vTUOrder.create({
+        data: {
+          reference,
+          userId,
+          serviceType: 'WAEC_REGISTRATION',
+          provider: 'WAEC',
+          recipient: dto.phone,
+          productCode: 'waec-registraion',
+          productName: 'WAEC Registration PIN',
+          amount: new Decimal(amount),
+          status: 'PENDING',
+          cashbackPercentage: new Decimal(cashbackToEarn.percentage),
+          cashbackRedeemed: new Decimal(cashbackRedeemed),
+        },
+      });
+
+      // 13. Debit wallet
+      const wallet = await this.prisma.wallet.findFirst({
+        where: { userId, type: 'NAIRA' },
+      });
+      const balanceBefore = wallet!.balance;
+      const balanceAfter = new Decimal(balanceBefore).minus(new Decimal(total));
+
+      await this.prisma.$transaction([
+        this.prisma.wallet.update({
+          where: { userId_type: { userId, type: 'NAIRA' } },
+          data: {
+            balance: { decrement: new Decimal(total) },
+            ledgerBalance: { decrement: new Decimal(total) },
+            dailySpent: { increment: new Decimal(amount) },
+            monthlySpent: { increment: new Decimal(amount) },
+          },
+        }),
+        this.prisma.transaction.create({
+          data: {
+            reference,
+            userId,
+            type: 'VTU_DATA',
+            amount: new Decimal(amount),
+            fee: new Decimal(fee),
+            cashbackRedeemed: new Decimal(cashbackRedeemed),
+            totalAmount: new Decimal(total),
+            balanceBefore,
+            balanceAfter,
+            status: 'COMPLETED',
+            description: 'WAEC Registration PIN',
+            metadata: {
+              serviceType: 'WAEC_REGISTRATION',
+              provider: 'WAEC',
+              recipient: dto.phone,
+              orderId: order.id,
+              cashbackToEarn: cashbackToEarn.cashbackAmount,
+              cashbackRedeemed,
+            },
+          },
+        }),
+      ]);
+
+      // 14. Redeem cashback
+      if (cashbackRedeemed > 0) {
+        await this.cashbackService.redeemCashback(
+          userId,
+          cashbackRedeemed,
+          order.id,
+        );
+      }
+
+      // 15. Call VTPass API
+      let vtpassResult: VTPassPurchaseResult;
+      try {
+        vtpassResult = await this.vtpassService.purchaseWAECRegistration({
+          phone: dto.phone,
+          reference,
+        });
+      } catch (error) {
+        this.logger.error('[WAEC Registration] VTPass API failed:', error);
+        await this.prisma.vTUOrder.update({
+          where: { id: order.id },
+          data: {
+            status: 'FAILED',
+            providerResponse: { error: 'VTPass API error' },
+          },
+        });
+
+        if (cashbackRedeemed > 0) {
+          await this.cashbackService.reverseCashbackRedemption(
+            userId,
+            order.id,
+          );
+        }
+
+        await this.refundFailedOrder(order.id);
+
+        throw new BadRequestException(
+          'Failed to process WAEC Registration purchase. Your wallet has been refunded.',
+        );
+      }
+
+      // 16. Prepare response
+      const response = {
+        reference,
+        orderId: order.id,
+        status: vtpassResult.status === 'success' ? 'COMPLETED' : 'FAILED',
+        amount,
+        fee,
+        cashbackRedeemed,
+        cashbackEarned: cashbackToEarn.cashbackAmount,
+        totalAmount: total,
+        provider: 'WAEC',
+        recipient: dto.phone,
+        token: vtpassResult.token,
+        message:
+          vtpassResult.status === 'success'
+            ? 'WAEC Registration PIN purchased successfully'
+            : 'WAEC Registration purchase failed. Wallet refunded.',
+      };
+
+      // 17. Update order async
+      this.prisma.vTUOrder
+        .update({
+          where: { id: order.id },
+          data: {
+            status: vtpassResult.status === 'success' ? 'COMPLETED' : 'FAILED',
+            providerRef: vtpassResult.transactionId,
+            providerToken: vtpassResult.token,
+            providerResponse: (vtpassResult as any).fullResponse,
+            cashbackEarned:
+              vtpassResult.status === 'success'
+                ? new Decimal(cashbackToEarn.cashbackAmount)
+                : undefined,
+            completedAt:
+              vtpassResult.status === 'success' ? new Date() : undefined,
+          },
+        })
+        .catch((error) =>
+          this.logger.error('Failed to update order status', error),
+        );
+
+      // Handle failure/success async (similar to JAMB)
+      if (vtpassResult.status !== 'success') {
+        this.refundFailedOrder(order.id).catch((error) =>
+          this.logger.error('Failed to refund order', error),
+        );
+        if (cashbackRedeemed > 0) {
+          this.cashbackService
+            .reverseCashbackRedemption(userId, order.id)
+            .catch((error) =>
+              this.logger.error('Failed to reverse cashback', error),
+            );
+        }
+      }
+
+      if (
+        vtpassResult.status === 'success' &&
+        cashbackToEarn.isEligible &&
+        cashbackToEarn.cashbackAmount > 0
+      ) {
+        this.cashbackService
+          .awardCashback(userId, order.id, 'WAEC_REGISTRATION', 'WAEC', amount)
+          .catch((error) =>
+            this.logger.error('Failed to award cashback', error),
+          );
+      }
+
+      if (vtpassResult.status === 'success') {
+        this.limitsService
+          .incrementDailySpend(userId, amount, TransactionLimitType.AIRTIME)
+          .catch((error) =>
+            this.logger.error('Failed to increment limit', error),
+          );
+
+        this.notificationDispatcher
+          .sendNotification({
+            userId,
+            eventType: 'vtu_purchase_success',
+            category: 'TRANSACTION',
+            channels: ['PUSH', 'IN_APP', 'EMAIL'],
+            title: 'WAEC Registration PIN Purchased',
+            message: 'Your WAEC Registration PIN has been generated',
+            data: {
+              amount,
+              provider: 'WAEC',
+              reference,
+              token: vtpassResult.token,
+            },
+          })
+          .catch((error) =>
+            this.logger.error('Failed to send notification', error),
+          );
+      }
+
+      this.unlockWalletForTransaction(userId).catch((error) =>
+        this.logger.error('Failed to unlock wallet', error),
+      );
+
+      return response;
+    } catch (error) {
+      await this.unlockWalletForTransaction(userId);
+      throw error;
+    }
+  }
+
+  /**
+   * Purchase WAEC Result Checker PIN
+   */
+  async purchaseWAECResult(userId: string, dto: PurchaseWAECResultDto) {
+    this.logger.log(`[WAEC Result] Purchase request: ${dto.phone}`);
+
+    // 1. Verify PIN
+    await this.usersService.verifyPin(userId, dto.pin);
+
+    // 2. Validate phone
+    this.validatePhone(dto.phone);
+
+    // 3. Get product details
+    const variations = await this.getWAECResultVariations();
+    const product = variations[0]; // waecdirect
+
+    if (!product) {
+      throw new BadRequestException('WAEC Result Checker service unavailable');
+    }
+
+    const amount = Number(product.variation_amount);
+    const fee = this.calculateFee(amount, 'WAEC_RESULT');
+
+    // 4. Check daily transaction limit
+    await this.limitsService.enforceLimit(
+      userId,
+      amount,
+      TransactionLimitType.AIRTIME,
+    );
+
+    // 5. Calculate cashback (₦250 commission)
+    const cashbackToEarn = await this.cashbackService.calculateCashback(
+      'WAEC_RESULT',
+      'WAEC',
+      amount,
+    );
+
+    // 6. Handle cashback redemption
+    let cashbackRedeemed = 0;
+    if (dto.useCashback && dto.cashbackAmount && dto.cashbackAmount > 0) {
+      const userCashbackBalance =
+        await this.cashbackService.getCashbackBalance(userId);
+
+      if (dto.cashbackAmount > userCashbackBalance.availableBalance) {
+        throw new BadRequestException(
+          `Insufficient cashback balance. Available: ₦${userCashbackBalance.availableBalance}`,
+        );
+      }
+
+      cashbackRedeemed = Math.min(dto.cashbackAmount, amount);
+    }
+
+    // 7. Calculate total
+    const total = amount + fee - cashbackRedeemed;
+
+    // 8. Check balance
+    await this.checkWalletBalance(userId, total);
+
+    // 9. Check duplicate
+    await this.checkDuplicateOrder(userId, 'WAEC_RESULT', dto.phone, amount);
+
+    // 10. Lock wallet
+    await this.lockWalletForTransaction(userId);
+
+    try {
+      // 11. Generate reference
+      const reference = this.generateReference('WAEC_RESULT');
+
+      // 12. Create order
+      const order = await this.prisma.vTUOrder.create({
+        data: {
+          reference,
+          userId,
+          serviceType: 'WAEC_RESULT',
+          provider: 'WAEC',
+          recipient: dto.phone,
+          productCode: 'waecdirect',
+          productName: 'WAEC Result Checker',
+          amount: new Decimal(amount),
+          status: 'PENDING',
+          cashbackPercentage: new Decimal(cashbackToEarn.percentage),
+          cashbackRedeemed: new Decimal(cashbackRedeemed),
+        },
+      });
+
+      // 13. Debit wallet
+      const wallet = await this.prisma.wallet.findFirst({
+        where: { userId, type: 'NAIRA' },
+      });
+      const balanceBefore = wallet!.balance;
+      const balanceAfter = new Decimal(balanceBefore).minus(new Decimal(total));
+
+      await this.prisma.$transaction([
+        this.prisma.wallet.update({
+          where: { userId_type: { userId, type: 'NAIRA' } },
+          data: {
+            balance: { decrement: new Decimal(total) },
+            ledgerBalance: { decrement: new Decimal(total) },
+            dailySpent: { increment: new Decimal(amount) },
+            monthlySpent: { increment: new Decimal(amount) },
+          },
+        }),
+        this.prisma.transaction.create({
+          data: {
+            reference,
+            userId,
+            type: 'VTU_DATA',
+            amount: new Decimal(amount),
+            fee: new Decimal(fee),
+            cashbackRedeemed: new Decimal(cashbackRedeemed),
+            totalAmount: new Decimal(total),
+            balanceBefore,
+            balanceAfter,
+            status: 'COMPLETED',
+            description: 'WAEC Result Checker',
+            metadata: {
+              serviceType: 'WAEC_RESULT',
+              provider: 'WAEC',
+              recipient: dto.phone,
+              orderId: order.id,
+              cashbackToEarn: cashbackToEarn.cashbackAmount,
+              cashbackRedeemed,
+            },
+          },
+        }),
+      ]);
+
+      // 14. Redeem cashback
+      if (cashbackRedeemed > 0) {
+        await this.cashbackService.redeemCashback(
+          userId,
+          cashbackRedeemed,
+          order.id,
+        );
+      }
+
+      // 15. Call VTPass API
+      let vtpassResult: VTPassPurchaseResult;
+      try {
+        vtpassResult = await this.vtpassService.purchaseWAECResult({
+          phone: dto.phone,
+          reference,
+        });
+      } catch (error) {
+        this.logger.error('[WAEC Result] VTPass API failed:', error);
+        await this.prisma.vTUOrder.update({
+          where: { id: order.id },
+          data: {
+            status: 'FAILED',
+            providerResponse: { error: 'VTPass API error' },
+          },
+        });
+
+        if (cashbackRedeemed > 0) {
+          await this.cashbackService.reverseCashbackRedemption(
+            userId,
+            order.id,
+          );
+        }
+
+        await this.refundFailedOrder(order.id);
+
+        throw new BadRequestException(
+          'Failed to process WAEC Result Checker purchase. Your wallet has been refunded.',
+        );
+      }
+
+      // 16. Prepare response
+      const response = {
+        reference,
+        orderId: order.id,
+        status: vtpassResult.status === 'success' ? 'COMPLETED' : 'FAILED',
+        amount,
+        fee,
+        cashbackRedeemed,
+        cashbackEarned: cashbackToEarn.cashbackAmount,
+        totalAmount: total,
+        provider: 'WAEC',
+        recipient: dto.phone,
+        cards: vtpassResult.token, // Serialized cards array
+        message:
+          vtpassResult.status === 'success'
+            ? 'WAEC Result Checker purchased successfully'
+            : 'WAEC Result Checker purchase failed. Wallet refunded.',
+      };
+
+      // 17. Update order async
+      this.prisma.vTUOrder
+        .update({
+          where: { id: order.id },
+          data: {
+            status: vtpassResult.status === 'success' ? 'COMPLETED' : 'FAILED',
+            providerRef: vtpassResult.transactionId,
+            providerToken: vtpassResult.token,
+            providerResponse: (vtpassResult as any).fullResponse,
+            cashbackEarned:
+              vtpassResult.status === 'success'
+                ? new Decimal(cashbackToEarn.cashbackAmount)
+                : undefined,
+            completedAt:
+              vtpassResult.status === 'success' ? new Date() : undefined,
+          },
+        })
+        .catch((error) =>
+          this.logger.error('Failed to update order status', error),
+        );
+
+      // Handle failure/success async
+      if (vtpassResult.status !== 'success') {
+        this.refundFailedOrder(order.id).catch((error) =>
+          this.logger.error('Failed to refund order', error),
+        );
+        if (cashbackRedeemed > 0) {
+          this.cashbackService
+            .reverseCashbackRedemption(userId, order.id)
+            .catch((error) =>
+              this.logger.error('Failed to reverse cashback', error),
+            );
+        }
+      }
+
+      if (
+        vtpassResult.status === 'success' &&
+        cashbackToEarn.isEligible &&
+        cashbackToEarn.cashbackAmount > 0
+      ) {
+        this.cashbackService
+          .awardCashback(userId, order.id, 'WAEC_RESULT', 'WAEC', amount)
+          .catch((error) =>
+            this.logger.error('Failed to award cashback', error),
+          );
+      }
+
+      if (vtpassResult.status === 'success') {
+        this.limitsService
+          .incrementDailySpend(userId, amount, TransactionLimitType.AIRTIME)
+          .catch((error) =>
+            this.logger.error('Failed to increment limit', error),
+          );
+
+        this.notificationDispatcher
+          .sendNotification({
+            userId,
+            eventType: 'vtu_purchase_success',
+            category: 'TRANSACTION',
+            channels: ['PUSH', 'IN_APP', 'EMAIL'],
+            title: 'WAEC Result Checker Purchased',
+            message: 'Your WAEC Result Checker PINs have been generated',
+            data: { amount, provider: 'WAEC', reference },
+          })
+          .catch((error) =>
+            this.logger.error('Failed to send notification', error),
+          );
+      }
+
+      this.unlockWalletForTransaction(userId).catch((error) =>
+        this.logger.error('Failed to unlock wallet', error),
+      );
+
+      return response;
+    } catch (error) {
+      await this.unlockWalletForTransaction(userId);
+      throw error;
+    }
   }
 
   // ==================== Saved Recipients Management ====================

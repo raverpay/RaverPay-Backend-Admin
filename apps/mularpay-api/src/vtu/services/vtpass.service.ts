@@ -631,6 +631,156 @@ export class VTPassService {
     };
   }
 
+  // ==================== Education Services ====================
+
+  // Service ID mapping to handle VTPass typo
+  private readonly EDUCATION_SERVICE_MAP: Record<string, string> = {
+    jamb: 'jamb',
+    'waec-registration': 'waec-registraion', // VTPass has typo - map to their actual ID
+    waec: 'waec',
+  };
+
+  async getJAMBVariations(): Promise<ServiceVariation[]> {
+    return this.getServiceVariations('jamb');
+  }
+
+  async getWAECRegistrationVariations(): Promise<ServiceVariation[]> {
+    return this.getServiceVariations('waec-registration');
+  }
+
+  async getWAECResultVariations(): Promise<ServiceVariation[]> {
+    return this.getServiceVariations('waec');
+  }
+
+  async verifyJAMBProfile(profileId: string, variationCode: string) {
+    return this.verifyCustomer(profileId, 'jamb', {
+      variation_code: variationCode,
+    });
+  }
+
+  async purchaseJAMBPin(data: {
+    profileId: string;
+    variationCode: string;
+    phone: string;
+    reference: string;
+  }) {
+    const response = await this.makeRequest<TransactionContent>(
+      '/pay',
+      'POST',
+      {
+        request_id: data.reference,
+        serviceID: 'jamb',
+        billersCode: data.profileId,
+        variation_code: data.variationCode,
+        phone: data.phone,
+      },
+    );
+
+    // Parse PIN from exchangeRef field (format: "Pin : 3678251321392432")
+    const exchangeRef =
+      (response as any).exchangeReference ||
+      (response as any).purchased_code ||
+      '';
+    const pinMatch = exchangeRef.match(/Pin\s*:\s*(\d+)/i);
+    const extractedPin = pinMatch ? pinMatch[1] : exchangeRef;
+
+    return {
+      status:
+        response.content.transactions.status === 'delivered'
+          ? 'success'
+          : 'failed',
+      transactionId: response.content.transactions.transactionId,
+      token: extractedPin, // Extracted PIN
+      productName: response.content.transactions.product_name,
+      amount: response.content.transactions.amount,
+      commission: response.content.transactions.commission,
+      fullResponse: response, // Store full response for providerResponse
+    };
+  }
+
+  async purchaseWAECRegistration(data: {
+    phone: string;
+    reference: string;
+    quantity?: number;
+  }) {
+    const payload: Record<string, unknown> = {
+      request_id: data.reference,
+      serviceID: this.EDUCATION_SERVICE_MAP['waec-registration'], // Use mapped ID with typo
+      billersCode: data.phone,
+      variation_code: 'waec-registraion', // VTPass typo
+      phone: data.phone,
+    };
+
+    if (data.quantity && data.quantity > 1) {
+      payload.quantity = data.quantity;
+    }
+
+    const response = await this.makeRequest<TransactionContent>(
+      '/pay',
+      'POST',
+      payload,
+    );
+
+    // Parse tokens from response (tokens array)
+    const tokens = (response as any).tokens || [];
+    const firstToken = tokens.length > 0 ? tokens[0] : null;
+
+    return {
+      status:
+        response.content.transactions.status === 'delivered'
+          ? 'success'
+          : 'failed',
+      transactionId: response.content.transactions.transactionId,
+      token: firstToken, // First token for quick access
+      productName: response.content.transactions.product_name,
+      amount: response.content.transactions.amount,
+      commission: response.content.transactions.commission,
+      fullResponse: response, // Store full response with all tokens
+    };
+  }
+
+  async purchaseWAECResult(data: {
+    phone: string;
+    reference: string;
+    quantity?: number;
+  }) {
+    const payload: Record<string, unknown> = {
+      request_id: data.reference,
+      serviceID: 'waec',
+      billersCode: data.phone,
+      variation_code: 'waecdirect',
+      phone: data.phone,
+    };
+
+    if (data.quantity && data.quantity > 1) {
+      payload.quantity = data.quantity;
+    }
+
+    const response = await this.makeRequest<TransactionContent>(
+      '/pay',
+      'POST',
+      payload,
+    );
+
+    // Parse cards from response (cards array with Serial and Pin)
+    const cards = (response as any).cards || [];
+    const serializedCards =
+      cards.length > 0 ? JSON.stringify(cards) : undefined;
+
+    return {
+      status:
+        response.content.transactions.status === 'delivered'
+          ? 'success'
+          : 'failed',
+      transactionId: response.content.transactions.transactionId,
+      token: serializedCards, // Serialized cards array
+      productName: response.content.transactions.product_name,
+      amount: response.content.transactions.amount,
+      commission: response.content.transactions.commission,
+      fullResponse: response, // Store full response with all cards
+    };
+  }
+
   // ==================== Wallet Balance ====================
 
   async getBalance(): Promise<{ balance: number }> {

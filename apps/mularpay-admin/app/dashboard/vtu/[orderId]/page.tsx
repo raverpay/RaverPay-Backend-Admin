@@ -151,6 +151,52 @@ export default function VTUDetailPage({ params }: { params: Promise<{ orderId: s
               </div>
             )}
 
+            {/* Education Services - Display PINs/Tokens */}
+            {(order.type === 'JAMB' ||
+              order.type === 'WAEC_REGISTRATION' ||
+              order.type === 'WAEC_RESULT') &&
+              order.providerToken && (
+                <div className="rounded-lg border border-primary bg-primary/5 p-4">
+                  <p className="text-sm font-medium text-primary mb-2">
+                    {order.type === 'JAMB' && 'JAMB PIN'}
+                    {order.type === 'WAEC_REGISTRATION' && 'Registration Token'}
+                    {order.type === 'WAEC_RESULT' && 'Result Checker Cards'}
+                  </p>
+                  {order.type === 'WAEC_RESULT' ? (
+                    <div className="space-y-2">
+                      {(() => {
+                        try {
+                          const cards = JSON.parse(order.providerToken);
+                          return Array.isArray(cards) ? (
+                            cards.map((card: any, idx: number) => (
+                              <div
+                                key={idx}
+                                className="bg-background p-2 rounded border text-xs font-mono"
+                              >
+                                <div>
+                                  <strong>Serial:</strong> {card.Serial}
+                                </div>
+                                <div>
+                                  <strong>PIN:</strong> {card.Pin}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-xs font-mono">{order.providerToken}</p>
+                          );
+                        } catch {
+                          return <p className="text-xs font-mono">{order.providerToken}</p>;
+                        }
+                      })()}
+                    </div>
+                  ) : (
+                    <p className="text-lg font-mono font-bold tracking-wide">
+                      {order.providerToken}
+                    </p>
+                  )}
+                </div>
+              )}
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Created</p>

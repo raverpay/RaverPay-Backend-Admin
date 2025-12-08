@@ -160,6 +160,11 @@ export default function VTUPage() {
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="AIRTIME">Airtime</SelectItem>
                 <SelectItem value="DATA">Data</SelectItem>
+                <SelectItem value="CABLE_TV">Cable TV</SelectItem>
+                <SelectItem value="ELECTRICITY">Electricity</SelectItem>
+                <SelectItem value="JAMB">JAMB</SelectItem>
+                <SelectItem value="WAEC_REGISTRATION">WAEC Registration</SelectItem>
+                <SelectItem value="WAEC_RESULT">WAEC Result</SelectItem>
               </SelectContent>
             </Select>
 

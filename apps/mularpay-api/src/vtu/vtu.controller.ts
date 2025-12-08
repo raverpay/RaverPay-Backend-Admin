@@ -26,6 +26,10 @@ import {
   PurchaseInternationalAirtimeDto,
   GetSavedRecipientsDto,
   UpdateSavedRecipientDto,
+  VerifyJAMBProfileDto,
+  PurchaseJAMBPinDto,
+  PurchaseWAECRegistrationDto,
+  PurchaseWAECResultDto,
 } from './dto';
 
 @Controller('vtu')
@@ -182,6 +186,62 @@ export class VTUController {
     @Body() dto: PurchaseInternationalAirtimeDto,
   ) {
     return this.vtuService.purchaseInternationalAirtime(userId, dto);
+  }
+
+  // ==================== Education Services ====================
+
+  @Get('education/jamb/variations')
+  @HttpCode(HttpStatus.OK)
+  getJAMBVariations() {
+    return this.vtuService.getJAMBVariations();
+  }
+
+  @Get('education/waec-registration/variations')
+  @HttpCode(HttpStatus.OK)
+  getWAECRegistrationVariations() {
+    return this.vtuService.getWAECRegistrationVariations();
+  }
+
+  @Get('education/waec-result/variations')
+  @HttpCode(HttpStatus.OK)
+  getWAECResultVariations() {
+    return this.vtuService.getWAECResultVariations();
+  }
+
+  @Post('education/jamb/verify-profile')
+  @HttpCode(HttpStatus.OK)
+  verifyJAMBProfile(@Body() dto: VerifyJAMBProfileDto) {
+    return this.vtuService.verifyJAMBProfile(dto.profileId, dto.variationCode);
+  }
+
+  @Throttle({ default: { limit: 10, ttl: 3600000 } }) // 10 JAMB purchases per hour
+  @Post('education/jamb/purchase')
+  @HttpCode(HttpStatus.CREATED)
+  purchaseJAMBPin(
+    @GetUser('id') userId: string,
+    @Body() dto: PurchaseJAMBPinDto,
+  ) {
+    return this.vtuService.purchaseJAMBPin(userId, dto);
+  }
+
+  @Throttle({ default: { limit: 10, ttl: 3600000 } }) // 10 WAEC purchases per hour
+  @Post('education/waec-registration/purchase')
+  @HttpCode(HttpStatus.CREATED)
+  purchaseWAECRegistration(
+    @GetUser('id') userId: string,
+    @Body() dto: PurchaseWAECRegistrationDto,
+  ) {
+    return this.vtuService.purchaseWAECRegistration(userId, dto);
+  }
+
+  @Throttle({ default: { limit: 10, ttl: 3600000 } }) // 10 WAEC purchases per hour
+  @Post('education/waec-result/purchase')
+  @HttpCode(HttpStatus.CREATED)
+  purchaseWAECResult(
+    @GetUser('id') userId: string,
+    @Body() dto: PurchaseWAECResultDto,
+  ) {
+    return this.vtuService.purchaseWAECResult(userId, dto);
   }
 
   // ==================== Order Management ====================
