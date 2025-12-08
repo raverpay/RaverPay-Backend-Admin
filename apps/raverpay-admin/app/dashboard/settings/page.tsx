@@ -76,7 +76,10 @@ export default function SettingsPage() {
       toast.success('Rating configuration updated successfully');
     },
     onError: (error: unknown) => {
-      toast.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to update rating configuration');
+      toast.error(
+        (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
+          'Failed to update rating configuration',
+      );
     },
   });
 

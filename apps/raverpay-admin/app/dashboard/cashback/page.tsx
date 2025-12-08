@@ -76,7 +76,10 @@ export default function CashbackPage() {
       toast.success('Cashback configuration created successfully');
     },
     onError: (error: unknown) => {
-      toast.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to create configuration');
+      toast.error(
+        (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
+          'Failed to create configuration',
+      );
     },
   });
 
@@ -92,7 +95,10 @@ export default function CashbackPage() {
       toast.success('Cashback configuration updated successfully');
     },
     onError: (error: unknown) => {
-      toast.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to update configuration');
+      toast.error(
+        (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
+          'Failed to update configuration',
+      );
     },
   });
 
@@ -104,7 +110,10 @@ export default function CashbackPage() {
       toast.success('Cashback configuration deactivated');
     },
     onError: (error: unknown) => {
-      toast.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to delete configuration');
+      toast.error(
+        (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
+          'Failed to delete configuration',
+      );
     },
   });
 
@@ -164,7 +173,10 @@ export default function CashbackPage() {
     }
   };
 
-  const [deleteConfirmConfig, setDeleteConfirmConfig] = useState<{ id: string; config: cashbackApi.CashbackConfig } | null>(null);
+  const [deleteConfirmConfig, setDeleteConfirmConfig] = useState<{
+    id: string;
+    config: cashbackApi.CashbackConfig;
+  } | null>(null);
 
   const handleDelete = (id: string, config: cashbackApi.CashbackConfig) => {
     setDeleteConfirmConfig({ id, config });
@@ -224,7 +236,9 @@ export default function CashbackPage() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₦{analytics.totalCashbackEarned.toLocaleString()}</div>
+              <div className="text-2xl font-bold">
+                ₦{analytics.totalCashbackEarned.toLocaleString()}
+              </div>
               <p className="text-xs text-muted-foreground">Lifetime cashback earned</p>
             </CardContent>
           </Card>
@@ -235,7 +249,9 @@ export default function CashbackPage() {
               <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₦{analytics.totalCashbackRedeemed.toLocaleString()}</div>
+              <div className="text-2xl font-bold">
+                ₦{analytics.totalCashbackRedeemed.toLocaleString()}
+              </div>
               <p className="text-xs text-muted-foreground">Lifetime cashback used</p>
             </CardContent>
           </Card>
@@ -246,7 +262,9 @@ export default function CashbackPage() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₦{analytics.outstandingBalance.toLocaleString()}</div>
+              <div className="text-2xl font-bold">
+                ₦{analytics.outstandingBalance.toLocaleString()}
+              </div>
               <p className="text-xs text-muted-foreground">Available to redeem</p>
             </CardContent>
           </Card>
@@ -307,9 +325,7 @@ export default function CashbackPage() {
       <Card>
         <CardHeader>
           <CardTitle>Cashback Configurations</CardTitle>
-          <CardDescription>
-            {filteredConfigs?.length || 0} configuration(s) found
-          </CardDescription>
+          <CardDescription>{filteredConfigs?.length || 0} configuration(s) found</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -338,7 +354,9 @@ export default function CashbackPage() {
                       <TableCell>{config.percentage}%</TableCell>
                       <TableCell>₦{Number(config.minAmount).toLocaleString()}</TableCell>
                       <TableCell>
-                        {config.maxCashback ? `₦${Number(config.maxCashback).toLocaleString()}` : 'No cap'}
+                        {config.maxCashback
+                          ? `₦${Number(config.maxCashback).toLocaleString()}`
+                          : 'No cap'}
                       </TableCell>
                       <TableCell>
                         <Badge variant={config.isActive ? 'default' : 'secondary'}>
@@ -383,9 +401,7 @@ export default function CashbackPage() {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {editingConfig ? 'Edit Configuration' : 'Add Configuration'}
-            </DialogTitle>
+            <DialogTitle>{editingConfig ? 'Edit Configuration' : 'Add Configuration'}</DialogTitle>
             <DialogDescription>
               {editingConfig
                 ? 'Update the cashback configuration details below.'
@@ -440,9 +456,7 @@ export default function CashbackPage() {
                 min="0.01"
                 max="100"
                 value={formData.percentage}
-                onChange={(e) =>
-                  setFormData({ ...formData, percentage: Number(e.target.value) })
-                }
+                onChange={(e) => setFormData({ ...formData, percentage: Number(e.target.value) })}
               />
             </div>
 
@@ -453,9 +467,7 @@ export default function CashbackPage() {
                 type="number"
                 min="0"
                 value={formData.minAmount}
-                onChange={(e) =>
-                  setFormData({ ...formData, minAmount: Number(e.target.value) })
-                }
+                onChange={(e) => setFormData({ ...formData, minAmount: Number(e.target.value) })}
               />
             </div>
 
@@ -466,9 +478,7 @@ export default function CashbackPage() {
                 type="number"
                 min="0"
                 value={formData.maxCashback}
-                onChange={(e) =>
-                  setFormData({ ...formData, maxCashback: Number(e.target.value) })
-                }
+                onChange={(e) => setFormData({ ...formData, maxCashback: Number(e.target.value) })}
               />
             </div>
 
@@ -478,9 +488,7 @@ export default function CashbackPage() {
                 id="description"
                 placeholder="Internal note"
                 value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
 
@@ -489,9 +497,7 @@ export default function CashbackPage() {
                 type="checkbox"
                 id="isActive"
                 checked={formData.isActive}
-                onChange={(e) =>
-                  setFormData({ ...formData, isActive: e.target.checked })
-                }
+                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                 className="h-4 w-4 rounded border-gray-300"
               />
               <Label htmlFor="isActive" className="cursor-pointer">
@@ -523,8 +529,8 @@ export default function CashbackPage() {
           <DialogHeader>
             <DialogTitle>Confirm Deactivation</DialogTitle>
             <DialogDescription>
-              Are you sure you want to deactivate {deleteConfirmConfig?.config.serviceType} cashback for{' '}
-              {deleteConfirmConfig?.config.provider || 'All'} providers?
+              Are you sure you want to deactivate {deleteConfirmConfig?.config.serviceType} cashback
+              for {deleteConfirmConfig?.config.provider || 'All'} providers?
               <br />
               <br />
               This will prevent users from earning cashback on this service until reactivated.
@@ -539,9 +545,7 @@ export default function CashbackPage() {
               onClick={confirmDelete}
               disabled={deleteMutation.isPending}
             >
-              {deleteMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
+              {deleteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Deactivate
             </Button>
           </div>

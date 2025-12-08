@@ -127,13 +127,13 @@ export interface Transaction {
 }
 
 // VTU Types
-export type VTUServiceType = 'AIRTIME' | 'DATA' | 'CABLE_TV' | 'ELECTRICITY';
+export type VTUServiceType = 'AIRTIME' | 'DATA' | 'CABLE_TV' | 'ELECTRICITY' | 'JAMB' | 'WAEC_REGISTRATION' | 'WAEC_RESULT';
 
 export interface VTUOrder {
   id: string;
   userId: string;
   serviceType: VTUServiceType;
-  type?: VTUServiceType;
+  type: VTUServiceType;
   provider: string;
   productCode: string;
   amount: string;
@@ -145,6 +145,7 @@ export interface VTUOrder {
   dataBundle?: string | null;
   providerReference?: string | null;
   providerResponse?: Record<string, unknown> | null;
+  providerToken?: string | null;
   transactionId?: string | null;
   completedAt?: string | null;
   refundedAt?: string | null;

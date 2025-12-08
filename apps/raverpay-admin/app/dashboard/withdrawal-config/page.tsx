@@ -84,7 +84,10 @@ export default function WithdrawalConfigPage() {
       toast.success('Withdrawal configuration created successfully');
     },
     onError: (error: unknown) => {
-      toast.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to create configuration');
+      toast.error(
+        (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
+          'Failed to create configuration',
+      );
     },
   });
 
@@ -100,7 +103,10 @@ export default function WithdrawalConfigPage() {
       toast.success('Withdrawal configuration updated successfully');
     },
     onError: (error: unknown) => {
-      toast.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to update configuration');
+      toast.error(
+        (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
+          'Failed to update configuration',
+      );
     },
   });
 
@@ -112,7 +118,10 @@ export default function WithdrawalConfigPage() {
       toast.success('Withdrawal configuration deleted');
     },
     onError: (error: unknown) => {
-      toast.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to delete configuration');
+      toast.error(
+        (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
+          'Failed to delete configuration',
+      );
     },
   });
 

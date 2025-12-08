@@ -3,7 +3,15 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { Search, Eye, Flag, ExternalLink, TrendingUp, ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import {
+  Search,
+  Eye,
+  Flag,
+  ExternalLink,
+  TrendingUp,
+  ArrowDownRight,
+  ArrowUpRight,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import { venlyWalletsApi } from '@/lib/api/venly-wallets';
@@ -74,7 +82,10 @@ export default function TransactionsPage() {
       setSelectedTxId(null);
     },
     onError: (error: unknown) => {
-      toast.error((error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to flag transaction');
+      toast.error(
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          'Failed to flag transaction',
+      );
     },
   });
 
@@ -189,9 +200,15 @@ export default function TransactionsPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            {tx.type === 'SEND' && <ArrowUpRight className="h-4 w-4 text-red-600" />}
-                            {tx.type === 'RECEIVE' && <ArrowDownRight className="h-4 w-4 text-green-600" />}
-                            {tx.type === 'CRYPTO_TO_NAIRA' && <TrendingUp className="h-4 w-4 text-blue-600" />}
+                            {tx.type === 'SEND' && (
+                              <ArrowUpRight className="h-4 w-4 text-red-600" />
+                            )}
+                            {tx.type === 'RECEIVE' && (
+                              <ArrowDownRight className="h-4 w-4 text-green-600" />
+                            )}
+                            {tx.type === 'CRYPTO_TO_NAIRA' && (
+                              <TrendingUp className="h-4 w-4 text-blue-600" />
+                            )}
                             <span className="text-sm">{tx.type.replace('_', ' ')}</span>
                           </div>
                         </TableCell>

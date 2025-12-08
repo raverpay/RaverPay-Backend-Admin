@@ -111,10 +111,15 @@ export interface VenlyAnalytics {
 
 export const venlyWalletsApi = {
   // Wallet Management
-  getWallets: async (params?: Record<string, unknown>): Promise<PaginatedResponse<VenlyWalletUser>> => {
-    const response = await apiClient.get<PaginatedResponse<VenlyWalletUser>>('/admin/venly-wallets', {
-      params,
-    });
+  getWallets: async (
+    params?: Record<string, unknown>,
+  ): Promise<PaginatedResponse<VenlyWalletUser>> => {
+    const response = await apiClient.get<PaginatedResponse<VenlyWalletUser>>(
+      '/admin/venly-wallets',
+      {
+        params,
+      },
+    );
     return response.data;
   },
 
@@ -130,33 +135,43 @@ export const venlyWalletsApi = {
 
   // Transaction Management
   getTransactions: async (
-    params?: Record<string, unknown>
+    params?: Record<string, unknown>,
   ): Promise<PaginatedResponse<CryptoTransaction>> => {
     const response = await apiClient.get<PaginatedResponse<CryptoTransaction>>(
       '/admin/venly-wallets/transactions',
-      { params }
+      { params },
     );
     return response.data;
   },
 
   getTransactionById: async (transactionId: string): Promise<CryptoTransaction> => {
     const response = await apiClient.get<CryptoTransaction>(
-      `/admin/venly-wallets/transactions/${transactionId}`
+      `/admin/venly-wallets/transactions/${transactionId}`,
     );
     return response.data;
   },
 
-  flagTransaction: async (transactionId: string, reason: string): Promise<{ success: boolean; message: string }> => {
-    const response = await apiClient.post(`/admin/venly-wallets/transactions/${transactionId}/flag`, {
-      reason,
-    });
+  flagTransaction: async (
+    transactionId: string,
+    reason: string,
+  ): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.post(
+      `/admin/venly-wallets/transactions/${transactionId}/flag`,
+      {
+        reason,
+      },
+    );
     return response.data;
   },
 
   // Conversion Management
   getConversions: async (
-    params?: Record<string, unknown>
-  ): Promise<PaginatedResponse<CryptoConversion> & { stats: { totalVolumeUSD: string; averageConversionUSD: string } }> => {
+    params?: Record<string, unknown>,
+  ): Promise<
+    PaginatedResponse<CryptoConversion> & {
+      stats: { totalVolumeUSD: string; averageConversionUSD: string };
+    }
+  > => {
     const response = await apiClient.get('/admin/venly-wallets/conversions', { params });
     return response.data;
   },
@@ -172,13 +187,18 @@ export const venlyWalletsApi = {
     toNaira: number;
     platformFeePercent?: number;
   }): Promise<ExchangeRate> => {
-    const response = await apiClient.patch<ExchangeRate>('/admin/venly-wallets/exchange-rates', data);
+    const response = await apiClient.patch<ExchangeRate>(
+      '/admin/venly-wallets/exchange-rates',
+      data,
+    );
     return response.data;
   },
 
   // Analytics
   getAnalytics: async (params?: Record<string, unknown>): Promise<VenlyAnalytics> => {
-    const response = await apiClient.get<VenlyAnalytics>('/admin/venly-wallets/analytics', { params });
+    const response = await apiClient.get<VenlyAnalytics>('/admin/venly-wallets/analytics', {
+      params,
+    });
     return response.data;
   },
 };

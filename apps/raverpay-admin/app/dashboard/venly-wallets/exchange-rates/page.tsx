@@ -25,7 +25,10 @@ import { formatDate } from '@/lib/utils';
 export default function ExchangeRatesPage() {
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValues, setEditValues] = useState<{ rate: string; fee: string }>({ rate: '', fee: '' });
+  const [editValues, setEditValues] = useState<{ rate: string; fee: string }>({
+    rate: '',
+    fee: '',
+  });
 
   const { data: rates, isLoading } = useQuery({
     queryKey: ['exchange-rates'],
@@ -41,7 +44,10 @@ export default function ExchangeRatesPage() {
       setEditingId(null);
     },
     onError: (error: unknown) => {
-      toast.error((error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to update exchange rate');
+      toast.error(
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          'Failed to update exchange rate',
+      );
     },
   });
 
@@ -146,7 +152,8 @@ export default function ExchangeRatesPage() {
                             <div className="flex items-center justify-end gap-2">
                               <TrendingUp className="h-3 w-3 text-green-600" />
                               <span className="font-mono font-semibold">
-                                ₦{parseFloat(rate.rate).toLocaleString('en-NG', {
+                                ₦
+                                {parseFloat(rate.rate).toLocaleString('en-NG', {
                                   minimumFractionDigits: 2,
                                   maximumFractionDigits: 2,
                                 })}

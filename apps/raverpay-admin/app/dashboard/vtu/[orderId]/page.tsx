@@ -16,6 +16,11 @@ import { formatDate, formatCurrency, getApiErrorMessage } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 
+interface EducationCard {
+  Serial: string;
+  Pin: string;
+}
+
 export default function VTUDetailPage({ params }: { params: Promise<{ orderId: string }> }) {
   const resolvedParams = use(params);
   const router = useRouter();
@@ -166,9 +171,9 @@ export default function VTUDetailPage({ params }: { params: Promise<{ orderId: s
                     <div className="space-y-2">
                       {(() => {
                         try {
-                          const cards = JSON.parse(order.providerToken);
-                          return Array.isArray(cards) ? (
-                            cards.map((card: Record<string, unknown>, idx: number) => (
+                          const cards = JSON.parse(order.providerToken || '[]') as EducationCard[];
+                          return Array.isArray(cards) && cards.length > 0 ? (
+                            cards.map((card: EducationCard, idx: number) => (
                               <div
                                 key={idx}
                                 className="bg-background p-2 rounded border text-xs font-mono"

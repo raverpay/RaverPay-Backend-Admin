@@ -1,6 +1,26 @@
 import apiClient from '../api-client';
 import { VirtualAccount, PaginatedResponse, VirtualAccountStatistics } from '@/types';
 
+export interface FailedDVAUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  paystackCustomerCode: string;
+  bvn: string | null;
+  bvnVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+  lastFailure: {
+    id: string;
+    failureReason: string | null;
+    retryCount: number;
+    lastRetryAt: string | null;
+    createdAt: string;
+  } | null;
+}
+
 export const virtualAccountsApi = {
   getAll: async (params?: Record<string, unknown>): Promise<PaginatedResponse<VirtualAccount>> => {
     const response = await apiClient.get<PaginatedResponse<VirtualAccount>>(
@@ -56,8 +76,8 @@ export const virtualAccountsApi = {
     page?: number;
     limit?: number;
     search?: string;
-  }): Promise<PaginatedResponse<unknown>> => {
-    const response = await apiClient.get<PaginatedResponse<unknown>>(
+  }): Promise<PaginatedResponse<FailedDVAUser>> => {
+    const response = await apiClient.get<PaginatedResponse<FailedDVAUser>>(
       '/admin/virtual-accounts/failed',
       { params },
     );
@@ -65,16 +85,11 @@ export const virtualAccountsApi = {
   },
 
   getCreationStatus: async (userId: string): Promise<unknown> => {
-    const response = await apiClient.get<unknown>(
-      `/admin/virtual-accounts/${userId}/status`,
-    );
+    const response = await apiClient.get<unknown>(`/admin/virtual-accounts/${userId}/status`);
     return response.data;
   },
 
-  createDVAForUser: async (
-    userId: string,
-    preferredBank?: string,
-  ): Promise<VirtualAccount> => {
+  createDVAForUser: async (userId: string, preferredBank?: string): Promise<VirtualAccount> => {
     const response = await apiClient.post<VirtualAccount>(
       `/admin/virtual-accounts/${userId}/create`,
       { preferred_bank: preferredBank },

@@ -17,7 +17,7 @@ import {
   XCircle,
 } from 'lucide-react';
 
-import { virtualAccountsApi } from '@/lib/api/virtual-accounts';
+import { virtualAccountsApi, FailedDVAUser } from '@/lib/api/virtual-accounts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -50,26 +50,6 @@ import {
 import { formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
 
-interface FailedDVAUser {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  paystackCustomerCode: string;
-  bvn: string | null;
-  bvnVerified: boolean;
-  createdAt: string;
-  updatedAt: string;
-  lastFailure: {
-    id: string;
-    failureReason: string | null;
-    retryCount: number;
-    lastRetryAt: string | null;
-    createdAt: string;
-  } | null;
-}
-
 export default function FailedDVACreationsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -101,7 +81,8 @@ export default function FailedDVACreationsPage() {
     },
     onError: (error: unknown) => {
       toast.error(
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to create virtual account',
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          'Failed to create virtual account',
       );
     },
   });
@@ -308,7 +289,9 @@ export default function FailedDVACreationsPage() {
                   </div>
                   <div>
                     <span className="text-muted-foreground">Customer Code:</span>{' '}
-                    <code className="rounded bg-muted px-1">{selectedUser.paystackCustomerCode}</code>
+                    <code className="rounded bg-muted px-1">
+                      {selectedUser.paystackCustomerCode}
+                    </code>
                   </div>
                   <div>
                     <span className="text-muted-foreground">BVN:</span>{' '}
@@ -380,4 +363,3 @@ export default function FailedDVACreationsPage() {
     </div>
   );
 }
-
