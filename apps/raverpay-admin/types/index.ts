@@ -127,7 +127,14 @@ export interface Transaction {
 }
 
 // VTU Types
-export type VTUServiceType = 'AIRTIME' | 'DATA' | 'CABLE_TV' | 'ELECTRICITY' | 'JAMB' | 'WAEC_REGISTRATION' | 'WAEC_RESULT';
+export type VTUServiceType =
+  | 'AIRTIME'
+  | 'DATA'
+  | 'CABLE_TV'
+  | 'ELECTRICITY'
+  | 'JAMB'
+  | 'WAEC_REGISTRATION'
+  | 'WAEC_RESULT';
 
 export interface VTUOrder {
   id: string;
