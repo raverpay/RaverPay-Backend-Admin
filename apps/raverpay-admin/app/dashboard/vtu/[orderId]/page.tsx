@@ -168,7 +168,7 @@ export default function VTUDetailPage({ params }: { params: Promise<{ orderId: s
                         try {
                           const cards = JSON.parse(order.providerToken);
                           return Array.isArray(cards) ? (
-                            cards.map((card: any, idx: number) => (
+                            cards.map((card: Record<string, unknown>, idx: number) => (
                               <div
                                 key={idx}
                                 className="bg-background p-2 rounded border text-xs font-mono"

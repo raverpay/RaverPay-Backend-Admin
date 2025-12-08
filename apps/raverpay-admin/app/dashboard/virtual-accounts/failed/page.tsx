@@ -99,9 +99,9 @@ export default function FailedDVACreationsPage() {
       queryClient.invalidateQueries({ queryKey: ['failed-dva-creations'] });
       queryClient.invalidateQueries({ queryKey: ['virtual-accounts'] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(
-        error?.response?.data?.message || 'Failed to create virtual account',
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to create virtual account',
       );
     },
   });
@@ -180,7 +180,7 @@ export default function FailedDVACreationsPage() {
               <CheckCircle2 className="mx-auto h-12 w-12 text-muted-foreground" />
               <p className="mt-4 text-lg font-medium">No failed creations found</p>
               <p className="text-muted-foreground">
-                All users have active virtual accounts or don't meet the requirements.
+                All users have active virtual accounts or don&apos;t meet the requirements.
               </p>
             </div>
           ) : (

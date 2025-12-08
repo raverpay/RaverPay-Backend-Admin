@@ -75,8 +75,8 @@ export default function SettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['app-config', 'rating'] });
       toast.success('Rating configuration updated successfully');
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update rating configuration');
+    onError: (error: unknown) => {
+      toast.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to update rating configuration');
     },
   });
 

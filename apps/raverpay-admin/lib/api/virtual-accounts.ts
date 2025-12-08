@@ -56,16 +56,16 @@ export const virtualAccountsApi = {
     page?: number;
     limit?: number;
     search?: string;
-  }): Promise<PaginatedResponse<any>> => {
-    const response = await apiClient.get<PaginatedResponse<any>>(
+  }): Promise<PaginatedResponse<unknown>> => {
+    const response = await apiClient.get<PaginatedResponse<unknown>>(
       '/admin/virtual-accounts/failed',
       { params },
     );
     return response.data;
   },
 
-  getCreationStatus: async (userId: string): Promise<any> => {
-    const response = await apiClient.get<any>(
+  getCreationStatus: async (userId: string): Promise<unknown> => {
+    const response = await apiClient.get<unknown>(
       `/admin/virtual-accounts/${userId}/status`,
     );
     return response.data;

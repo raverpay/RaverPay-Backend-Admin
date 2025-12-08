@@ -83,8 +83,8 @@ export default function WithdrawalConfigPage() {
       resetForm();
       toast.success('Withdrawal configuration created successfully');
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create configuration');
+    onError: (error: unknown) => {
+      toast.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to create configuration');
     },
   });
 
@@ -99,8 +99,8 @@ export default function WithdrawalConfigPage() {
       resetForm();
       toast.success('Withdrawal configuration updated successfully');
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update configuration');
+    onError: (error: unknown) => {
+      toast.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to update configuration');
     },
   });
 
@@ -111,8 +111,8 @@ export default function WithdrawalConfigPage() {
       queryClient.invalidateQueries({ queryKey: ['withdrawal'] });
       toast.success('Withdrawal configuration deleted');
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to delete configuration');
+    onError: (error: unknown) => {
+      toast.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to delete configuration');
     },
   });
 

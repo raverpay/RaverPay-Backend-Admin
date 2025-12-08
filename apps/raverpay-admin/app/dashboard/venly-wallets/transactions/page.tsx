@@ -73,8 +73,8 @@ export default function TransactionsPage() {
       setFlagReason('');
       setSelectedTxId(null);
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || 'Failed to flag transaction');
+    onError: (error: unknown) => {
+      toast.error((error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to flag transaction');
     },
   });
 

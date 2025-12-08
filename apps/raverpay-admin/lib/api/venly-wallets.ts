@@ -123,7 +123,7 @@ export const venlyWalletsApi = {
     return response.data;
   },
 
-  getUserWallet: async (userId: string): Promise<any> => {
+  getUserWallet: async (userId: string): Promise<unknown> => {
     const response = await apiClient.get(`/admin/venly-wallets/user/${userId}`);
     return response.data;
   },

@@ -75,8 +75,8 @@ export default function CashbackPage() {
       resetForm();
       toast.success('Cashback configuration created successfully');
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create configuration');
+    onError: (error: unknown) => {
+      toast.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to create configuration');
     },
   });
 
@@ -91,8 +91,8 @@ export default function CashbackPage() {
       resetForm();
       toast.success('Cashback configuration updated successfully');
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update configuration');
+    onError: (error: unknown) => {
+      toast.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to update configuration');
     },
   });
 
@@ -103,8 +103,8 @@ export default function CashbackPage() {
       queryClient.invalidateQueries({ queryKey: ['cashback'] });
       toast.success('Cashback configuration deactivated');
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to delete configuration');
+    onError: (error: unknown) => {
+      toast.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to delete configuration');
     },
   });
 

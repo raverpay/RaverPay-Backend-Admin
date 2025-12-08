@@ -40,8 +40,8 @@ export default function ExchangeRatesPage() {
       toast.success('Exchange rate updated successfully');
       setEditingId(null);
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || 'Failed to update exchange rate');
+    onError: (error: unknown) => {
+      toast.error((error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to update exchange rate');
     },
   });
 
