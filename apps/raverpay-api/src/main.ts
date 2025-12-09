@@ -16,9 +16,7 @@ async function bootstrap() {
   app.enableCors({
     origin: process.env.CORS_ORIGIN?.split(',') || [
       'http://localhost:3000',
-      'http://localhost:3002',
-      'https://admin.raverpay.com',
-      'https://raverpay-admin.vercel.app',
+      'https://myadmin.raverpay.com',
     ],
     credentials: true,
   });
