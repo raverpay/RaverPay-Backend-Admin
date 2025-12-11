@@ -712,6 +712,7 @@ model InboundEmail {
   conversationId  String?       @unique
   userId          String?
   attachments     Json?
+  replies         Json?
   isProcessed     Boolean       @default(false)
   processedAt     DateTime?
   processingError String?

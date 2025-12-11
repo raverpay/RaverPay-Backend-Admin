@@ -19,7 +19,6 @@ export class PriceUpdateCron {
   @Cron(CronExpression.EVERY_MINUTE)
   async updatePrices() {
     if (this.isRunning) {
-      this.logger.warn('Price update already running, skipping...');
       return;
     }
 
@@ -40,9 +39,7 @@ export class PriceUpdateCron {
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async cleanupOldPrices() {
     try {
-      this.logger.log('Cleaning up old price records...');
       await this.priceService.cleanupOldPrices();
-      this.logger.log('Price cleanup completed');
     } catch (error) {
       this.logger.error('Price cleanup cron failed', error);
     }

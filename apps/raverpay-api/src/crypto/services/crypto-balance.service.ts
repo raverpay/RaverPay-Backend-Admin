@@ -34,8 +34,6 @@ export class CryptoBalanceService {
         throw new Error('Venly wallet ID not found');
       }
 
-      this.logger.log(`Syncing balances for wallet: ${wallet.id}`);
-
       // Get native balance (MATIC) from Venly
       const nativeBalance = await this.venly.getWalletBalance(
         wallet.venlyWalletId,
@@ -54,8 +52,6 @@ export class CryptoBalanceService {
 
       // Update USD values from CoinGecko (Venly returns 0 for testnet tokens)
       await this.updateUsdValues(wallet.id);
-
-      this.logger.log(`Balances synced successfully for wallet: ${wallet.id}`);
 
       // Return updated balances
       return this.getBalances(wallet.id);
@@ -124,8 +120,6 @@ export class CryptoBalanceService {
         usdValue: new Decimal(usdValue),
       },
     });
-
-    this.logger.debug(`Updated MATIC balance: ${balance} (USD: $${usdValue})`);
   }
 
   /**
@@ -208,10 +202,6 @@ export class CryptoBalanceService {
             usdValue: new Decimal(usdValue),
           },
         });
-
-        this.logger.debug(
-          `Updated USDT balance: ${balance} (USD: $${usdValue})`,
-        );
       }
 
       // Update USDC if it matches (can be same token for testing)
@@ -243,10 +233,6 @@ export class CryptoBalanceService {
             usdValue: new Decimal(usdValue),
           },
         });
-
-        this.logger.debug(
-          `Updated USDC balance: ${balance} (USD: $${usdValue})`,
-        );
       }
     }
   }
@@ -288,15 +274,11 @@ export class CryptoBalanceService {
     });
 
     if (latestPrice) {
-      this.logger.debug(
-        `Found price for ${tokenSymbol}: $${latestPrice.usdPrice}`,
-      );
       return Number(latestPrice.usdPrice);
     }
 
     // Default prices for stablecoins
     if (tokenSymbol === 'USDT' || tokenSymbol === 'USDC') {
-      this.logger.debug(`Using default price for ${tokenSymbol}: $1.00`);
       return 1.0;
     }
 

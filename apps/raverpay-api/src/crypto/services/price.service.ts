@@ -40,8 +40,6 @@ export class PriceService {
    */
   async updateAllPrices() {
     try {
-      this.logger.log('Fetching prices from CoinGecko...');
-
       // Build list of IDs to fetch (include MATIC alternatives)
       const ids = [
         ...this.MATIC_ALTERNATIVE_IDS,
@@ -62,7 +60,6 @@ export class PriceService {
       const usdtPrice = prices[this.TOKEN_IDS.USDT];
       if (usdtPrice?.usd) {
         await this.savePrice('USDT', usdtPrice.usd);
-        this.logger.debug(`Saved price for USDT: $${usdtPrice.usd}`);
       } else {
         this.logger.warn(
           `No price data found for USDT (${this.TOKEN_IDS.USDT})`,
@@ -73,7 +70,6 @@ export class PriceService {
       const usdcPrice = prices[this.TOKEN_IDS.USDC];
       if (usdcPrice?.usd) {
         await this.savePrice('USDC', usdcPrice.usd);
-        this.logger.debug(`Saved price for USDC: $${usdcPrice.usd}`);
       } else {
         this.logger.warn(
           `No price data found for USDC (${this.TOKEN_IDS.USDC})`,
@@ -89,23 +85,17 @@ export class PriceService {
         if (priceData?.usd !== undefined) {
           maticPrice = priceData.usd;
           maticIdUsed = id;
-          this.logger.debug(`Found MATIC price using ID: ${id}`);
           break;
         }
       }
 
       if (maticPrice !== null) {
         await this.savePrice('MATIC', maticPrice);
-        this.logger.debug(
-          `Saved price for MATIC: $${maticPrice} (from ${maticIdUsed})`,
-        );
       } else {
         this.logger.warn(
           `No price data found for MATIC. Tried IDs: ${this.MATIC_ALTERNATIVE_IDS.join(', ')}`,
         );
       }
-
-      this.logger.log('Prices updated successfully');
     } catch (error) {
       this.logger.error('Failed to update prices from CoinGecko', error);
       // Don't throw - allow retries via cron
@@ -174,8 +164,6 @@ export class PriceService {
         fetchedAt: new Date(),
       },
     });
-
-    this.logger.debug(`Saved price for ${symbol}: $${usdPrice}`);
   }
 
   /**

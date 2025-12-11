@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ThrottlerStorage } from '@nestjs/throttler';
 import { Redis } from 'ioredis';
 import { ConfigService } from '@nestjs/config';
@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
  */
 @Injectable()
 export class RedisThrottlerStorage implements ThrottlerStorage {
+  private readonly logger = new Logger(RedisThrottlerStorage.name);
   private redis: Redis;
   private isConnected = false;
   private connectionAttempted = false;
@@ -31,15 +32,16 @@ export class RedisThrottlerStorage implements ThrottlerStorage {
         this.redis.on('connect', () => {
           this.isConnected = true;
           this.hasLoggedError = false;
-          console.log('✅ Redis throttler storage connected');
+          this.logger.log('Redis throttler storage connected');
         });
 
         this.redis.on('error', (err) => {
           this.isConnected = false;
           // Only log once to avoid spam
           if (!this.hasLoggedError) {
-            console.error('❌ Redis connection failed:', err.message);
-            console.warn('⚠️  Using in-memory fallback for rate limiting');
+            this.logger.error(
+              `Redis connection failed: ${err.message}. Using in-memory fallback for rate limiting`,
+            );
             this.hasLoggedError = true;
           }
         });
@@ -104,7 +106,7 @@ export class RedisThrottlerStorage implements ThrottlerStorage {
         timeToBlockExpire: 0,
       };
     } catch (error) {
-      console.error('Redis increment error:', error);
+      this.logger.error('Redis increment error:', error);
       return this.inMemoryIncrement(key, ttl, limit, blockDuration);
     }
   }

@@ -31,15 +31,12 @@ export class TransactionStatusCron {
   @Cron(CronExpression.EVERY_5_MINUTES)
   async checkPendingTransactions() {
     if (this.isRunning) {
-      this.logger.log('Previous job still running, skipping...');
       return;
     }
 
     this.isRunning = true;
 
     try {
-      this.logger.log('Starting pending transaction status check...');
-
       // Find transactions that have been pending for more than 2 minutes
       const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
 
@@ -57,13 +54,8 @@ export class TransactionStatusCron {
       });
 
       if (pendingTransactions.length === 0) {
-        this.logger.log('No pending transactions to check');
         return;
       }
-
-      this.logger.log(
-        `Found ${pendingTransactions.length} pending transactions to check`,
-      );
 
       let checkedCount = 0;
       let updatedCount = 0;
@@ -81,10 +73,6 @@ export class TransactionStatusCron {
 
           // Update transaction based on status
           if (status.status === 'SUCCEEDED') {
-            this.logger.log(
-              `Transaction ${transaction.transactionHash} succeeded`,
-            );
-
             // Use the same handler as webhook
             await this.cryptoSend.handleTransactionSuccess(
               transaction.transactionHash,
@@ -96,10 +84,6 @@ export class TransactionStatusCron {
 
             updatedCount++;
           } else if (status.status === 'FAILED') {
-            this.logger.log(
-              `Transaction ${transaction.transactionHash} failed`,
-            );
-
             // Use the same handler as webhook
             await this.cryptoSend.handleTransactionFailure(
               transaction.transactionHash,
@@ -110,10 +94,6 @@ export class TransactionStatusCron {
             );
 
             updatedCount++;
-          } else {
-            this.logger.log(
-              `Transaction ${transaction.transactionHash} still pending`,
-            );
           }
 
           // Small delay to avoid rate limiting
@@ -127,9 +107,12 @@ export class TransactionStatusCron {
         }
       }
 
-      this.logger.log(
-        `Transaction status check complete: ${checkedCount} checked, ${updatedCount} updated`,
-      );
+      // Only log if there were updates or errors
+      if (updatedCount > 0 || checkedCount > 0) {
+        this.logger.log(
+          `Transaction status check: ${checkedCount} checked, ${updatedCount} updated`,
+        );
+      }
     } catch (error) {
       this.logger.error('Error in transaction status check cron', error);
     } finally {

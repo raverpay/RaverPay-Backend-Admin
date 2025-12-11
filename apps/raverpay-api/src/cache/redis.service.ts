@@ -15,11 +15,6 @@ export class RedisService {
   async get<T>(key: string): Promise<T | null> {
     try {
       const value = await this.cacheManager.get<T>(key);
-      if (value !== undefined && value !== null) {
-        this.logger.debug(`✅ Cache HIT: ${key}`);
-      } else {
-        this.logger.debug(`❌ Cache MISS: ${key}`);
-      }
       return value ?? null;
     } catch (error) {
       this.logger.error(`Cache GET error for key ${key}:`, error);
@@ -34,7 +29,6 @@ export class RedisService {
     try {
       const ttlMs = ttl ? ttl * 1000 : undefined;
       await this.cacheManager.set(key, value, ttlMs);
-      this.logger.debug(`💾 Cache SET: ${key} (TTL: ${ttl || 'default'}s)`);
     } catch (error) {
       this.logger.error(`Cache SET error for key ${key}:`, error);
     }
@@ -95,9 +89,6 @@ export class RedisService {
       await new Promise<void>((resolve, reject) => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         stream.on('end', () => {
-          this.logger.debug(
-            `🗑️  Cache DEL PATTERN: ${pattern} (deleted ${deletedCount} keys)`,
-          );
           resolve();
         });
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
@@ -139,7 +130,7 @@ export class RedisService {
         await this.set(key, value, ttl);
       }
     } catch (error) {
-      console.error(`Cache EXPIRE error for key ${key}:`, error);
+      this.logger.error(`Cache EXPIRE error for key ${key}:`, error);
     }
   }
 
@@ -151,7 +142,7 @@ export class RedisService {
       const value = await this.get(key);
       return value !== null;
     } catch (error) {
-      console.error(`Cache EXISTS error for key ${key}:`, error);
+      this.logger.error(`Cache EXISTS error for key ${key}:`, error);
       return false;
     }
   }
@@ -163,7 +154,7 @@ export class RedisService {
     try {
       return await Promise.all(keys.map((key) => this.get<T>(key)));
     } catch (error) {
-      console.error(`Cache MGET error:`, error);
+      this.logger.error(`Cache MGET error:`, error);
       return keys.map(() => null);
     }
   }

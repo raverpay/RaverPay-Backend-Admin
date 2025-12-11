@@ -31,8 +31,6 @@ export class BalanceSyncCron {
     this.isRunning = true;
 
     try {
-      this.logger.log('Starting balance sync for all crypto wallets...');
-
       // Get all users with crypto wallets
       const cryptoWallets = await this.prisma.wallet.findMany({
         where: {
@@ -46,8 +44,6 @@ export class BalanceSyncCron {
           },
         },
       });
-
-      this.logger.log(`Found ${cryptoWallets.length} crypto wallets to sync`);
 
       let successCount = 0;
       let failureCount = 0;
@@ -78,9 +74,12 @@ export class BalanceSyncCron {
         }
       }
 
-      this.logger.log(
-        `Balance sync completed: ${successCount} successful, ${failureCount} failed`,
-      );
+      // Only log if there were failures or if sync was successful
+      if (failureCount > 0 || successCount > 0) {
+        this.logger.log(
+          `Balance sync completed: ${successCount} successful, ${failureCount} failed`,
+        );
+      }
     } catch (error) {
       this.logger.error('Balance sync cron failed', error);
     } finally {

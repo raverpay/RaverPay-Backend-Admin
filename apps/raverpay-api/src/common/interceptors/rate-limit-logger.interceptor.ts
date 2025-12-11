@@ -3,6 +3,7 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
+  Logger,
 } from '@nestjs/common';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -19,6 +20,7 @@ import * as path from 'path';
  */
 @Injectable()
 export class RateLimitLoggerInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(RateLimitLoggerInterceptor.name);
   private geoReader: maxmind.Reader<maxmind.CityResponse> | null = null;
 
   constructor(
@@ -36,12 +38,11 @@ export class RateLimitLoggerInterceptor implements NestInterceptor {
       // Use absolute path from project root
       const dbPath = path.join(process.cwd(), 'data/GeoLite2-City.mmdb');
       this.geoReader = await maxmind.open<maxmind.CityResponse>(dbPath);
-      console.log('✅ GeoIP database loaded for rate limit tracking');
+      this.logger.log('GeoIP database loaded for rate limit tracking');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      console.warn('⚠️  GeoIP database not available:', message);
-      console.warn(
-        '   Rate limit violations will be logged without location data',
+      this.logger.warn(
+        `GeoIP database not available: ${message}. Rate limit violations will be logged without location data`,
       );
     }
   }
@@ -108,7 +109,7 @@ export class RateLimitLoggerInterceptor implements NestInterceptor {
       }
     } catch (error) {
       // Don't fail the request if logging fails
-      console.error('Failed to log rate limit violation:', error);
+      this.logger.error('Failed to log rate limit violation:', error);
     }
   }
 
@@ -165,7 +166,7 @@ export class RateLimitLoggerInterceptor implements NestInterceptor {
         },
       });
     } catch (error) {
-      console.error('Failed to update daily metrics:', error);
+      this.logger.error('Failed to update daily metrics:', error);
     }
   }
 }

@@ -216,16 +216,41 @@ export const supportApi = {
     id: string,
     content: string,
     subject?: string,
+    attachments?: File[],
   ): Promise<{ success: boolean; message: string; resendEmailId?: string }> => {
-    const response = await apiClient.post<{
-      success: boolean;
-      message: string;
-      resendEmailId?: string;
-    }>(`/admin/emails/${id}/reply`, {
-      content,
-      subject,
-    });
-    return response.data;
+    // Use FormData if attachments are provided, otherwise use JSON
+    if (attachments && attachments.length > 0) {
+      const formData = new FormData();
+      formData.append('content', content);
+      if (subject) {
+        formData.append('subject', subject);
+      }
+      attachments.forEach((file) => {
+        formData.append('attachments', file);
+      });
+
+      const response = await apiClient.post<{
+        success: boolean;
+        message: string;
+        resendEmailId?: string;
+      }>(`/admin/emails/${id}/reply`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } else {
+      // No attachments - use JSON
+      const response = await apiClient.post<{
+        success: boolean;
+        message: string;
+        resendEmailId?: string;
+      }>(`/admin/emails/${id}/reply`, {
+        content,
+        subject,
+      });
+      return response.data;
+    }
   },
 
   downloadAttachment: async (

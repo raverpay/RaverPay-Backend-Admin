@@ -194,6 +194,18 @@ export enum UserRole {
   SUPER_ADMIN = 'SUPER_ADMIN',
 }
 
+export interface EmailReply {
+  content: string;
+  sentAt: string;
+  sentBy: string;
+  resendEmailId?: string;
+  attachments?: Array<{
+    filename: string;
+    size: number;
+    contentType: string;
+  }>;
+}
+
 export interface InboundEmail {
   id: string;
   emailId: string;
@@ -222,6 +234,7 @@ export interface InboundEmail {
     content_id?: string;
     size?: number;
   }>;
+  replies?: EmailReply[];
   isProcessed: boolean;
   processedAt?: string;
   processingError?: string;

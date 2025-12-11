@@ -18,6 +18,7 @@ import {
   Reply,
   Download,
   Forward,
+  X,
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -62,6 +63,7 @@ export default function EmailDetailPage({ params }: { params: Promise<{ id: stri
   const queryClient = useQueryClient();
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyContent, setReplyContent] = useState('');
+  const [replyAttachments, setReplyAttachments] = useState<File[]>([]);
   const [downloadingAttachment, setDownloadingAttachment] = useState<string | null>(null);
 
   const { data: email, isLoading } = useQuery({
@@ -124,6 +126,7 @@ export default function EmailDetailPage({ params }: { params: Promise<{ id: stri
         resolvedParams.id,
         replyContent,
         undefined, // Subject is always Re: {originalSubject} - locked on backend
+        replyAttachments.length > 0 ? replyAttachments : undefined,
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['email', resolvedParams.id] });
@@ -136,6 +139,7 @@ export default function EmailDetailPage({ params }: { params: Promise<{ id: stri
       toast.success('Reply sent successfully');
       setReplyOpen(false);
       setReplyContent('');
+      setReplyAttachments([]);
     },
     onError: (error: unknown) => {
       toast.error('Failed to send reply', {
@@ -216,7 +220,17 @@ export default function EmailDetailPage({ params }: { params: Promise<{ id: stri
               </>
             )}
           </Button>
-          <Dialog open={replyOpen} onOpenChange={setReplyOpen}>
+          <Dialog
+            open={replyOpen}
+            onOpenChange={(open) => {
+              setReplyOpen(open);
+              if (!open) {
+                // Reset form when dialog closes
+                setReplyContent('');
+                setReplyAttachments([]);
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button variant="default">
                 <Reply className="mr-2 h-4 w-4" />
@@ -257,6 +271,69 @@ export default function EmailDetailPage({ params }: { params: Promise<{ id: stri
                     HTML is supported. The reply will be sent from{' '}
                     {email.targetEmail || 'support@raverpay.com'}
                   </p>
+                </div>
+
+                {/* Attachments */}
+                <div className="space-y-2">
+                  <Label>Attachments (optional)</Label>
+                  <input
+                    type="file"
+                    id="reply-attachments"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      setReplyAttachments((prev) => [...prev, ...files]);
+                      // Reset input so same file can be selected again
+                      e.target.value = '';
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => document.getElementById('reply-attachments')?.click()}
+                    disabled={replyMutation.isPending}
+                  >
+                    <Paperclip className="mr-2 h-4 w-4" />
+                    Add Attachments
+                  </Button>
+
+                  {/* Selected files */}
+                  {replyAttachments.length > 0 && (
+                    <div className="space-y-2 mt-2">
+                      {replyAttachments.map((file, index) => (
+                        <div
+                          key={`${file.name}-${index}`}
+                          className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm bg-muted"
+                        >
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <Paperclip className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">
+                                {file.name.length > 60 ? file.name.slice(0, 60) + '...' : file.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {file.type.length > 60 ? file.type.slice(0, 60) + '...' : file.type}{' '}
+                                · {(file.size / 1024).toFixed(1)} KB
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setReplyAttachments((prev) => prev.filter((_, i) => i !== index));
+                            }}
+                            disabled={replyMutation.isPending}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               <DialogFooter>
@@ -305,9 +382,7 @@ export default function EmailDetailPage({ params }: { params: Promise<{ id: stri
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
                   <CardTitle className="text-2xl">{email.subject}</CardTitle>
-                  <CardDescription>
-                    From: {email.fromName || email.from} &lt;{email.from}&gt;
-                  </CardDescription>
+                  <CardDescription>From: {email.fromName || email.from}</CardDescription>
                 </div>
                 {email.isProcessed ? (
                   <Badge variant="success">
@@ -418,7 +493,7 @@ export default function EmailDetailPage({ params }: { params: Promise<{ id: stri
             </CardContent>
           </Card>
 
-          {/* Replies Section */}
+          {/* Replies Section - From Conversation */}
           {email.conversation &&
             email.conversation.messages &&
             email.conversation.messages.length > 0 && (
@@ -464,6 +539,58 @@ export default function EmailDetailPage({ params }: { params: Promise<{ id: stri
                 </CardContent>
               </Card>
             )}
+
+          {/* Replies Section - From Email Record (for non-conversation emails) */}
+          {!email.conversation && email.replies && email.replies.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Reply className="h-4 w-4" />
+                  Replies ({email.replies.length})
+                </CardTitle>
+                <CardDescription>Email replies sent to {email.from}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {email.replies.map((reply, index) => (
+                  <div key={index} className="rounded-lg border p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="success" className="text-xs">
+                        <Mail className="mr-1 h-3 w-3" />
+                        Email sent
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {new Intl.DateTimeFormat('en-US', {
+                          dateStyle: 'short',
+                          timeStyle: 'short',
+                        }).format(new Date(reply.sentAt))}
+                      </span>
+                    </div>
+                    <div
+                      className="prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: reply.content }}
+                    />
+                    {reply.attachments && reply.attachments.length > 0 && (
+                      <div className="pt-2 space-y-1">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          Attachments ({reply.attachments.length}):
+                        </p>
+                        {reply.attachments.map((att, attIndex) => (
+                          <div
+                            key={attIndex}
+                            className="flex items-center gap-2 text-xs text-muted-foreground"
+                          >
+                            <Paperclip className="h-3 w-3" />
+                            <span>{att.filename}</span>
+                            <span>({(att.size / 1024).toFixed(1)} KB)</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Processing Error */}
           {email.processingError && (

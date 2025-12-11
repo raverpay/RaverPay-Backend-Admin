@@ -413,10 +413,39 @@ export class AdminEmailsService {
       throw new BadRequestException('Email service not configured');
     }
 
-    // Ensure email has a conversation (required for storing reply)
-    if (!email.conversationId) {
-      throw new BadRequestException(
-        'Email must be linked to a conversation to reply. Please create a ticket first.',
+    // Handle conversation: create one if sender is a registered user, otherwise reply without conversation
+    let conversationId = email.conversationId;
+
+    if (!conversationId && email.userId) {
+      // Sender is a registered user - create a conversation for tracking
+      this.logger.log(
+        `Email ${emailId} from registered user. Creating conversation for reply...`,
+      );
+
+      const conversationResult = await this.supportService.createConversation(
+        email.userId,
+        {
+          category: 'Email Reply',
+          transactionContext: undefined,
+        },
+      );
+
+      conversationId = conversationResult.conversation.id;
+
+      // Link email to the new conversation
+      await this.prisma.inboundEmail.update({
+        where: { id: emailId },
+        data: { conversationId },
+      });
+
+      this.logger.log(
+        `✅ Created conversation ${conversationId} for email ${emailId}`,
+      );
+    } else if (!conversationId) {
+      // Sender is not a registered user (e.g., Apple, Duns, external companies)
+      // We'll send the reply but won't create a conversation
+      this.logger.log(
+        `Email ${emailId} from external sender (no user account). Replying without conversation.`,
       );
     }
 
@@ -474,25 +503,59 @@ export class AdminEmailsService {
         `✅ Email reply sent to ${email.from} (Resend ID: ${replyResult.data?.id})`,
       );
 
-      // Store reply as a message in the conversation
-      await this.supportService.sendMessage(
-        email.conversationId,
-        {
-          content: dto.content,
-          senderType: 'AGENT',
-          metadata: {
-            emailReply: true,
-            resendEmailId: replyResult.data?.id,
-            originalEmailId: email.id,
-            attachments: attachments?.map((file) => ({
-              filename: file.originalname,
-              size: file.size,
-              contentType: file.mimetype,
-            })),
+      // Store reply as a message in the conversation (if conversation exists)
+      if (conversationId) {
+        await this.supportService.sendMessage(
+          conversationId,
+          {
+            content: dto.content,
+            senderType: 'AGENT',
+            metadata: {
+              emailReply: true,
+              resendEmailId: replyResult.data?.id,
+              originalEmailId: email.id,
+              attachments: attachments?.map((file) => ({
+                filename: file.originalname,
+                size: file.size,
+                contentType: file.mimetype,
+              })),
+            },
           },
-        },
-        userId,
-      );
+          userId,
+        );
+      } else {
+        // No conversation (external sender) - store reply in email record
+        this.logger.log(
+          `Storing reply for external sender ${email.from} in email record`,
+        );
+
+        // Get existing replies or initialize empty array
+        const existingReplies = (email.replies as any[]) || [];
+
+        // Add new reply
+        const newReply = {
+          content: dto.content,
+          sentAt: new Date().toISOString(),
+          sentBy: userId,
+          resendEmailId: replyResult.data?.id,
+          attachments: attachments?.map((file) => ({
+            filename: file.originalname,
+            size: file.size,
+            contentType: file.mimetype,
+          })),
+        };
+
+        await this.prisma.inboundEmail.update({
+          where: { id: emailId },
+          data: {
+            replies: [...existingReplies, newReply],
+          },
+        });
+
+        this.logger.log(
+          `✅ Reply stored in email record. Total replies: ${existingReplies.length + 1}`,
+        );
+      }
 
       // Mark original email as processed if not already
       if (!email.isProcessed) {

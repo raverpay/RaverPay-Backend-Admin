@@ -10,7 +10,25 @@ if (!globalThis.crypto) {
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule);
+
+  // Configure log level based on environment variable
+  // Default: 'warn' in production, 'log' in development
+  const logLevel =
+    process.env.LOG_LEVEL ||
+    (process.env.NODE_ENV === 'production' ? 'warn' : 'log');
+
+  const app = await NestFactory.create(AppModule, {
+    logger:
+      logLevel === 'error'
+        ? ['error']
+        : logLevel === 'warn'
+          ? ['error', 'warn']
+          : logLevel === 'log'
+            ? ['error', 'warn', 'log']
+            : logLevel === 'debug'
+              ? ['error', 'warn', 'log', 'debug', 'verbose']
+              : ['error', 'warn', 'log'],
+  });
 
   // Enable CORS
   app.enableCors({
