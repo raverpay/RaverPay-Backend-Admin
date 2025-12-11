@@ -554,4 +554,155 @@ export class ResendWebhookService {
       // Don't throw - ticket creation should still succeed even if assignment fails
     }
   }
+
+  /**
+   * Manually process an email by fetching it from Resend API
+   * Used for recovering missed webhook events
+   * @param emailId - Resend email ID
+   */
+  async manuallyProcessEmail(emailId: string): Promise<any> {
+    this.logger.log(`🔄 Manually processing email ${emailId}...`);
+
+    if (!this.resend) {
+      throw new Error('Resend client not initialized - RESEND_API_KEY missing');
+    }
+
+    try {
+      // Check if email already exists in database
+      const existingEmail = await this.prisma.inboundEmail.findUnique({
+        where: { emailId: emailId },
+      });
+
+      if (existingEmail) {
+        this.logger.log(
+          `Email ${emailId} already exists in database (ID: ${existingEmail.id})`,
+        );
+
+        // If not processed, try to process it
+        if (!existingEmail.isProcessed) {
+          this.logger.log(
+            `Email ${emailId} exists but not processed, processing now...`,
+          );
+          await this.processExistingEmail(existingEmail.id);
+          return {
+            success: true,
+            message: 'Email was in database but unprocessed - now processed',
+            emailId: existingEmail.id,
+          };
+        }
+
+        return {
+          success: true,
+          message: 'Email already processed',
+          emailId: existingEmail.id,
+        };
+      }
+
+      // Fetch email from Resend API
+      this.logger.log(`📥 Fetching email ${emailId} from Resend API...`);
+      const emailResponse = await this.resend.emails.receiving.get(emailId);
+
+      if (emailResponse.error) {
+        throw new Error(`Resend API error: ${emailResponse.error.message}`);
+      }
+
+      if (!emailResponse.data) {
+        throw new Error('No data returned from Resend API');
+      }
+
+      const emailData = emailResponse.data;
+      this.logger.log(
+        `✅ Fetched email: ${emailData.subject} from ${emailData.from} to ${emailData.to?.join(', ')}`,
+      );
+
+      // Build event data structure matching webhook format
+      const eventData = {
+        data: {
+          email_id: emailId,
+          created_at: emailData.created_at,
+          from: emailData.from,
+          to: emailData.to || [],
+          cc: emailData.cc || [],
+          bcc: emailData.bcc || [],
+          message_id: emailData.message_id || null,
+          subject: emailData.subject || '(No Subject)',
+          text: emailData.text || null,
+          html: emailData.html || null,
+          attachments: emailData.attachments || [],
+        },
+      };
+
+      // Process the email using existing handler
+      await this.handleEmailReceived(eventData);
+
+      return {
+        success: true,
+        message: 'Email fetched and processed successfully',
+        emailId: emailId,
+      };
+    } catch (error) {
+      this.logger.error(
+        `❌ Error manually processing email ${emailId}:`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Process an existing unprocessed email from database
+   * @param inboundEmailId - Database ID of the inbound email
+   */
+  async processExistingEmail(inboundEmailId: string): Promise<void> {
+    const email = await this.prisma.inboundEmail.findUnique({
+      where: { id: inboundEmailId },
+    });
+
+    if (!email) {
+      throw new Error(`Email ${inboundEmailId} not found in database`);
+    }
+
+    if (email.isProcessed) {
+      this.logger.log(`Email ${inboundEmailId} already processed`);
+      return;
+    }
+
+    this.logger.log(`Processing existing email ${inboundEmailId}...`);
+
+    // Get email routing configuration
+    const routing = await this.prisma.emailRouting.findUnique({
+      where: { emailAddress: email.targetEmail },
+    });
+
+    if (!routing || !routing.isActive) {
+      this.logger.warn(
+        `No active routing found for ${email.targetEmail}, marking as processed without action`,
+      );
+      await this.prisma.inboundEmail.update({
+        where: { id: inboundEmailId },
+        data: {
+          isProcessed: true,
+          processedAt: new Date(),
+          processingError: 'No active routing configuration found',
+        },
+      });
+      return;
+    }
+
+    // Process based on routing rules
+    if (routing.autoCreateTicket && routing.targetRole === UserRole.SUPPORT) {
+      await this.createTicketFromEmail(inboundEmailId, routing, email.userId);
+    }
+
+    // Mark as processed
+    await this.prisma.inboundEmail.update({
+      where: { id: inboundEmailId },
+      data: {
+        isProcessed: true,
+        processedAt: new Date(),
+      },
+    });
+
+    this.logger.log(`✅ Email ${inboundEmailId} processed successfully`);
+  }
 }

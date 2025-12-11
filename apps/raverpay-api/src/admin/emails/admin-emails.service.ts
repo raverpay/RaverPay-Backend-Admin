@@ -4,6 +4,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserRole } from '@prisma/client';
@@ -403,6 +404,7 @@ export class AdminEmailsService {
     userRole: UserRole,
     userId: string,
     dto: ReplyEmailDto,
+    attachments?: Express.Multer.File[],
   ) {
     // Get email and verify access
     const email = await this.getEmailById(emailId, userRole, userId);
@@ -432,6 +434,20 @@ export class AdminEmailsService {
     // For now, we'll just use In-Reply-To. Can be enhanced later to track thread history.
 
     try {
+      // Prepare attachments for Resend API
+      const resendAttachments =
+        attachments?.map((file) => ({
+          filename: file.originalname,
+          content: file.buffer.toString('base64'),
+        })) || [];
+
+      // Log attachment info
+      if (resendAttachments.length > 0) {
+        this.logger.log(
+          `📎 Sending ${resendAttachments.length} attachment(s): ${resendAttachments.map((a) => a.filename).join(', ')}`,
+        );
+      }
+
       // Send reply via Resend
       const replyResult = await this.resend.emails.send({
         from: `${this.fromName} <${fromEmail}>`,
@@ -441,6 +457,8 @@ export class AdminEmailsService {
         text: dto.content.replace(/<[^>]*>/g, ''), // Strip HTML for plain text fallback
         headers,
         replyTo: fromEmail, // Set reply-to to the team email
+        attachments:
+          resendAttachments.length > 0 ? resendAttachments : undefined,
       });
 
       if (replyResult.error) {
@@ -466,6 +484,11 @@ export class AdminEmailsService {
             emailReply: true,
             resendEmailId: replyResult.data?.id,
             originalEmailId: email.id,
+            attachments: attachments?.map((file) => ({
+              filename: file.originalname,
+              size: file.size,
+              contentType: file.mimetype,
+            })),
           },
         },
         userId,
@@ -494,6 +517,207 @@ export class AdminEmailsService {
       }
       throw new BadRequestException(
         `Failed to send reply: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  /**
+   * Download an attachment from Resend
+   */
+  async downloadAttachment(
+    emailId: string,
+    attachmentId: string,
+    userRole: UserRole,
+    userId: string,
+  ) {
+    // Get email and verify access
+    const email = await this.getEmailById(emailId, userRole, userId);
+
+    // Find the attachment in the email's attachments
+    const attachments = email.attachments as any[];
+    if (!attachments || !Array.isArray(attachments)) {
+      throw new NotFoundException('Email has no attachments');
+    }
+
+    const attachment = attachments.find((att) => att.id === attachmentId);
+    if (!attachment) {
+      throw new NotFoundException('Attachment not found');
+    }
+
+    if (!this.resend) {
+      throw new BadRequestException('Email service not configured');
+    }
+
+    try {
+      // Fetch attachments list from Resend using direct API call
+      const apiKey = this.configService.get<string>('RESEND_API_KEY');
+      const attachmentsUrl = `https://api.resend.com/emails/${email.emailId}/attachments`;
+
+      const attachmentsResponse = await fetch(attachmentsUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!attachmentsResponse.ok) {
+        throw new BadRequestException(
+          `Failed to fetch attachments from Resend: ${attachmentsResponse.statusText}`,
+        );
+      }
+
+      const attachmentsData = await attachmentsResponse.json();
+
+      // Find the matching attachment in the response
+      // The array is at attachmentsData.data
+      const resendAttachment = attachmentsData.data?.find(
+        (att: any) => att.id === attachmentId,
+      );
+
+      if (!resendAttachment) {
+        throw new NotFoundException('Attachment not found in Resend');
+      }
+
+      // Download the attachment content from the download URL
+      // Note: download_url is valid for 1 hour
+      const downloadResponse = await fetch(resendAttachment.download_url);
+
+      if (!downloadResponse.ok) {
+        throw new BadRequestException(
+          `Failed to download attachment: ${downloadResponse.statusText}`,
+        );
+      }
+
+      // Convert to base64
+      const buffer = Buffer.from(await downloadResponse.arrayBuffer());
+      const base64Content = buffer.toString('base64');
+
+      // Return attachment data with base64 content
+      return {
+        id: resendAttachment.id,
+        filename: resendAttachment.filename,
+        contentType: resendAttachment.content_type,
+        size: resendAttachment.size,
+        content: base64Content,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to download attachment ${attachmentId} for email ${emailId}`,
+        error,
+      );
+      throw new BadRequestException(
+        `Failed to download attachment: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  /**
+   * Forward an email to another address
+   */
+  async forwardEmail(
+    emailId: string,
+    userRole: UserRole,
+    userId: string,
+    toEmail: string,
+  ) {
+    // Get email and verify access
+    const email = await this.getEmailById(emailId, userRole, userId);
+
+    if (!this.resend) {
+      throw new BadRequestException('Email service not configured');
+    }
+
+    try {
+      // Fetch the full email content from Resend
+      const emailResponse = await this.resend.emails.receiving.get(
+        email.emailId,
+      );
+
+      if (emailResponse.error || !emailResponse.data) {
+        throw new BadRequestException('Failed to fetch email from Resend');
+      }
+
+      const emailData = emailResponse.data;
+
+      // Fetch and process attachments if any
+      let processedAttachments: any[] = [];
+      if (email.attachments && Array.isArray(email.attachments)) {
+        // Fetch attachments list from Resend using direct API call
+        const apiKey = this.configService.get<string>('RESEND_API_KEY');
+        const attachmentsUrl = `https://api.resend.com/emails/${email.emailId}/attachments`;
+
+        const attachmentsResponse = await fetch(attachmentsUrl, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (attachmentsResponse.ok) {
+          const attachmentsData = await attachmentsResponse.json();
+
+          // Download each attachment and encode in base64
+          if (attachmentsData.data && Array.isArray(attachmentsData.data)) {
+            for (const attachment of attachmentsData.data) {
+              try {
+                const response = await fetch(attachment.download_url);
+                if (!response.ok) {
+                  this.logger.warn(
+                    `Failed to download attachment ${attachment.filename}`,
+                  );
+                  continue;
+                }
+
+                const buffer = Buffer.from(await response.arrayBuffer());
+                processedAttachments.push({
+                  filename: attachment.filename,
+                  content: buffer.toString('base64'),
+                  content_type: attachment.content_type,
+                });
+              } catch (err) {
+                this.logger.warn(
+                  `Error downloading attachment ${attachment.filename}: ${err}`,
+                );
+              }
+            }
+          }
+        }
+      }
+
+      // Forward the email
+      const forwardResponse = await this.resend.emails.send({
+        from: this.fromEmail,
+        to: [toEmail],
+        subject: `Fwd: ${emailData.subject || '(No Subject)'}`,
+        html: emailData.html || undefined,
+        text: emailData.text || undefined,
+        attachments:
+          processedAttachments.length > 0 ? processedAttachments : undefined,
+        replyTo: email.from,
+      } as any);
+
+      if (forwardResponse.error) {
+        throw new BadRequestException(
+          `Failed to forward email: ${forwardResponse.error.message}`,
+        );
+      }
+
+      this.logger.log(
+        `✅ Email ${emailId} forwarded to ${toEmail} by user ${userId}`,
+      );
+
+      return {
+        success: true,
+        message: `Email forwarded to ${toEmail}`,
+        forwardedEmailId: forwardResponse.data?.id,
+        attachmentsForwarded: processedAttachments.length,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to forward email ${emailId}`, error);
+      throw new BadRequestException(
+        `Failed to forward email: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }

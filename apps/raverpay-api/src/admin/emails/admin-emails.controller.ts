@@ -8,7 +8,10 @@ import {
   Body,
   UseGuards,
   Logger,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { AdminEmailsService } from './admin-emails.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -16,6 +19,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { GetUser } from '../../auth/decorators/get-user.decorator';
 import { UserRole } from '@prisma/client';
 import { ReplyEmailDto } from './dto/reply-email.dto';
+import { ResendWebhookService } from '../../webhooks/resend-webhook.service';
 
 /**
  * Admin Emails Controller
@@ -29,7 +33,10 @@ import { ReplyEmailDto } from './dto/reply-email.dto';
 export class AdminEmailsController {
   private readonly logger = new Logger(AdminEmailsController.name);
 
-  constructor(private readonly emailsService: AdminEmailsService) {}
+  constructor(
+    private readonly emailsService: AdminEmailsService,
+    private readonly webhookService: ResendWebhookService,
+  ) {}
 
   /**
    * Get emails with role-based filtering
@@ -102,15 +109,34 @@ export class AdminEmailsController {
   /**
    * Reply to an inbound email
    * POST /api/admin/emails/:id/reply
+   *
+   * Supports file attachments (max 5 files, 10MB each)
+   * Content-Type: multipart/form-data
+   * Fields: content, subject (optional)
+   * Files: attachments[] (optional)
    */
   @Post(':id/reply')
+  @UseInterceptors(
+    FilesInterceptor('attachments', 5, {
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB per file
+      },
+    }),
+  )
   async replyToEmail(
     @Param('id') emailId: string,
     @GetUser('role') userRole: UserRole,
     @GetUser('id') userId: string,
     @Body() dto: ReplyEmailDto,
+    @UploadedFiles() attachments?: Express.Multer.File[],
   ) {
-    return this.emailsService.replyToEmail(emailId, userRole, userId, dto);
+    return this.emailsService.replyToEmail(
+      emailId,
+      userRole,
+      userId,
+      dto,
+      attachments,
+    );
   }
 
   /**
@@ -124,5 +150,62 @@ export class AdminEmailsController {
     @GetUser('id') userId: string,
   ) {
     return this.emailsService.fetchEmailContent(emailId, userRole, userId);
+  }
+
+  /**
+   * Download an email attachment
+   * GET /api/admin/emails/:id/attachments/:attachmentId
+   */
+  @Get(':id/attachments/:attachmentId')
+  async downloadAttachment(
+    @Param('id') emailId: string,
+    @Param('attachmentId') attachmentId: string,
+    @GetUser('role') userRole: UserRole,
+    @GetUser('id') userId: string,
+  ) {
+    return this.emailsService.downloadAttachment(
+      emailId,
+      attachmentId,
+      userRole,
+      userId,
+    );
+  }
+
+  /**
+   * Forward an email to another address
+   * POST /api/admin/emails/:id/forward
+   */
+  @Post(':id/forward')
+  async forwardEmail(
+    @Param('id') emailId: string,
+    @GetUser('role') userRole: UserRole,
+    @GetUser('id') userId: string,
+    @Body('toEmail') toEmail?: string,
+  ) {
+    return this.emailsService.forwardEmail(
+      emailId,
+      userRole,
+      userId,
+      toEmail || 'raverpay@outlook.com',
+    );
+  }
+
+  /**
+   * Manually process an email from Resend by email ID
+   * POST /api/admin/emails/process-from-resend
+   *
+   * Use this to recover emails from missed webhook events
+   * Requires ADMIN or SUPER_ADMIN role
+   */
+  @Post('process-from-resend')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  async processEmailFromResend(
+    @Body('emailId') emailId: string,
+    @GetUser('id') userId: string,
+  ) {
+    this.logger.log(
+      `Admin ${userId} manually processing email ${emailId} from Resend`,
+    );
+    return this.webhookService.manuallyProcessEmail(emailId);
   }
 }

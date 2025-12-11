@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsArray } from 'class-validator';
 
 export class ReplyEmailDto {
   @IsString()
@@ -8,4 +8,10 @@ export class ReplyEmailDto {
   @IsString()
   @IsOptional()
   subject?: string; // Optional, defaults to "Re: {originalSubject}"
+}
+
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType: string;
 }

@@ -220,6 +220,7 @@ export interface InboundEmail {
     content_type: string;
     content_disposition: string;
     content_id?: string;
+    size?: number;
   }>;
   isProcessed: boolean;
   processedAt?: string;

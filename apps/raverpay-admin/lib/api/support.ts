@@ -45,77 +45,69 @@ export const supportApi = {
 
   // Conversations
   getConversations: async (
-    params?: GetConversationsParams
+    params?: GetConversationsParams,
   ): Promise<PaginatedResponse<Conversation>> => {
     const response = await apiClient.get<PaginatedResponse<Conversation>>(
       '/admin/support/conversations',
-      { params }
+      { params },
     );
     return response.data;
   },
 
   getConversation: async (id: string): Promise<Conversation> => {
-    const response = await apiClient.get<Conversation>(
-      `/admin/support/conversations/${id}`
-    );
+    const response = await apiClient.get<Conversation>(`/admin/support/conversations/${id}`);
     return response.data;
   },
 
   getConversationMessages: async (
     conversationId: string,
-    params?: GetMessagesParams
+    params?: GetMessagesParams,
   ): Promise<PaginatedResponse<Message>> => {
     const response = await apiClient.get<PaginatedResponse<Message>>(
       `/admin/support/conversations/${conversationId}/messages`,
-      { params }
+      { params },
     );
     return response.data;
   },
 
   sendMessage: async (
     conversationId: string,
-    data: { content: string; attachments?: string[] }
+    data: { content: string; attachments?: string[] },
   ): Promise<Message> => {
     const response = await apiClient.post<Message>(
       `/admin/support/conversations/${conversationId}/messages`,
-      data
+      data,
     );
     return response.data;
   },
 
   assignConversation: async (conversationId: string): Promise<Conversation> => {
     const response = await apiClient.post<Conversation>(
-      `/admin/support/conversations/${conversationId}/assign`
+      `/admin/support/conversations/${conversationId}/assign`,
     );
     return response.data;
   },
 
-  transferConversation: async (
-    conversationId: string,
-    agentId: string
-  ): Promise<Conversation> => {
+  transferConversation: async (conversationId: string, agentId: string): Promise<Conversation> => {
     const response = await apiClient.post<Conversation>(
       `/admin/support/conversations/${conversationId}/transfer`,
-      { agentId }
+      { agentId },
     );
     return response.data;
   },
 
   endConversation: async (conversationId: string): Promise<Conversation> => {
     const response = await apiClient.post<Conversation>(
-      `/admin/support/conversations/${conversationId}/end`
+      `/admin/support/conversations/${conversationId}/end`,
     );
     return response.data;
   },
 
   // Tickets
-  getTickets: async (
-    params?: GetTicketsParams
-  ): Promise<PaginatedResponse<Ticket>> => {
-    const response = await apiClient.get<PaginatedResponse<Ticket>>(
-      '/admin/support/tickets',
-      { params }
-    );
+  getTickets: async (params?: GetTicketsParams): Promise<PaginatedResponse<Ticket>> => {
+    const response = await apiClient.get<PaginatedResponse<Ticket>>('/admin/support/tickets', {
+      params,
+    });
     return response.data;
   },
 
@@ -125,50 +117,34 @@ export const supportApi = {
   },
 
   assignTicket: async (ticketId: string): Promise<Ticket> => {
-    const response = await apiClient.post<Ticket>(
-      `/admin/support/tickets/${ticketId}/assign`
-    );
+    const response = await apiClient.post<Ticket>(`/admin/support/tickets/${ticketId}/assign`);
     return response.data;
   },
 
-  updateTicketStatus: async (
-    ticketId: string,
-    status: TicketStatus
-  ): Promise<Ticket> => {
-    const response = await apiClient.patch<Ticket>(
-      `/admin/support/tickets/${ticketId}/status`,
-      { status }
-    );
+  updateTicketStatus: async (ticketId: string, status: TicketStatus): Promise<Ticket> => {
+    const response = await apiClient.patch<Ticket>(`/admin/support/tickets/${ticketId}/status`, {
+      status,
+    });
     return response.data;
   },
 
-  updateTicketPriority: async (
-    ticketId: string,
-    priority: TicketPriority
-  ): Promise<Ticket> => {
-    const response = await apiClient.patch<Ticket>(
-      `/admin/support/tickets/${ticketId}/priority`,
-      { priority }
-    );
+  updateTicketPriority: async (ticketId: string, priority: TicketPriority): Promise<Ticket> => {
+    const response = await apiClient.patch<Ticket>(`/admin/support/tickets/${ticketId}/priority`, {
+      priority,
+    });
     return response.data;
   },
 
-  resolveTicket: async (
-    ticketId: string,
-    resolution: string
-  ): Promise<Ticket> => {
-    const response = await apiClient.post<Ticket>(
-      `/admin/support/tickets/${ticketId}/resolve`,
-      { resolution }
-    );
+  resolveTicket: async (ticketId: string, resolution: string): Promise<Ticket> => {
+    const response = await apiClient.post<Ticket>(`/admin/support/tickets/${ticketId}/resolve`, {
+      resolution,
+    });
     return response.data;
   },
 
   // Canned Responses
   getCannedResponses: async (): Promise<CannedResponse[]> => {
-    const response = await apiClient.get<CannedResponse[]>(
-      '/admin/support/canned-responses'
-    );
+    const response = await apiClient.get<CannedResponse[]>('/admin/support/canned-responses');
     return response.data;
   },
 
@@ -178,10 +154,7 @@ export const supportApi = {
     category: string;
     shortcut?: string;
   }): Promise<CannedResponse> => {
-    const response = await apiClient.post<CannedResponse>(
-      '/admin/support/canned-responses',
-      data
-    );
+    const response = await apiClient.post<CannedResponse>('/admin/support/canned-responses', data);
     return response.data;
   },
 
@@ -192,11 +165,11 @@ export const supportApi = {
       content?: string;
       category?: string;
       shortcut?: string;
-    }
+    },
   ): Promise<CannedResponse> => {
     const response = await apiClient.patch<CannedResponse>(
       `/admin/support/canned-responses/${id}`,
-      data
+      data,
     );
     return response.data;
   },
@@ -217,13 +190,10 @@ export const supportApi = {
   // INBOUND EMAILS
   // ============================================
 
-  getEmails: async (
-    params?: GetEmailsParams
-  ): Promise<PaginatedResponse<InboundEmail>> => {
-    const response = await apiClient.get<PaginatedResponse<InboundEmail>>(
-      '/admin/emails',
-      { params }
-    );
+  getEmails: async (params?: GetEmailsParams): Promise<PaginatedResponse<InboundEmail>> => {
+    const response = await apiClient.get<PaginatedResponse<InboundEmail>>('/admin/emails', {
+      params,
+    });
     return response.data;
   },
 
@@ -238,9 +208,7 @@ export const supportApi = {
   },
 
   markEmailAsProcessed: async (id: string): Promise<InboundEmail> => {
-    const response = await apiClient.patch<InboundEmail>(
-      `/admin/emails/${id}/process`
-    );
+    const response = await apiClient.patch<InboundEmail>(`/admin/emails/${id}/process`);
     return response.data;
   },
 
@@ -256,6 +224,46 @@ export const supportApi = {
     }>(`/admin/emails/${id}/reply`, {
       content,
       subject,
+    });
+    return response.data;
+  },
+
+  downloadAttachment: async (
+    emailId: string,
+    attachmentId: string,
+  ): Promise<{
+    id: string;
+    filename: string;
+    contentType: string;
+    size: number;
+    content: string;
+  }> => {
+    const response = await apiClient.get<{
+      id: string;
+      filename: string;
+      contentType: string;
+      size: number;
+      content: string;
+    }>(`/admin/emails/${emailId}/attachments/${attachmentId}`);
+    return response.data;
+  },
+
+  forwardEmail: async (
+    emailId: string,
+    toEmail?: string,
+  ): Promise<{
+    success: boolean;
+    message: string;
+    forwardedEmailId?: string;
+    attachmentsForwarded: number;
+  }> => {
+    const response = await apiClient.post<{
+      success: boolean;
+      message: string;
+      forwardedEmailId?: string;
+      attachmentsForwarded: number;
+    }>(`/admin/emails/${emailId}/forward`, {
+      toEmail,
     });
     return response.data;
   },

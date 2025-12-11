@@ -16,6 +16,8 @@ import {
   Paperclip,
   Send,
   Reply,
+  Download,
+  Forward,
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -24,13 +26,7 @@ import { supportApi } from '@/lib/api/support';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 // Separator component - using hr instead if not available
 import { formatDate, getApiErrorMessage } from '@/lib/utils';
 import { UserRole, Message } from '@/types/support';
@@ -60,21 +56,52 @@ function getRoleBadgeVariant(role?: UserRole) {
   }
 }
 
-export default function EmailDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default function EmailDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const router = useRouter();
   const queryClient = useQueryClient();
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyContent, setReplyContent] = useState('');
+  const [downloadingAttachment, setDownloadingAttachment] = useState<string | null>(null);
 
   const { data: email, isLoading } = useQuery({
     queryKey: ['email', resolvedParams.id],
     queryFn: () => supportApi.getEmail(resolvedParams.id),
   });
+
+  const handleDownloadAttachment = async (attachmentId: string, filename: string) => {
+    setDownloadingAttachment(attachmentId);
+    try {
+      const attachment = await supportApi.downloadAttachment(resolvedParams.id, attachmentId);
+
+      // Convert base64 to blob
+      const byteCharacters = atob(attachment.content);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: attachment.contentType });
+
+      // Create download link and trigger download
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success('Attachment downloaded successfully');
+    } catch (error: unknown) {
+      toast.error('Failed to download attachment', {
+        description: getApiErrorMessage(error),
+      });
+    } finally {
+      setDownloadingAttachment(null);
+    }
+  };
 
   const markProcessedMutation = useMutation({
     mutationFn: () => supportApi.markEmailAsProcessed(resolvedParams.id),
@@ -112,6 +139,22 @@ export default function EmailDetailPage({
     },
     onError: (error: unknown) => {
       toast.error('Failed to send reply', {
+        description: getApiErrorMessage(error),
+      });
+    },
+  });
+
+  const forwardMutation = useMutation({
+    mutationFn: () => supportApi.forwardEmail(resolvedParams.id),
+    onSuccess: (data) => {
+      toast.success(data.message, {
+        description: data.attachmentsForwarded
+          ? `Forwarded with ${data.attachmentsForwarded} attachment(s)`
+          : undefined,
+      });
+    },
+    onError: (error: unknown) => {
+      toast.error('Failed to forward email', {
         description: getApiErrorMessage(error),
       });
     },
@@ -155,12 +198,24 @@ export default function EmailDetailPage({
           </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Email Details</h1>
-            <p className="text-muted-foreground">
-              View and manage inbound email
-            </p>
+            <p className="text-muted-foreground">View and manage inbound email</p>
           </div>
         </div>
         <div className="flex gap-2">
+          <Button
+            onClick={() => forwardMutation.mutate()}
+            disabled={forwardMutation.isPending}
+            variant="outline"
+          >
+            {forwardMutation.isPending ? (
+              <>Forwarding...</>
+            ) : (
+              <>
+                <Forward className="mr-2 h-4 w-4" />
+                Forward to Outlook
+              </>
+            )}
+          </Button>
           {email.conversationId && (
             <Dialog open={replyOpen} onOpenChange={setReplyOpen}>
               <DialogTrigger asChild>
@@ -307,13 +362,9 @@ export default function EmailDetailPage({
                     dangerouslySetInnerHTML={{ __html: email.htmlBody }}
                   />
                 ) : email.textBody ? (
-                  <div className="whitespace-pre-wrap text-sm">
-                    {email.textBody}
-                  </div>
+                  <div className="whitespace-pre-wrap text-sm">{email.textBody}</div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No message content available
-                  </p>
+                  <p className="text-sm text-muted-foreground">No message content available</p>
                 )}
               </div>
 
@@ -330,13 +381,36 @@ export default function EmailDetailPage({
                       {email.attachments.map((attachment) => (
                         <div
                           key={attachment.id}
-                          className="flex items-center gap-2 rounded-md border p-2 text-sm"
+                          className="flex items-center justify-between gap-2 rounded-md border p-3 text-sm hover:bg-accent transition-colors"
                         >
-                          <Paperclip className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{attachment.filename}</span>
-                          <span className="text-muted-foreground">
-                            ({attachment.content_type})
-                          </span>
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <Paperclip className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{attachment.filename}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {attachment.content_type}
+                                {attachment.size && (
+                                  <> · {(attachment.size / 1024).toFixed(1)} KB</>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              handleDownloadAttachment(attachment.id, attachment.filename)
+                            }
+                            disabled={downloadingAttachment === attachment.id}
+                          >
+                            {downloadingAttachment === attachment.id ? (
+                              <>Downloading...</>
+                            ) : (
+                              <>
+                                <Download className="h-4 w-4" />
+                              </>
+                            )}
+                          </Button>
                         </div>
                       ))}
                     </div>
@@ -347,56 +421,51 @@ export default function EmailDetailPage({
           </Card>
 
           {/* Replies Section */}
-          {email.conversation && email.conversation.messages && email.conversation.messages.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Reply className="h-4 w-4" />
-                  Replies ({email.conversation.messages.length})
-                </CardTitle>
-                <CardDescription>
-                  Email replies sent to {email.from}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {email.conversation.messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className="rounded-lg border p-4 space-y-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">
-                          {message.sender?.firstName} {message.sender?.lastName}
-                        </span>
-                        {message.sender?.email && (
-                          <span className="text-sm text-muted-foreground">
-                            ({message.sender.email})
+          {email.conversation &&
+            email.conversation.messages &&
+            email.conversation.messages.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Reply className="h-4 w-4" />
+                    Replies ({email.conversation.messages.length})
+                  </CardTitle>
+                  <CardDescription>Email replies sent to {email.from}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {email.conversation.messages.map((message) => (
+                    <div key={message.id} className="rounded-lg border p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">
+                            {message.sender?.firstName} {message.sender?.lastName}
                           </span>
-                        )}
+                          {message.sender?.email && (
+                            <span className="text-sm text-muted-foreground">
+                              ({message.sender.email})
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {new Intl.DateTimeFormat('en-US', {
+                            dateStyle: 'short',
+                            timeStyle: 'short',
+                          }).format(new Date(message.createdAt))}
+                        </span>
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        {new Intl.DateTimeFormat('en-US', {
-                          dateStyle: 'short',
-                          timeStyle: 'short',
-                        }).format(new Date(message.createdAt))}
-                      </span>
+                      <div className="prose prose-sm max-w-none">{message.content}</div>
+                      {message.metadata?.emailSent && (
+                        <Badge variant="success" className="text-xs">
+                          <Mail className="mr-1 h-3 w-3" />
+                          Email sent
+                        </Badge>
+                      )}
                     </div>
-                    <div className="prose prose-sm max-w-none">
-                      {message.content}
-                    </div>
-                    {message.metadata?.emailSent && (
-                      <Badge variant="success" className="text-xs">
-                        <Mail className="mr-1 h-3 w-3" />
-                        Email sent
-                      </Badge>
-                    )}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+                  ))}
+                </CardContent>
+              </Card>
+            )}
 
           {/* Processing Error */}
           {email.processingError && (
@@ -515,15 +584,11 @@ export default function EmailDetailPage({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Status</p>
-                  <Badge variant="info">
-                    {email.ticket.status.replace('_', ' ')}
-                  </Badge>
+                  <Badge variant="info">{email.ticket.status.replace('_', ' ')}</Badge>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Priority</p>
-                  <Badge variant="warning">
-                    {email.ticket.priority}
-                  </Badge>
+                  <Badge variant="warning">{email.ticket.priority}</Badge>
                 </div>
                 <Link href={`/dashboard/support/tickets/${email.ticket.id}`}>
                   <Button variant="outline" size="sm" className="w-full">
@@ -546,9 +611,7 @@ export default function EmailDetailPage({
               <CardContent>
                 <div>
                   <p className="text-sm text-muted-foreground">Status</p>
-                  <Badge variant="info">
-                    {email.conversation.status.replace('_', ' ')}
-                  </Badge>
+                  <Badge variant="info">{email.conversation.status.replace('_', ' ')}</Badge>
                 </div>
                 <Link
                   href={`/dashboard/support/conversations/${email.conversation.id}`}
@@ -566,4 +629,3 @@ export default function EmailDetailPage({
     </div>
   );
 }
-
