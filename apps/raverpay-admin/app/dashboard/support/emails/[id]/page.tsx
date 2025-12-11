@@ -216,75 +216,73 @@ export default function EmailDetailPage({ params }: { params: Promise<{ id: stri
               </>
             )}
           </Button>
-          {email.conversationId && (
-            <Dialog open={replyOpen} onOpenChange={setReplyOpen}>
-              <DialogTrigger asChild>
-                <Button variant="default">
-                  <Reply className="mr-2 h-4 w-4" />
-                  Reply
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Reply to Email</DialogTitle>
-                  <DialogDescription>
-                    Send a reply to {email.fromName || email.from}
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="reply-subject">Subject</Label>
-                    <Input
-                      id="reply-subject"
-                      value={`Re: ${email.subject || 'No Subject'}`}
-                      disabled
-                      className="bg-muted cursor-not-allowed"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Subject is locked to maintain email threading
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="reply-content">Message</Label>
-                    <Textarea
-                      id="reply-content"
-                      placeholder="Type your reply here..."
-                      value={replyContent}
-                      onChange={(e) => setReplyContent(e.target.value)}
-                      rows={10}
-                      className="font-mono text-sm"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      HTML is supported. The reply will be sent from{' '}
-                      {email.targetEmail || 'support@raverpay.com'}
-                    </p>
-                  </div>
+          <Dialog open={replyOpen} onOpenChange={setReplyOpen}>
+            <DialogTrigger asChild>
+              <Button variant="default">
+                <Reply className="mr-2 h-4 w-4" />
+                Reply
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Reply to Email</DialogTitle>
+                <DialogDescription>
+                  Send a reply to {email.fromName || email.from}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reply-subject">Subject</Label>
+                  <Input
+                    id="reply-subject"
+                    value={`Re: ${email.subject || 'No Subject'}`}
+                    disabled
+                    className="bg-muted cursor-not-allowed"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Subject is locked to maintain email threading
+                  </p>
                 </div>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setReplyOpen(false)}
-                    disabled={replyMutation.isPending}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={() => replyMutation.mutate()}
-                    disabled={replyMutation.isPending || !replyContent.trim()}
-                  >
-                    {replyMutation.isPending ? (
-                      <>Sending...</>
-                    ) : (
-                      <>
-                        <Send className="mr-2 h-4 w-4" />
-                        Send Reply
-                      </>
-                    )}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
+                <div className="space-y-2">
+                  <Label htmlFor="reply-content">Message</Label>
+                  <Textarea
+                    id="reply-content"
+                    placeholder="Type your reply here..."
+                    value={replyContent}
+                    onChange={(e) => setReplyContent(e.target.value)}
+                    rows={10}
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    HTML is supported. The reply will be sent from{' '}
+                    {email.targetEmail || 'support@raverpay.com'}
+                  </p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setReplyOpen(false)}
+                  disabled={replyMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => replyMutation.mutate()}
+                  disabled={replyMutation.isPending || !replyContent.trim()}
+                >
+                  {replyMutation.isPending ? (
+                    <>Sending...</>
+                  ) : (
+                    <>
+                      <Send className="mr-2 h-4 w-4" />
+                      Send Reply
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           {!email.isProcessed && (
             <Button
               onClick={() => markProcessedMutation.mutate()}
