@@ -549,29 +549,36 @@ export class AdminEmailsService {
     }
 
     try {
-      // Fetch attachments list from Resend using direct API call
-      const apiKey = this.configService.get<string>('RESEND_API_KEY');
-      const attachmentsUrl = `https://api.resend.com/emails/${email.emailId}/attachments`;
+      // Create a new Resend instance and use it with type casting to access attachments API
+      const Resend = require('resend').Resend;
+      const resendClient = new Resend(
+        this.configService.get<string>('RESEND_API_KEY'),
+      );
 
-      const attachmentsResponse = await fetch(attachmentsUrl, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
+      // Use the SDK with type assertion to access the attachments API
+      const attachmentsResponse = await (
+        resendClient as any
+      ).emails.receiving.attachments.list({
+        emailId: email.emailId,
       });
 
-      if (!attachmentsResponse.ok) {
+      if (attachmentsResponse.error || !attachmentsResponse.data) {
         throw new BadRequestException(
-          `Failed to fetch attachments from Resend: ${attachmentsResponse.statusText}`,
+          `Failed to fetch attachments from Resend: ${attachmentsResponse.error?.message || 'Unknown error'}`,
         );
       }
 
-      const attachmentsData = await attachmentsResponse.json();
+      const attachmentsData = attachmentsResponse;
 
       // Find the matching attachment in the response
-      // The array is at attachmentsData.data
-      const resendAttachment = attachmentsData.data?.find(
+      // Check both possible array locations (API response varies)
+      const attachmentsList = Array.isArray(attachmentsData.data)
+        ? attachmentsData.data
+        : Array.isArray(attachmentsData)
+          ? attachmentsData
+          : [];
+
+      const resendAttachment = attachmentsList.find(
         (att: any) => att.id === attachmentId,
       );
 
@@ -643,24 +650,27 @@ export class AdminEmailsService {
       // Fetch and process attachments if any
       let processedAttachments: any[] = [];
       if (email.attachments && Array.isArray(email.attachments)) {
-        // Fetch attachments list from Resend using direct API call
-        const apiKey = this.configService.get<string>('RESEND_API_KEY');
-        const attachmentsUrl = `https://api.resend.com/emails/${email.emailId}/attachments`;
+        try {
+          // Create a new Resend instance and use it with type casting
+          const Resend = require('resend').Resend;
+          const resendClient = new Resend(
+            this.configService.get<string>('RESEND_API_KEY'),
+          );
 
-        const attachmentsResponse = await fetch(attachmentsUrl, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        });
+          // Use the SDK with type assertion to access the attachments API
+          const attachmentsResponse = await (
+            resendClient as any
+          ).emails.receiving.attachments.list({
+            emailId: email.emailId,
+          });
 
-        if (attachmentsResponse.ok) {
-          const attachmentsData = await attachmentsResponse.json();
-
-          // Download each attachment and encode in base64
-          if (attachmentsData.data && Array.isArray(attachmentsData.data)) {
-            for (const attachment of attachmentsData.data) {
+          if (
+            !attachmentsResponse.error &&
+            attachmentsResponse.data &&
+            Array.isArray(attachmentsResponse.data)
+          ) {
+            // Download each attachment and encode in base64
+            for (const attachment of attachmentsResponse.data) {
               try {
                 const response = await fetch(attachment.download_url);
                 if (!response.ok) {
@@ -683,6 +693,8 @@ export class AdminEmailsService {
               }
             }
           }
+        } catch (err) {
+          this.logger.warn(`Failed to fetch attachments: ${err}`);
         }
       }
 

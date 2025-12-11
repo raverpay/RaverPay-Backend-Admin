@@ -281,6 +281,22 @@ export class ResendWebhookService {
       });
 
       this.logger.log(`✅ Email ${email_id} processed successfully`);
+
+      // Automatically forward email to raverpay@outlook.com
+      try {
+        await this.forwardEmailToOutlook(
+          email_id,
+          inboundEmail,
+          textBody,
+          htmlBody,
+          eventData.data.attachments,
+        );
+      } catch (forwardError) {
+        // Don't fail the whole process if forwarding fails
+        this.logger.error(
+          `❌ Failed to forward email to Outlook: ${forwardError instanceof Error ? forwardError.message : 'Unknown error'}`,
+        );
+      }
     } catch (error) {
       this.logger.error(`Error processing email ${email_id}:`, error);
       // Update email with error
@@ -704,5 +720,112 @@ export class ResendWebhookService {
     });
 
     this.logger.log(`✅ Email ${inboundEmailId} processed successfully`);
+  }
+
+  /**
+   * Automatically forward email to raverpay@outlook.com
+   */
+  private async forwardEmailToOutlook(
+    emailId: string,
+    inboundEmail: any,
+    textBody: string | null,
+    htmlBody: string | null,
+    attachmentsMetadata?: any[],
+  ) {
+    if (!this.resend) {
+      this.logger.warn('Cannot forward email - Resend client not initialized');
+      return;
+    }
+
+    this.logger.log(
+      `📤 Auto-forwarding email ${emailId} to raverpay@outlook.com`,
+    );
+
+    try {
+      // Process attachments if any
+      let processedAttachments: any[] = [];
+      if (attachmentsMetadata && attachmentsMetadata.length > 0) {
+        try {
+          // Create a new Resend instance for attachments API
+          const Resend = require('resend').Resend;
+          const resendClient = new Resend(
+            this.configService.get<string>('RESEND_API_KEY'),
+          );
+
+          // Fetch attachments list
+          const attachmentsResponse = await (
+            resendClient as any
+          ).emails.receiving.attachments.list({
+            emailId: emailId,
+          });
+
+          if (!attachmentsResponse.error && attachmentsResponse.data) {
+            // Check both possible array locations (API response varies)
+            const attachmentsList = Array.isArray(attachmentsResponse.data)
+              ? attachmentsResponse.data
+              : Array.isArray(attachmentsResponse.data.data)
+                ? attachmentsResponse.data.data
+                : [];
+
+            // Download each attachment
+            for (const attachment of attachmentsList) {
+              try {
+                const response = await fetch(attachment.download_url);
+                if (!response.ok) {
+                  this.logger.warn(
+                    `Failed to download attachment ${attachment.filename}`,
+                  );
+                  continue;
+                }
+
+                const buffer = Buffer.from(await response.arrayBuffer());
+                processedAttachments.push({
+                  filename: attachment.filename,
+                  content: buffer.toString('base64'),
+                  content_type: attachment.content_type,
+                });
+              } catch (err) {
+                this.logger.warn(
+                  `Error downloading attachment ${attachment.filename}: ${err}`,
+                );
+              }
+            }
+          }
+        } catch (err) {
+          this.logger.warn(
+            `Failed to fetch attachments for forwarding: ${err}`,
+          );
+        }
+      }
+
+      // Forward the email
+      const fromEmail =
+        this.configService.get<string>('RESEND_FROM_EMAIL') ||
+        'noreply@raverpay.com';
+
+      const forwardResponse = await this.resend.emails.send({
+        from: fromEmail,
+        to: ['raverpay@outlook.com'],
+        subject: `Fwd: ${inboundEmail.subject || '(No Subject)'}`,
+        html: htmlBody || undefined,
+        text: textBody || undefined,
+        attachments:
+          processedAttachments.length > 0 ? processedAttachments : undefined,
+        replyTo: inboundEmail.from,
+      } as any);
+
+      if (forwardResponse.error) {
+        throw new Error(forwardResponse.error.message);
+      }
+
+      this.logger.log(
+        `✅ Email ${emailId} forwarded to raverpay@outlook.com (${processedAttachments.length} attachments)`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to forward email ${emailId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      throw error;
+    }
   }
 }
