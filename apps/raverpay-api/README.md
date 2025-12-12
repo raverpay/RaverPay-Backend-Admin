@@ -1,4 +1,4 @@
-# RaverPay API Docs
+# RaverPay API
 
 A comprehensive fintech backend API built with NestJS, providing digital wallet services, VTU (Virtual Top-Up) purchases, and payment processing for Nigerian users.
 
