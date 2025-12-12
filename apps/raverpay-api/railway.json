@@ -5,7 +5,7 @@
     "buildCommand": "pnpm install --no-frozen-lockfile --filter @raverpay/raverpay-api && pnpm --filter @raverpay/raverpay-api prisma:generate && pnpm --filter @raverpay/raverpay-api build && ls -la apps/raverpay-api/dist"
   },
   "deploy": {
-    "startCommand": "node apps/raverpay-api/dist/main.js",
+    "startCommand": "node dist/main.js",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
