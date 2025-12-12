@@ -2,11 +2,12 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "pnpm install --no-frozen-lockfile --filter @raverpay/raverpay-api && pnpm --filter @raverpay/raverpay-api prisma:generate && pnpm --filter @raverpay/raverpay-api build"
+    "buildCommand": "pnpm install --no-frozen-lockfile --filter @raverpay/raverpay-api && pnpm --filter @raverpay/raverpay-api prisma:generate && pnpm --filter @raverpay/raverpay-api build && echo '=== BUILD OUTPUT ===' && find . -name 'main.js' -o -name 'dist' -type d | head -20"
   },
   "deploy": {
-    "startCommand": "node apps/raverpay-api/dist/main.js",
+    "startCommand": "find /app -name 'main.js' 2>/dev/null | head -5 && node apps/raverpay-api/dist/main.js",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
 }
+
