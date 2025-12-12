@@ -26,7 +26,11 @@
     "prisma:generate": "pnpm --filter @raverpay/raverpay-api prisma:generate",
     "prisma:migrate": "pnpm --filter @raverpay/raverpay-api prisma:migrate",
     "prisma:studio": "pnpm --filter @raverpay/raverpay-api prisma:studio",
-    "prisma:seed": "pnpm --filter @raverpay/raverpay-api prisma:seed"
+    "prisma:seed": "pnpm --filter @raverpay/raverpay-api prisma:seed",
+    "deploy:api": "cd apps/raverpay-api && railway up",
+    "deploy:admin": "cd apps/raverpay-admin && railway up",
+    "deploy:web": "cd apps/raverpay-web && railway up",
+    "deploy:all": "pnpm deploy:api && pnpm deploy:admin && pnpm deploy:web"
   },
   "engines": {
     "node": ">=18.0.0",
