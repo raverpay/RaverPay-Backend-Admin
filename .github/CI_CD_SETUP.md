@@ -9,6 +9,7 @@ This CI/CD pipeline provides automated testing, security scanning, and deploymen
 ## 🎯 What It Does
 
 ### For Pull Requests & Pushes to Main:
+
 1. ✅ **Code Quality Checks**
    - Prettier formatting validation
    - ESLint linting
@@ -27,6 +28,7 @@ This CI/CD pipeline provides automated testing, security scanning, and deploymen
    - Secret detection (TruffleHog)
 
 ### Only on Push to Main:
+
 5. 🚀 **Automated Deployment**
    - Deploys `raverpay-api` to Railway
    - Runs health checks post-deployment
@@ -77,11 +79,11 @@ You need to add these secrets to your GitHub repository:
 1. Go to **Settings** → **Secrets and variables** → **Actions**
 2. Add the following secrets:
 
-| Secret Name | Description | How to Get |
-|-------------|-------------|------------|
-| `RAILWAY_TOKEN` | Railway deployment token | Run `railway token` in your terminal |
-| `NOTIFICATION_EMAIL` | Email to send from | `raverpay@outlook.com` |
-| `NOTIFICATION_EMAIL_PASSWORD` | Email app password | Create app password in Outlook settings |
+| Secret Name                   | Description              | How to Get                              |
+| ----------------------------- | ------------------------ | --------------------------------------- |
+| `RAILWAY_TOKEN`               | Railway deployment token | Run `railway token` in your terminal    |
+| `NOTIFICATION_EMAIL`          | Email to send from       | `raverpay@outlook.com`                  |
+| `NOTIFICATION_EMAIL_PASSWORD` | Email app password       | Create app password in Outlook settings |
 
 **Detailed instructions:** See [SETUP_SECRETS.md](./SETUP_SECRETS.md)
 
@@ -124,6 +126,7 @@ This ensures no code can be merged to main without passing all checks.
 ### Manual Trigger (Optional)
 
 You can manually trigger the workflow from the GitHub Actions tab:
+
 - Go to **Actions** → **CI/CD Pipeline** → **Run workflow**
 
 ---
@@ -133,16 +136,19 @@ You can manually trigger the workflow from the GitHub Actions tab:
 ### Test on a Feature Branch
 
 1. Create a feature branch:
+
    ```bash
    git checkout -b test-ci-cd
    ```
 
 2. Make a small change:
+
    ```bash
    echo "# CI/CD Test" >> README.md
    ```
 
 3. Commit and push:
+
    ```bash
    git add .
    git commit -m "test: verify CI/CD pipeline"
@@ -173,23 +179,29 @@ You can manually trigger the workflow from the GitHub Actions tab:
 ## 🐛 Troubleshooting
 
 ### Pipeline Fails on Format Check
+
 **Fix:** Run `pnpm format` locally and commit changes
 
 ### Pipeline Fails on Linting
+
 **Fix:** Run `pnpm lint` locally and fix issues
 
 ### Pipeline Fails on Type Check
+
 **Fix:** Run `pnpm typecheck` locally and fix TypeScript errors
 
 ### Pipeline Fails on Tests
+
 **Fix:** Run `pnpm test` locally and fix failing tests
 
 ### Deployment Fails
+
 1. Check Railway token is valid: `railway whoami`
 2. Verify Railway service name matches: `raverpay-api`
 3. Check Railway logs: `railway logs --service raverpay-api`
 
 ### Email Notifications Not Working
+
 1. Verify secrets are set correctly in GitHub
 2. Use an app-specific password (not your regular password)
 3. Check GitHub Actions logs for error details
@@ -199,16 +211,19 @@ You can manually trigger the workflow from the GitHub Actions tab:
 ## 🔒 Security Features
 
 ### 1. Dependency Scanning
+
 - Runs `pnpm audit` on every push
 - Fails on HIGH or CRITICAL vulnerabilities
 - **Action required:** Fix vulnerabilities before merging
 
 ### 2. Secret Detection
+
 - Uses TruffleHog to scan for leaked secrets
 - Checks all code changes
 - **Action required:** Remove any detected secrets
 
 ### 3. Environment Isolation
+
 - Build environment uses dummy values
 - Real secrets only on Railway (not in GitHub)
 - Separate environments for dev/prod
@@ -287,4 +302,3 @@ When contributing to this repository:
 7. Merge to `main`
 
 The pipeline will automatically deploy your changes to production!
-

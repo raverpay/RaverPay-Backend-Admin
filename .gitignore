@@ -60,5 +60,5 @@ logs/
 *.log
 
 # Documentation
-md
-docs
+md/
+docs/
