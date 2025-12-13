@@ -207,13 +207,23 @@ jobs:
               exit 0
             fi
             
-            echo "❌ Health check failed (HTTP $response). Retrying in 10 seconds..."
+            echo "❌ Health check failed (HTTP $response). Retrying in 20 seconds..."
             sleep 20
             attempt=$((attempt + 1))
           done
           
           echo "❌ Health check failed after $max_attempts attempts"
           exit 1
+
+      - name: Run smoke tests
+        run: |
+          chmod +x .github/workflows/smoke-tests.sh
+          .github/workflows/smoke-tests.sh
+        env:
+          API_URL: https://api.raverpay.com
+          SMOKE_TEST_EMAIL: ${{ secrets.SMOKE_TEST_EMAIL }}
+          SMOKE_TEST_PASSWORD: ${{ secrets.SMOKE_TEST_PASSWORD }}
+        continue-on-error: false
 
   # ============================================
   # Notify Job (runs on success or failure)

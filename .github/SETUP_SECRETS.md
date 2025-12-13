@@ -62,7 +62,7 @@ node -e "
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 resend.emails.send({
-  from: 'RaverPay CI/CD <noreply@expertvetteddigital.tech>',
+  from: 'RaverPay CI/CD <noreply@raverpay.com>',
   to: 'raverpay@outlook.com',
   subject: 'Test Email',
   text: 'This is a test email from RaverPay CI/CD'
@@ -72,7 +72,31 @@ resend.emails.send({
 
 ---
 
-### 3. `NOTIFICATION_EMAIL` (Optional - Legacy SMTP)
+### 3. `SMOKE_TEST_EMAIL` ⭐ Required for Smoke Tests
+
+**Purpose:** Email address for test user account used in smoke tests after deployment
+
+**Value:** `raverpay@outlook.com`
+
+**Note:** This should be a real user account in your production/staging database that exists and can be used for testing.
+
+---
+
+### 4. `SMOKE_TEST_PASSWORD` ⭐ Required for Smoke Tests
+
+**Purpose:** Password for the test user account used in smoke tests
+
+**Value:** `raverpaytestR$`
+
+**Note:**
+
+- This account is used to test authentication and protected endpoints
+- The account should have a wallet and basic profile set up
+- Consider using a dedicated test account (not a real user account)
+
+---
+
+### 5. `NOTIFICATION_EMAIL` (Optional - Legacy SMTP)
 
 **Purpose:** Email address for SMTP-based notifications (if not using Resend)
 
@@ -82,7 +106,7 @@ resend.emails.send({
 
 ---
 
-### 4. `NOTIFICATION_EMAIL_PASSWORD` (Optional - Legacy SMTP)
+### 6. `NOTIFICATION_EMAIL_PASSWORD` (Optional - Legacy SMTP)
 
 **Purpose:** App-specific password for SMTP notifications (if not using Resend)
 
@@ -106,6 +130,8 @@ After adding all secrets, verify by:
 2. You should see at minimum:
    - `RAILWAY_TOKEN` (required)
    - `RESEND_API_KEY` (recommended for email notifications)
+   - `SMOKE_TEST_EMAIL` (required for smoke tests)
+   - `SMOKE_TEST_PASSWORD` (required for smoke tests)
 
    Optional (if using SMTP instead of Resend):
    - `NOTIFICATION_EMAIL`
@@ -158,3 +184,12 @@ railway token
 - Verify your API is deployed correctly on Railway
 - Check the Railway logs: `railway logs --service raverpay-api`
 - Ensure the health endpoint is accessible: https://api.raverpay.com/api/health
+
+### Smoke Tests Failing
+
+- Verify `SMOKE_TEST_EMAIL` and `SMOKE_TEST_PASSWORD` are correct
+- Ensure the test user account exists in your database
+- Check that the test user account is active and not locked
+- Verify the test user has a wallet created
+- Check API logs for specific error messages
+- Test manually: Try logging in with the credentials at https://api.raverpay.com/api/auth/login
