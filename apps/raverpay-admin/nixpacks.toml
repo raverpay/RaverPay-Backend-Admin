@@ -4,12 +4,12 @@ nixPkgs = ["nodejs_22", "corepack"]
 [phases.install]
 cmds = [
   "corepack enable",
-  "corepack prepare pnpm@latest --activate",
-  "pnpm install --frozen-lockfile"
+  "corepack prepare pnpm@8.15.0 --activate",
+  "pnpm install --no-frozen-lockfile --filter @raverpay/raverpay-admin"
 ]
 
 [phases.build]
-cmds = ["pnpm run build"]
+cmds = ["pnpm --filter @raverpay/raverpay-admin build"]
 
 [start]
-cmd = "pnpm run start"
+cmd = "pnpm --filter @raverpay/raverpay-admin start"

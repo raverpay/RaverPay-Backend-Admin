@@ -36,7 +36,8 @@
     "test:email": "node scripts/test-email.js",
     "precommit": "bash scripts/precommit.sh",
     "test:smoke:local": "bash scripts/smoke-tests-local.sh",
-    "check:all": "pnpm precommit && pnpm test:smoke:local"
+    "check:all": "pnpm precommit && pnpm test:smoke:local",
+    "start": "pnpm --filter @raverpay/raverpay-admin start"
   },
   "engines": {
     "node": ">=18.0.0",
