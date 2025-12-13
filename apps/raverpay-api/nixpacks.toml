@@ -1,15 +1,15 @@
 [phases.setup]
-nixPkgs = ["nodejs_20", "pnpm-9_x", "openssl"]
+nixPkgs = ["nodejs_18", "pnpm-9_x", "openssl"]
 
 [phases.install]
-cmds = ["pnpm install --frozen-lockfile"]
+cmds = ["pnpm install --no-frozen-lockfile"]
 
 [phases.build]
 cmds = [
-  "export NODE_OPTIONS='--max-old-space-size=6144'",
-  "pnpm --filter @raverpay/raverpay-api prisma:generate",
-  "pnpm --filter @raverpay/raverpay-api build"
+    "pnpm install --filter @raverpay/raverpay-api",
+    "pnpm --filter @raverpay/raverpay-api prisma:generate",
+    "pnpm --filter @raverpay/raverpay-api build"
 ]
 
 [start]
-cmd = "node apps/raverpay-api/dist/main.js"
+cmd = "node dist/src/main.js"
