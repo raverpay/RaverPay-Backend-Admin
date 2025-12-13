@@ -19,6 +19,36 @@ env:
 
 jobs:
   # ============================================
+  # Detect Changes Job
+  # ============================================
+  detect-changes:
+    name: Detect Changed Apps
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      api_changed: ${{ steps.detect.outputs.api_changed || 'false' }}
+      admin_changed: ${{ steps.detect.outputs.admin_changed || 'false' }}
+      web_changed: ${{ steps.detect.outputs.web_changed || 'false' }}
+      shared_changed: ${{ steps.detect.outputs.shared_changed || 'false' }}
+      root_changed: ${{ steps.detect.outputs.root_changed || 'false' }}
+      skip_build: ${{ steps.detect.outputs.skip_build || 'false' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed apps
+        id: detect
+        run: |
+          chmod +x .github/workflows/detect-changes.sh
+          .github/workflows/detect-changes.sh
+        env:
+          BASE_COMMIT: ${{ github.event.before || 'HEAD~1' }}
+          CURRENT_COMMIT: ${{ github.sha }}
+
+  # ============================================
   # Quality Checks Job
   # ============================================
   quality-checks:
@@ -91,13 +121,17 @@ jobs:
         run: pnpm test
 
   # ============================================
-  # Build Job
+  # Build Job (Conditional - only builds changed apps)
   # ============================================
   build:
-    name: Build All Apps
+    name: Build Changed Apps
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [quality-checks, test]
+    needs: [detect-changes, quality-checks, test]
+    if: needs.detect-changes.outputs.skip_build != 'true'
+    outputs:
+      api_built: ${{ steps.build-api.outputs.built || 'false' }}
+      admin_built: ${{ steps.build-admin.outputs.built || 'false' }}
     
     steps:
       - name: Checkout code
@@ -120,14 +154,55 @@ jobs:
       - name: Generate Prisma Client
         run: pnpm prisma:generate
 
-      - name: Build all apps
-        run: pnpm build
+      - name: Build API (if changed)
+        id: build-api
+        run: |
+          if [ "${{ needs.detect-changes.outputs.api_changed }}" = "true" ]; then
+            echo "🔨 Building API..."
+            pnpm --filter @raverpay/raverpay-api build
+            echo "built=true" >> $GITHUB_OUTPUT
+          else
+            echo "⏭️ Skipping API build (no changes detected)"
+            echo "built=false" >> $GITHUB_OUTPUT
+          fi
         env:
-          # Provide dummy env vars for build time
           DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
           JWT_SECRET: "dummy-jwt-secret-for-build"
           JWT_REFRESH_SECRET: "dummy-jwt-refresh-secret-for-build"
+        continue-on-error: false
+
+      - name: Build Admin (if changed)
+        id: build-admin
+        run: |
+          if [ "${{ needs.detect-changes.outputs.admin_changed }}" = "true" ]; then
+            echo "🔨 Building Admin..."
+            pnpm --filter @raverpay/raverpay-admin build
+            echo "built=true" >> $GITHUB_OUTPUT
+          else
+            echo "⏭️ Skipping Admin build (no changes detected)"
+            echo "built=false" >> $GITHUB_OUTPUT
+          fi
+        env:
           NEXT_PUBLIC_API_URL: "https://api.raverpay.com"
+        continue-on-error: false
+
+      - name: Build Web (if changed)
+        if: needs.detect-changes.outputs.web_changed == 'true'
+        run: |
+          echo "🔨 Building Web..."
+          pnpm --filter @raverpay/raverpay-web build
+        env:
+          NEXT_PUBLIC_API_URL: "https://api.raverpay.com"
+        continue-on-error: false
+
+      - name: Build Summary
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📦 Build Summary"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "API built:   ${{ steps.build-api.outputs.built || 'false' }}"
+          echo "Admin built: ${{ steps.build-admin.outputs.built || 'false' }}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
   # ============================================
   # Security Scan Job
@@ -167,14 +242,20 @@ jobs:
         continue-on-error: true
 
   # ============================================
-  # Deploy to Railway (Only on push to main)
+  # Deploy to Railway (Only on push to main, conditional)
   # ============================================
   deploy:
     name: Deploy to Railway
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [build, security-scan]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [detect-changes, build, security-scan]
+    if: |
+      github.event_name == 'push' && 
+      github.ref == 'refs/heads/main' &&
+      needs.detect-changes.outputs.skip_build != 'true'
+    outputs:
+      api_deployed: ${{ steps.deploy-api.outputs.deployed || 'false' }}
+      admin_deployed: ${{ steps.deploy-admin.outputs.deployed || 'false' }}
     
     steps:
       - name: Checkout code
@@ -184,21 +265,43 @@ jobs:
         run: npm install -g @railway/cli
 
       - name: Deploy raverpay-api to Railway
+        id: deploy-api
         run: |
-          railway up --service @raverpay/raverpay-api --detach
+          if [ "${{ needs.detect-changes.outputs.api_changed }}" = "true" ]; then
+            echo "🚀 Deploying API to Railway..."
+            railway up --service @raverpay/raverpay-api --detach
+            echo "deployed=true" >> $GITHUB_OUTPUT
+          else
+            echo "⏭️ Skipping API deployment (no changes detected)"
+            echo "deployed=false" >> $GITHUB_OUTPUT
+          fi
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        continue-on-error: false
 
       - name: Deploy raverpay-admin to Railway
+        id: deploy-admin
         run: |
-          railway up --service @raverpay/raverpay-admin --detach
+          if [ "${{ needs.detect-changes.outputs.admin_changed }}" = "true" ]; then
+            echo "🚀 Deploying Admin to Railway..."
+            railway up --service @raverpay/raverpay-admin --detach
+            echo "deployed=true" >> $GITHUB_OUTPUT
+          else
+            echo "⏭️ Skipping Admin deployment (no changes detected)"
+            echo "deployed=false" >> $GITHUB_OUTPUT
+          fi
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        continue-on-error: false
 
       - name: Wait for deployments to complete
+        if: |
+          steps.deploy-api.outputs.deployed == 'true' ||
+          steps.deploy-admin.outputs.deployed == 'true'
         run: sleep 120
 
-      - name: Health check
+      - name: Health check (API)
+        if: steps.deploy-api.outputs.deployed == 'true'
         run: |
           max_attempts=10
           attempt=1
@@ -222,6 +325,7 @@ jobs:
           exit 1
 
       - name: Verify admin deployment
+        if: steps.deploy-admin.outputs.deployed == 'true'
         run: |
           max_attempts=5
           attempt=1
@@ -246,6 +350,7 @@ jobs:
         continue-on-error: true
 
       - name: Run smoke tests
+        if: steps.deploy-api.outputs.deployed == 'true'
         run: |
           chmod +x .github/workflows/smoke-tests.sh
           .github/workflows/smoke-tests.sh
@@ -254,6 +359,22 @@ jobs:
           SMOKE_TEST_EMAIL: ${{ secrets.SMOKE_TEST_EMAIL }}
           SMOKE_TEST_PASSWORD: ${{ secrets.SMOKE_TEST_PASSWORD }}
         continue-on-error: false
+
+      - name: Deployment Summary
+        run: |
+          API_DEPLOYED="${{ steps.deploy-api.outputs.deployed }}"
+          ADMIN_DEPLOYED="${{ steps.deploy-admin.outputs.deployed }}"
+          
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🚀 Deployment Summary"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "API deployed:   $API_DEPLOYED"
+          echo "Admin deployed: $ADMIN_DEPLOYED"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          
+          if [ "$API_DEPLOYED" != "true" ] && [ "$ADMIN_DEPLOYED" != "true" ]; then
+            echo "ℹ️ No deployments were needed (no changes detected)"
+          fi
 
   # ============================================
   # Notify Job (runs on success or failure)
@@ -272,6 +393,16 @@ jobs:
         if: needs.deploy.result == 'success'
         run: |
           chmod +x .github/workflows/send-resend-email.sh
+          
+          # Build deployment list
+          DEPLOYMENTS=""
+          if [ "${{ needs.deploy.outputs.api_deployed }}" = "true" ]; then
+            DEPLOYMENTS="${DEPLOYMENTS}- API: https://api.raverpay.com\n"
+          fi
+          if [ "${{ needs.deploy.outputs.admin_deployed }}" = "true" ]; then
+            DEPLOYMENTS="${DEPLOYMENTS}- Admin: https://myadmin.raverpay.com\n"
+          fi
+          
           .github/workflows/send-resend-email.sh \
             "✅ RaverPay Deployment Successful - ${{ github.sha }}" \
             "Deployment to Railway completed successfully!
@@ -282,9 +413,8 @@ jobs:
           Author: ${{ github.actor }}
           Message: ${{ github.event.head_commit.message }}
 
-          Deployments:
-          - API: https://api.raverpay.com
-          - Admin: https://myadmin.raverpay.com
+          Deployed Services:
+          ${DEPLOYMENTS}
           
           View commit: ${{ github.event.head_commit.url }}" \
             "raverpay@outlook.com"

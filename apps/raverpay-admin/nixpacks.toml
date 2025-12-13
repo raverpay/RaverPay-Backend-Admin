@@ -1,12 +1,8 @@
 [phases.setup]
-nixPkgs = ["nodejs_22", "corepack"]
+nixPkgs = ["nodejs_20", "pnpm-9_x", "openssl"]
 
 [phases.install]
-cmds = [
-  "corepack enable",
-  "corepack prepare pnpm@8.15.0 --activate",
-  "pnpm install --no-frozen-lockfile --filter @raverpay/raverpay-admin"
-]
+cmds = ["pnpm install --no-frozen-lockfile --filter @raverpay/raverpay-admin"]
 
 [phases.build]
 cmds = ["pnpm --filter @raverpay/raverpay-admin build"]
