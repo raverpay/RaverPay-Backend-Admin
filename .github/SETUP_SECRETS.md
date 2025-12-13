@@ -31,38 +31,70 @@ Copy the token and add it as a GitHub secret.
 
 ---
 
-### 2. `NOTIFICATION_EMAIL`
+### 2. `RESEND_API_KEY` ⭐ RECOMMENDED
 
-**Purpose:** Email address used to send deployment notifications
+**Purpose:** Resend API key for sending deployment notifications
 
-**Value:** `raverpay@outlook.com`
+**Why Resend?**
 
----
-
-### 3. `NOTIFICATION_EMAIL_PASSWORD`
-
-**Purpose:** Password or app-specific password for the notification email
+- ✅ More reliable than Outlook SMTP (no authentication issues)
+- ✅ Already used in your application for transactional emails
+- ✅ Better deliverability and tracking
+- ✅ No app passwords or SMTP configuration needed
 
 **How to get it:**
 
-1. Go to Outlook.com
-2. Navigate to **Settings** → **Security**
-3. Create an **App Password** (recommended for security)
-4. Use this app password instead of your regular password
+1. Go to https://resend.com and sign in (or create an account)
+2. Navigate to **API Keys** in your dashboard
+3. Click **Create API Key**
+4. Give it a name like "GitHub Actions CI/CD"
+5. Copy the API key (starts with `re_`)
+6. Add it as `RESEND_API_KEY` secret in GitHub
 
-**Note:** If you don't use an app password, you may need to enable "less secure app access", which is NOT recommended for fintech applications.
+**Note:** You can use the same API key that's already configured in your Railway environment.
+
+**Testing Locally:**
+
+```bash
+# Test Resend API
+export RESEND_API_KEY="your-resend-api-key"
+node -e "
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
+resend.emails.send({
+  from: 'RaverPay CI/CD <noreply@expertvetteddigital.tech>',
+  to: 'raverpay@outlook.com',
+  subject: 'Test Email',
+  text: 'This is a test email from RaverPay CI/CD'
+}).then(r => console.log('✅ Email sent:', r.data)).catch(e => console.error('❌ Error:', e));
+"
+```
 
 ---
 
-## Optional: Creating an App Password for Outlook
+### 3. `NOTIFICATION_EMAIL` (Optional - Legacy SMTP)
 
-For better security, use an app-specific password:
+**Purpose:** Email address for SMTP-based notifications (if not using Resend)
 
-1. Sign in to your Microsoft account
-2. Go to https://account.microsoft.com/security
-3. Under **Security basics**, select **Advanced security options**
-4. Under **App passwords**, select **Create a new app password**
-5. Copy the generated password and use it as `NOTIFICATION_EMAIL_PASSWORD`
+**Value:** `raverpay@outlook.com`
+
+**Note:** Only needed if using SMTP instead of Resend. **Resend is recommended.**
+
+---
+
+### 4. `NOTIFICATION_EMAIL_PASSWORD` (Optional - Legacy SMTP)
+
+**Purpose:** App-specific password for SMTP notifications (if not using Resend)
+
+**⚠️ IMPORTANT:** Outlook/Office365 has disabled basic authentication for many accounts. Even with app passwords, SMTP may not work. **We strongly recommend using Resend instead.**
+
+**Testing SMTP Locally:**
+
+```bash
+export NOTIFICATION_EMAIL="raverpay@outlook.com"
+export NOTIFICATION_EMAIL_PASSWORD="your-app-password-here"
+pnpm test:email
+```
 
 ---
 
@@ -71,8 +103,11 @@ For better security, use an app-specific password:
 After adding all secrets, verify by:
 
 1. Going to **Settings** → **Secrets and variables** → **Actions**
-2. You should see three secrets:
-   - `RAILWAY_TOKEN`
+2. You should see at minimum:
+   - `RAILWAY_TOKEN` (required)
+   - `RESEND_API_KEY` (recommended for email notifications)
+
+   Optional (if using SMTP instead of Resend):
    - `NOTIFICATION_EMAIL`
    - `NOTIFICATION_EMAIL_PASSWORD`
 
@@ -104,8 +139,18 @@ railway token
 
 ### Email Notification Issues
 
+**If using Resend (Recommended):**
+
+- Verify `RESEND_API_KEY` is correct and active
+- Check Resend dashboard for delivery status
+- Ensure the API key has permission to send emails
+
+**If using SMTP (Legacy):**
+
 - Verify the email and password are correct
 - If using 2FA, you MUST use an app password
+- Note: Outlook may still block SMTP even with app passwords
+- **Solution:** Switch to Resend API (recommended)
 - Check the GitHub Actions logs for specific error messages
 
 ### Health Check Failing

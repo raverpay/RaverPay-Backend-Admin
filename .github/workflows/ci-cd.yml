@@ -225,49 +225,48 @@ jobs:
     if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
-      - name: Send success email
-        if: needs.deploy.result == 'success'
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp-mail.outlook.com
-          server_port: 587
-          username: ${{ secrets.NOTIFICATION_EMAIL }}
-          password: ${{ secrets.NOTIFICATION_EMAIL_PASSWORD }}
-          subject: '✅ RaverPay Deployment Successful - ${{ github.sha }}'
-          to: raverpay@outlook.com
-          from: ${{ secrets.NOTIFICATION_EMAIL }}
-          body: |
-            Deployment to Railway completed successfully!
-            
-            Repository: ${{ github.repository }}
-            Branch: ${{ github.ref_name }}
-            Commit: ${{ github.sha }}
-            Author: ${{ github.actor }}
-            Message: ${{ github.event.head_commit.message }}
-            
-            View deployment: https://api.raverpay.com
-            View commit: ${{ github.event.head_commit.url }}
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Send failure email
+      - name: Send success email via Resend
+        if: needs.deploy.result == 'success'
+        run: |
+          chmod +x .github/workflows/send-resend-email.sh
+          .github/workflows/send-resend-email.sh \
+            "✅ RaverPay Deployment Successful - ${{ github.sha }}" \
+            "Deployment to Railway completed successfully!
+
+          Repository: ${{ github.repository }}
+          Branch: ${{ github.ref_name }}
+          Commit: ${{ github.sha }}
+          Author: ${{ github.actor }}
+          Message: ${{ github.event.head_commit.message }}
+
+          View deployment: https://api.raverpay.com
+          View commit: ${{ github.event.head_commit.url }}" \
+            "raverpay@outlook.com"
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        continue-on-error: true
+
+      - name: Send failure email via Resend
         if: needs.deploy.result == 'failure'
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp-mail.outlook.com
-          server_port: 587
-          username: ${{ secrets.NOTIFICATION_EMAIL }}
-          password: ${{ secrets.NOTIFICATION_EMAIL_PASSWORD }}
-          subject: '❌ RaverPay Deployment Failed - ${{ github.sha }}'
-          to: raverpay@outlook.com
-          from: ${{ secrets.NOTIFICATION_EMAIL }}
-          body: |
-            ⚠️ Deployment to Railway FAILED!
-            
-            Repository: ${{ github.repository }}
-            Branch: ${{ github.ref_name }}
-            Commit: ${{ github.sha }}
-            Author: ${{ github.actor }}
-            Message: ${{ github.event.head_commit.message }}
-            
-            Please check the GitHub Actions logs:
-            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          chmod +x .github/workflows/send-resend-email.sh
+          .github/workflows/send-resend-email.sh \
+            "❌ RaverPay Deployment Failed - ${{ github.sha }}" \
+            "⚠️ Deployment to Railway FAILED!
+
+          Repository: ${{ github.repository }}
+          Branch: ${{ github.ref_name }}
+          Commit: ${{ github.sha }}
+          Author: ${{ github.actor }}
+          Message: ${{ github.event.head_commit.message }}
+
+          Please check the GitHub Actions logs:
+          ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            "raverpay@outlook.com"
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        continue-on-error: true
 
