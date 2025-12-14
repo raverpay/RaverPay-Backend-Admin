@@ -47,11 +47,21 @@ export class IdempotencyInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    // Get idempotency key from header
-    const idempotencyKey = request.headers['idempotency-key'] as string;
+    // Get idempotency key from header (case-insensitive)
+    const idempotencyKey =
+      (request.headers['idempotency-key'] as string) ||
+      (request.headers['Idempotency-Key'] as string);
+
+    // Log for debugging (using log instead of debug to ensure visibility)
+    this.logger.log(
+      `[Idempotency] Endpoint: ${request.method} ${request.path}, Has key: ${!!idempotencyKey}`,
+    );
 
     // If no key provided, allow request to proceed (optional idempotency)
     if (!idempotencyKey) {
+      this.logger.log(
+        `[Idempotency] No idempotency key provided for ${request.method} ${request.path}, proceeding normally`,
+      );
       return next.handle();
     }
 
@@ -73,6 +83,10 @@ export class IdempotencyInterceptor implements NestInterceptor {
     // Get endpoint and method
     const endpoint = request.path;
     const method = request.method;
+
+    this.logger.log(
+      `[Idempotency] Processing request with key: ${idempotencyKey.substring(0, 8)}... for ${method} ${endpoint}`,
+    );
 
     // Check for existing idempotency key
     try {
@@ -97,6 +111,10 @@ export class IdempotencyInterceptor implements NestInterceptor {
 
       // Create or get idempotency key record
       const expiresAt = this.idempotencyService.calculateExpirationDate();
+      this.logger.log(
+        `[Idempotency] Creating idempotency key record: ${idempotencyKey} for ${method} ${endpoint}`,
+      );
+
       const { id: idempotencyKeyId } =
         await this.idempotencyService.createIdempotencyKey({
           key: idempotencyKey,
@@ -106,6 +124,10 @@ export class IdempotencyInterceptor implements NestInterceptor {
           requestHash,
           expiresAt,
         });
+
+      this.logger.log(
+        `[Idempotency] Created idempotency key record with ID: ${idempotencyKeyId}`,
+      );
 
       // Store idempotency key ID in request for later use
       (request as any).idempotencyKeyId = idempotencyKeyId;
@@ -141,7 +163,10 @@ export class IdempotencyInterceptor implements NestInterceptor {
         }),
       );
     } catch (error) {
-      if (error instanceof ConflictException || error instanceof BadRequestException) {
+      if (
+        error instanceof ConflictException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       this.logger.error(
@@ -176,4 +201,3 @@ export class IdempotencyInterceptor implements NestInterceptor {
     return true;
   }
 }
-
