@@ -321,7 +321,7 @@ export class PaystackWebhookService {
           userId: user.id,
           eventType: 'bvn_verification_failed',
           category: 'KYC',
-          channels: ['EMAIL', 'SMS', 'IN_APP'],
+          channels: ['EMAIL', 'PUSH', 'IN_APP'],
           title: 'BVN Verification Failed',
           message: `We couldn't verify your BVN. ${reason || 'Please check your details and try again.'}`,
           data: {
