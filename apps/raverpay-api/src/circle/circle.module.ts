@@ -19,6 +19,9 @@ import { CircleWalletService } from './wallets/circle-wallet.service';
 import { CircleTransactionService } from './transactions/circle-transaction.service';
 import { CCTPService } from './transactions/cctp.service';
 
+// Paymaster Service
+import { PaymasterService } from './paymaster/paymaster.service';
+
 // Webhook Services
 import { CircleWebhookService } from './webhooks/circle-webhook.service';
 import { CircleWebhookController } from './webhooks/circle-webhook.controller';
@@ -57,6 +60,9 @@ import { CircleController } from './circle.controller';
     CircleTransactionService,
     CCTPService,
 
+    // Paymaster Service
+    PaymasterService,
+
     // Webhook Services
     CircleWebhookService,
   ],
@@ -68,6 +74,7 @@ import { CircleController } from './circle.controller';
     CircleWalletService,
     CircleTransactionService,
     CCTPService,
+    PaymasterService,
     CircleWebhookService,
   ],
 })

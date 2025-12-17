@@ -16,6 +16,7 @@ import { CircleWalletService } from './wallets/circle-wallet.service';
 import { CircleTransactionService } from './transactions/circle-transaction.service';
 import { CCTPService } from './transactions/cctp.service';
 import { CircleConfigService } from './config/circle.config.service';
+import { PaymasterService } from './paymaster/paymaster.service';
 import {
   CreateCircleWalletDto,
   UpdateWalletDto,
@@ -50,6 +51,7 @@ export class CircleController {
     private readonly transactionService: CircleTransactionService,
     private readonly cctpService: CCTPService,
     private readonly configService: CircleConfigService,
+    private readonly paymasterService: PaymasterService,
   ) {}
 
   // ============================================
@@ -479,6 +481,132 @@ export class CircleController {
   }
 
   // ============================================
+  // PAYMASTER ENDPOINTS
+  // ============================================
+
+  /**
+   * Get Paymaster configuration
+   * GET /circle/paymaster/config
+   */
+  @Get('paymaster/config')
+  getPaymasterConfig() {
+    return {
+      success: true,
+      data: {
+        supportedBlockchains: this.paymasterService.getSupportedBlockchains(),
+        surchargePercent: 10, // Default 10% surcharge
+        description:
+          'Pay gas fees in USDC instead of native tokens. Requires SCA wallet type.',
+      },
+    };
+  }
+
+  /**
+   * Check if a wallet supports Paymaster
+   * GET /circle/paymaster/compatible/:walletId
+   */
+  @Get('paymaster/compatible/:walletId')
+  async checkPaymasterCompatibility(
+    @Request() req: AuthRequest,
+    @Param('walletId') walletId: string,
+  ) {
+    // Verify wallet belongs to user
+    await this.walletService.getWallet(walletId, req.user.userId);
+
+    const isCompatible =
+      await this.paymasterService.isWalletPaymasterCompatible(walletId);
+
+    return {
+      success: true,
+      data: {
+        walletId,
+        isPaymasterCompatible: isCompatible,
+        message: isCompatible
+          ? 'Wallet supports Paymaster. Gas fees can be paid in USDC.'
+          : 'Wallet does not support Paymaster. EOA wallets require native tokens for gas.',
+      },
+    };
+  }
+
+  /**
+   * Estimate Paymaster fee in USDC
+   * POST /circle/paymaster/estimate-fee
+   */
+  @Post('paymaster/estimate-fee')
+  async estimatePaymasterFee(
+    @Request() req: AuthRequest,
+    @Body() dto: EstimateFeeDto,
+  ) {
+    // Verify wallet belongs to user
+    await this.walletService.getWallet(dto.walletId, req.user.userId);
+
+    const estimate = await this.paymasterService.estimateFeeInUsdc(
+      dto.walletId,
+      dto.destinationAddress,
+      dto.amount,
+      dto.blockchain as CircleBlockchain,
+    );
+
+    return {
+      success: true,
+      data: estimate,
+    };
+  }
+
+  /**
+   * Create a sponsored transaction (gas paid in USDC)
+   * POST /circle/paymaster/transfer
+   * Note: Consider adding PIN verification for production
+   */
+  @Post('paymaster/transfer')
+  async createSponsoredTransfer(
+    @Request() req: AuthRequest,
+    @Body() dto: TransferUsdcDto,
+  ) {
+    // Verify wallet belongs to user
+    await this.walletService.getWallet(dto.walletId, req.user.userId);
+
+    const wallet = await this.walletService.getWallet(
+      dto.walletId,
+      req.user.userId,
+    );
+
+    const result = await this.paymasterService.createSponsoredTransaction({
+      walletId: dto.walletId,
+      destinationAddress: dto.destinationAddress,
+      amount: dto.amount,
+      blockchain: wallet.blockchain,
+      feeLevel: dto.feeLevel as CircleFeeLevel,
+      memo: dto.memo,
+    });
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  /**
+   * Get Paymaster usage stats for a wallet
+   * GET /circle/paymaster/stats/:walletId
+   */
+  @Get('paymaster/stats/:walletId')
+  async getPaymasterStats(
+    @Request() req: AuthRequest,
+    @Param('walletId') walletId: string,
+  ) {
+    // Verify wallet belongs to user
+    await this.walletService.getWallet(walletId, req.user.userId);
+
+    const stats = await this.paymasterService.getPaymasterUsageStats(walletId);
+
+    return {
+      success: true,
+      data: stats,
+    };
+  }
+
+  // ============================================
   // CONFIG ENDPOINTS
   // ============================================
 
@@ -496,6 +624,7 @@ export class CircleController {
         defaultBlockchain: this.configService.defaultBlockchain,
         defaultAccountType: this.configService.defaultAccountType,
         isConfigured: this.configService.isConfigured(),
+        paymasterSupported: this.paymasterService.getSupportedBlockchains(),
       },
     };
   }
