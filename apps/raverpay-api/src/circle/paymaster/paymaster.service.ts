@@ -19,7 +19,7 @@ interface PaymasterConfig {
 /**
  * Sponsored transaction request
  */
-interface SponsoredTransactionRequest {
+export interface SponsoredTransactionRequest {
   walletId: string;
   destinationAddress: string;
   amount: string;
@@ -31,7 +31,7 @@ interface SponsoredTransactionRequest {
 /**
  * Sponsored transaction response
  */
-interface SponsoredTransactionResponse {
+export interface SponsoredTransactionResponse {
   transactionId: string;
   circleTransactionId: string;
   state: string;
@@ -44,7 +44,7 @@ interface SponsoredTransactionResponse {
 /**
  * Fee estimate for sponsored transaction
  */
-interface PaymasterFeeEstimate {
+export interface PaymasterFeeEstimate {
   estimatedGasInNative: string;
   estimatedGasInUsdc: string;
   surchargePercent: number;
@@ -165,12 +165,10 @@ export class PaymasterService {
 
       // Call Circle API to estimate gas
       const response = await this.apiClient.post<{
-        data: {
-          baseFee: string;
-          priorityFee: string;
-          maxFee: string;
-          estimatedGas: string;
-        };
+        baseFee: string;
+        priorityFee: string;
+        maxFee: string;
+        estimatedGas: string;
       }>('/transactions/estimateFee', {
         walletId,
         destinationAddress,
@@ -253,11 +251,9 @@ export class PaymasterService {
       // Create transaction with Paymaster
       // Note: For SCA wallets, Circle automatically uses Paymaster when available
       const response = await this.apiClient.post<{
-        data: {
-          transaction: {
-            id: string;
-            state: string;
-          };
+        transaction: {
+          id: string;
+          state: string;
         };
       }>('/developer/transactions/transfer', {
         walletId,
@@ -305,12 +301,10 @@ export class PaymasterService {
   async isWalletPaymasterCompatible(walletId: string): Promise<boolean> {
     try {
       const response = await this.apiClient.get<{
-        data: {
-          wallet: {
-            accountType: 'EOA' | 'SCA';
-          };
+        wallet: {
+          accountType: 'EOA' | 'SCA';
         };
-      }>(`/wallets/${walletId}`);
+      }>(`/developer/wallets/${walletId}`);
 
       return response.data.wallet.accountType === 'SCA';
     } catch (error) {

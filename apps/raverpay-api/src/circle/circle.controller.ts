@@ -16,7 +16,11 @@ import { CircleWalletService } from './wallets/circle-wallet.service';
 import { CircleTransactionService } from './transactions/circle-transaction.service';
 import { CCTPService } from './transactions/cctp.service';
 import { CircleConfigService } from './config/circle.config.service';
-import { PaymasterService } from './paymaster/paymaster.service';
+import {
+  PaymasterService,
+  PaymasterFeeEstimate,
+  SponsoredTransactionResponse,
+} from './paymaster/paymaster.service';
 import {
   CreateCircleWalletDto,
   UpdateWalletDto,
@@ -36,7 +40,7 @@ import {
 } from '@prisma/client';
 
 interface AuthRequest {
-  user: { userId: string };
+  user: { id: string; email: string; role: string };
 }
 
 /**
@@ -68,7 +72,7 @@ export class CircleController {
     @Body() dto: CreateCircleWalletDto,
   ) {
     const wallet = await this.walletService.createWallet({
-      userId: req.user.userId,
+      userId: req.user.id,
       blockchain: dto.blockchain as CircleBlockchain,
       accountType: dto.accountType,
       name: dto.name,
@@ -92,7 +96,7 @@ export class CircleController {
    */
   @Get('wallets')
   async getWallets(@Request() req: AuthRequest) {
-    const wallets = await this.walletService.getUserWallets(req.user.userId);
+    const wallets = await this.walletService.getUserWallets(req.user.id);
 
     return {
       success: true,
@@ -114,7 +118,7 @@ export class CircleController {
    */
   @Get('wallets/:id')
   async getWallet(@Request() req: AuthRequest, @Param('id') id: string) {
-    const wallet = await this.walletService.getWallet(id, req.user.userId);
+    const wallet = await this.walletService.getWallet(id, req.user.id);
 
     return {
       success: true,
@@ -128,7 +132,7 @@ export class CircleController {
    */
   @Get('wallets/:id/balance')
   async getWalletBalance(@Request() req: AuthRequest, @Param('id') id: string) {
-    const wallet = await this.walletService.getWallet(id, req.user.userId);
+    const wallet = await this.walletService.getWallet(id, req.user.id);
     const balances = await this.walletService.getWalletBalance(
       wallet.circleWalletId,
     );
@@ -157,7 +161,7 @@ export class CircleController {
    */
   @Get('wallets/:id/usdc-balance')
   async getUsdcBalance(@Request() req: AuthRequest, @Param('id') id: string) {
-    const wallet = await this.walletService.getWallet(id, req.user.userId);
+    const wallet = await this.walletService.getWallet(id, req.user.id);
     const balance = await this.walletService.getUsdcBalance(
       wallet.circleWalletId,
     );
@@ -186,7 +190,7 @@ export class CircleController {
     @Query('blockchain') blockchain?: string,
   ) {
     const depositInfo = await this.walletService.getDepositInfo(
-      req.user.userId,
+      req.user.id,
       blockchain,
     );
 
@@ -206,7 +210,7 @@ export class CircleController {
     @Param('id') id: string,
     @Body() dto: UpdateWalletDto,
   ) {
-    const wallet = await this.walletService.getWallet(id, req.user.userId);
+    const wallet = await this.walletService.getWallet(id, req.user.id);
     const updated = await this.walletService.updateWallet(
       wallet.circleWalletId,
       dto,
@@ -233,7 +237,7 @@ export class CircleController {
     @Body() dto: TransferUsdcDto,
   ) {
     const result = await this.transactionService.createTransfer({
-      userId: req.user.userId,
+      userId: req.user.id,
       walletId: dto.walletId,
       destinationAddress: dto.destinationAddress,
       amount: dto.amount,
@@ -257,7 +261,7 @@ export class CircleController {
     @Query() query: TransactionQueryDto,
   ) {
     const transactions = await this.transactionService.getUserTransactions(
-      req.user.userId,
+      req.user.id,
       {
         type: query.type as CircleTransactionType,
         state: query.state as CircleTransactionState,
@@ -280,7 +284,7 @@ export class CircleController {
   async getTransaction(@Request() req: AuthRequest, @Param('id') id: string) {
     const transaction = await this.transactionService.getTransaction(
       id,
-      req.user.userId,
+      req.user.id,
     );
 
     return {
@@ -296,7 +300,7 @@ export class CircleController {
   @Post('transactions/estimate-fee')
   async estimateFee(@Request() req: AuthRequest, @Body() dto: EstimateFeeDto) {
     // Verify wallet belongs to user
-    await this.walletService.getWallet(dto.walletId, req.user.userId);
+    await this.walletService.getWallet(dto.walletId, req.user.id);
 
     const estimate = await this.transactionService.estimateFee({
       walletId: dto.walletId,
@@ -321,7 +325,7 @@ export class CircleController {
     @Request() req: AuthRequest,
     @Param('id') id: string,
   ) {
-    await this.transactionService.cancelTransaction(id, req.user.userId);
+    await this.transactionService.cancelTransaction(id, req.user.id);
 
     return {
       success: true,
@@ -339,7 +343,7 @@ export class CircleController {
     @Request() req: AuthRequest,
     @Param('id') id: string,
   ) {
-    await this.transactionService.accelerateTransaction(id, req.user.userId);
+    await this.transactionService.accelerateTransaction(id, req.user.id);
 
     return {
       success: true,
@@ -379,7 +383,7 @@ export class CircleController {
     @Body() dto: CCTPTransferDto,
   ) {
     const result = await this.cctpService.initiateTransfer({
-      userId: req.user.userId,
+      userId: req.user.id,
       sourceWalletId: dto.sourceWalletId,
       destinationAddress: dto.destinationAddress,
       destinationChain: dto.destinationChain as CircleBlockchain,
@@ -403,7 +407,7 @@ export class CircleController {
     @Request() req: AuthRequest,
     @Query() query: CCTPQueryDto,
   ) {
-    const transfers = await this.cctpService.getUserTransfers(req.user.userId, {
+    const transfers = await this.cctpService.getUserTransfers(req.user.id, {
       state: query.state as CCTPTransferState,
       limit: query.limit,
       offset: query.offset,
@@ -421,7 +425,7 @@ export class CircleController {
    */
   @Get('cctp/transfers/:id')
   async getCCTPTransfer(@Request() req: AuthRequest, @Param('id') id: string) {
-    const transfer = await this.cctpService.getTransfer(id, req.user.userId);
+    const transfer = await this.cctpService.getTransfer(id, req.user.id);
 
     return {
       success: true,
@@ -439,7 +443,7 @@ export class CircleController {
     @Request() req: AuthRequest,
     @Param('id') id: string,
   ) {
-    await this.cctpService.cancelTransfer(id, req.user.userId);
+    await this.cctpService.cancelTransfer(id, req.user.id);
 
     return {
       success: true,
@@ -511,7 +515,7 @@ export class CircleController {
     @Param('walletId') walletId: string,
   ) {
     // Verify wallet belongs to user
-    await this.walletService.getWallet(walletId, req.user.userId);
+    await this.walletService.getWallet(walletId, req.user.id);
 
     const isCompatible =
       await this.paymasterService.isWalletPaymasterCompatible(walletId);
@@ -536,9 +540,9 @@ export class CircleController {
   async estimatePaymasterFee(
     @Request() req: AuthRequest,
     @Body() dto: EstimateFeeDto,
-  ) {
+  ): Promise<{ success: boolean; data: PaymasterFeeEstimate }> {
     // Verify wallet belongs to user
-    await this.walletService.getWallet(dto.walletId, req.user.userId);
+    await this.walletService.getWallet(dto.walletId, req.user.id);
 
     const estimate = await this.paymasterService.estimateFeeInUsdc(
       dto.walletId,
@@ -562,20 +566,20 @@ export class CircleController {
   async createSponsoredTransfer(
     @Request() req: AuthRequest,
     @Body() dto: TransferUsdcDto,
-  ) {
+  ): Promise<{ success: boolean; data: SponsoredTransactionResponse }> {
     // Verify wallet belongs to user
-    await this.walletService.getWallet(dto.walletId, req.user.userId);
+    await this.walletService.getWallet(dto.walletId, req.user.id);
 
     const wallet = await this.walletService.getWallet(
       dto.walletId,
-      req.user.userId,
+      req.user.id,
     );
 
     const result = await this.paymasterService.createSponsoredTransaction({
       walletId: dto.walletId,
       destinationAddress: dto.destinationAddress,
       amount: dto.amount,
-      blockchain: wallet.blockchain,
+      blockchain: wallet.blockchain as CircleBlockchain,
       feeLevel: dto.feeLevel as CircleFeeLevel,
       memo: dto.memo,
     });
@@ -596,7 +600,7 @@ export class CircleController {
     @Param('walletId') walletId: string,
   ) {
     // Verify wallet belongs to user
-    await this.walletService.getWallet(walletId, req.user.userId);
+    await this.walletService.getWallet(walletId, req.user.id);
 
     const stats = await this.paymasterService.getPaymasterUsageStats(walletId);
 

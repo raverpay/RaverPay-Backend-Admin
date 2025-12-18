@@ -21,38 +21,38 @@ graph TB
         CircleSub[Circle Submodule - NEW]
         Webhooks[Webhooks Module]
     end
-    
+
     subgraph Mobile["Mobile App (React Native)"]
         AuthHook[useAuth Hook]
         CryptoHook[useCryptoWallet Hook]
         CircleHook[useCircleWallet Hook - NEW]
     end
-    
+
     subgraph Admin["Admin Dashboard (Next.js)"]
         AdminAuth[Auth Provider]
         AdminCrypto[Crypto Management]
         AdminCircle[Circle Management - NEW]
     end
-    
+
     subgraph CircleAPI["Circle API"]
         WalletAPI[Wallet Management]
         CCTPAPI[CCTP API]
         PaymasterAPI[Paymaster API]
         WebhookAPI[Webhook API]
     end
-    
+
     Auth --> CryptoModule
     CryptoModule --> VenlySub
     CryptoModule --> CircleSub
     CircleSub --> CircleAPI
     CircleAPI --> Webhooks
     Webhooks --> CryptoModule
-    
+
     Mobile --> AuthHook
     Mobile --> CryptoHook
     Mobile --> CircleHook
     CircleHook --> CircleSub
-    
+
     Admin --> AdminAuth
     Admin --> AdminCrypto
     Admin --> AdminCircle
