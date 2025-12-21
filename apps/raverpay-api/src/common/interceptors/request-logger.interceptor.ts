@@ -8,19 +8,20 @@ import {
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { Request, Response } from 'express';
-import { LogtailService } from '../logging/logtail.service';
+import { BetterStackService } from '../logging/better-stack.service';
 
 /**
  * Request Logger Interceptor
  *
  * Logs all HTTP requests with structured data for monitoring and debugging.
  * Captures request/response details, timing, and user context.
+ * Sends logs to Better Stack via direct HTTP.
  */
 @Injectable()
 export class RequestLoggerInterceptor implements NestInterceptor {
   private readonly logger = new Logger(RequestLoggerInterceptor.name);
 
-  constructor(private readonly logtailService: LogtailService) {}
+  constructor(private readonly betterStackService: BetterStackService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest<Request>();
@@ -77,8 +78,10 @@ export class RequestLoggerInterceptor implements NestInterceptor {
             `${method} ${originalUrl} - ${statusCode} - ${duration}ms - User: ${userId}`,
           );
 
-          // Send structured log to Logtail
-          this.logtailService.info('HTTP Request Completed', responseLog);
+          // Send structured log to Better Stack
+          this.logger.debug(`About to send log to Better Stack for ${method} ${originalUrl}`);
+          this.betterStackService.info('HTTP Request Completed', responseLog);
+          this.logger.debug(`Called betterStackService.info()`);
         },
         error: (error) => {
           const duration = Date.now() - startTime;
@@ -102,8 +105,8 @@ export class RequestLoggerInterceptor implements NestInterceptor {
             `${method} ${originalUrl} - ${statusCode} - ${duration}ms - User: ${userId} - Error: ${error.message}`,
           );
 
-          // Send error log to Logtail
-          this.logtailService.info('HTTP Request Failed', errorLog);
+          // Send error log to Better Stack
+          this.betterStackService.info('HTTP Request Failed', errorLog);
         },
       }),
     );

@@ -26,9 +26,30 @@ export class LogtailService implements OnModuleInit {
     }
 
     try {
-      this.logtail = new Logtail(sourceToken);
+      // Initialize Logtail with Better Stack endpoint
+      // According to Better Stack docs, endpoint should be the full URL
+      // Format: https://{INGESTING_HOST}
+      // For source 1641618 in eu-nbg-2 region: https://s1641618.eu-nbg-2.betterstackdata.com
+      this.logtail = new Logtail(sourceToken, {
+        endpoint: 'https://s1641618.eu-nbg-2.betterstackdata.com',
+      });
       this.enabled = true;
-      this.logger.log('✅ Logtail initialized');
+      this.logger.log('✅ Logtail initialized with Better Stack endpoint (s1641618.eu-nbg-2.betterstackdata.com)');
+      
+      // Send a test log on initialization to verify connection
+      this.logtail.info('Logtail service initialized', {
+        timestamp: new Date().toISOString(),
+        environment: this.configService.get('NODE_ENV') || 'development',
+      }).then(async () => {
+        this.logger.log('📤 Test log queued');
+        // Flush immediately to send the log
+        if (this.logtail) {
+          await this.logtail.flush();
+          this.logger.log('✅ Test log flushed to Better Stack');
+        }
+      }).catch((err) => {
+        this.logger.error('❌ Failed to send test log to Better Stack:', err.message);
+      });
     } catch (error) {
       this.logger.error('Failed to initialize Logtail', error);
     }
@@ -100,5 +121,21 @@ export class LogtailService implements OnModuleInit {
    */
   isEnabled(): boolean {
     return this.enabled;
+  }
+
+  /**
+   * Flush pending logs to Better Stack
+   * Call this to ensure logs are sent immediately
+   */
+  async flush(): Promise<void> {
+    if (!this.enabled || !this.logtail) {
+      return;
+    }
+
+    try {
+      await this.logtail.flush();
+    } catch (error) {
+      this.logger.debug('Failed to flush logs to Logtail', error);
+    }
   }
 }

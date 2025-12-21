@@ -40,6 +40,7 @@ import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { LogtailModule } from './common/logging/logtail.module';
 import { PostHogModule } from './common/analytics/posthog.module';
 import { PrismaPulseModule } from './common/monitoring/prisma-pulse.module';
+import { DiagnosticModule } from './diagnostic/diagnostic.module';
 
 @Module({
   imports: [
@@ -97,6 +98,7 @@ import { PrismaPulseModule } from './common/monitoring/prisma-pulse.module';
     NotificationsModule,
     SupportModule, // Support system (chat, tickets, help center)
     AppConfigModule, // App configuration (rating prompts, etc.)
+    DiagnosticModule, // Diagnostic endpoints for testing monitoring services
     AdminModule, // Admin module for dashboard
   ],
   controllers: [AppController],
