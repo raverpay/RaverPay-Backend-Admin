@@ -12,6 +12,7 @@ import type { Request } from 'express';
 import { PaystackService } from './paystack.service';
 import { TransactionsService } from '../transactions/transactions.service';
 import { NotificationDispatcherService } from '../notifications/notification-dispatcher.service';
+import { PostHogService } from '../common/analytics/posthog.service';
 
 interface PaystackWebhookPayload {
   event: string;
@@ -57,6 +58,7 @@ export class PaymentsController {
     private readonly paystackService: PaystackService,
     private readonly transactionsService: TransactionsService,
     private readonly notificationDispatcher: NotificationDispatcherService,
+    private readonly posthogService: PostHogService,
   ) {}
 
   /**
@@ -91,6 +93,18 @@ export class PaymentsController {
 
       this.logger.log(`Webhook event received: ${payload.event}`);
 
+      // Track payment webhook received
+      this.posthogService.capture({
+        distinctId: payload.data.customer?.email || 'unknown',
+        event: 'payment_webhook_received',
+        properties: {
+          event: payload.event,
+          reference: payload.data.reference,
+          amount: payload.data.amount / 100, // Convert from kobo
+          status: payload.data.status,
+        },
+      });
+
       // Handle different webhook events
       switch (payload.event) {
         case 'charge.success':
@@ -120,6 +134,20 @@ export class PaymentsController {
       return { status: 'success' };
     } catch (error) {
       this.logger.error('Webhook processing failed', error);
+
+      // Track payment failure
+      this.posthogService.capture({
+        distinctId: payload.data.customer?.email || 'unknown',
+        event: 'payment_failed',
+        properties: {
+          event: payload.event,
+          reference: payload.data.reference,
+          amount: payload.data.amount / 100,
+          status: payload.data.status,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      });
+
       throw error;
     }
   }
@@ -199,6 +227,24 @@ export class PaymentsController {
           where: { reference },
         });
 
+        // Track successful payment
+        if (transaction) {
+          this.posthogService.capture({
+            distinctId: transaction.userId,
+            event: 'payment_successful',
+            properties: {
+              amount: amountInNaira,
+              fee: paystackFeeInNaira,
+              netAmount: amountInNaira - paystackFeeInNaira,
+              currency: 'NGN',
+              paymentMethod: 'bank_transfer',
+              provider: 'paystack',
+              channel: 'dedicated_nuban',
+              reference,
+            },
+          });
+        }
+
         if (transaction) {
           // Send multi-channel notification for wallet funding
           try {
@@ -240,6 +286,24 @@ export class PaymentsController {
         ].transaction.findUnique({
           where: { reference },
         });
+
+        // Track successful payment
+        if (transaction) {
+          this.posthogService.capture({
+            distinctId: transaction.userId,
+            event: 'payment_successful',
+            properties: {
+              amount: amountInNaira,
+              fee: 0,
+              netAmount: amountInNaira,
+              currency: 'NGN',
+              paymentMethod: 'card',
+              provider: 'paystack',
+              channel: payload.data.channel || 'card',
+              reference,
+            },
+          });
+        }
 
         if (transaction) {
           try {
@@ -305,6 +369,22 @@ export class PaymentsController {
       });
 
       this.logger.log(`Transfer completed: ${reference}`);
+
+      // Track successful withdrawal payment
+      this.posthogService.capture({
+        distinctId: transaction.userId,
+        event: 'payment_successful',
+        properties: {
+          amount: Number(transaction.amount),
+          fee: Number(transaction.fee),
+          totalDebit: Number(transaction.totalAmount),
+          currency: 'NGN',
+          paymentMethod: 'bank_transfer',
+          provider: 'paystack',
+          type: 'withdrawal',
+          reference,
+        },
+      });
 
       // Extract bank account details from transaction metadata
       const metadata = transaction.metadata as {
@@ -417,6 +497,24 @@ export class PaymentsController {
       ]);
 
       this.logger.log(`Transfer failed and refunded: ${reference}`);
+
+      // Track failed payment
+      this.posthogService.capture({
+        distinctId: transaction.userId,
+        event: 'payment_failed',
+        properties: {
+          amount: Number(transaction.amount),
+          fee: Number(transaction.fee),
+          totalDebit: Number(transaction.totalAmount),
+          currency: 'NGN',
+          paymentMethod: 'bank_transfer',
+          provider: 'paystack',
+          type: 'withdrawal',
+          status: 'FAILED',
+          refunded: true,
+          reference,
+        },
+      });
 
       // Extract bank account details from transaction metadata
       const metadata = transaction.metadata as {

@@ -41,10 +41,15 @@ export class RedisThrottlerStorage implements ThrottlerStorage {
         // Suppress all error events to avoid log spam
         this.redis.on('error', (err) => {
           this.isConnected = false;
-          // Completely suppress DNS lookup errors - they're expected when Redis is unavailable
+          // Completely suppress DNS lookup errors and connection errors - they're expected when Redis is unavailable
+          const errorMessage = err.message || err.toString() || '';
           if (
-            err.message.includes('ENOTFOUND') ||
-            err.message.includes('getaddrinfo')
+            errorMessage.includes('ENOTFOUND') ||
+            errorMessage.includes('getaddrinfo') ||
+            errorMessage.includes('ECONNREFUSED') ||
+            errorMessage.includes('Connection is closed') ||
+            errorMessage.includes('connect ETIMEDOUT') ||
+            errorMessage.includes('connect EAI_AGAIN')
           ) {
             // Silently ignore - fallback to in-memory storage
             return;
@@ -55,11 +60,11 @@ export class RedisThrottlerStorage implements ThrottlerStorage {
               this.configService.get<string>('NODE_ENV') !== 'production';
             if (isDevelopment) {
               this.logger.warn(
-                `Redis connection failed: ${err.message}. Using in-memory fallback for rate limiting`,
+                `Redis connection failed: ${errorMessage}. Using in-memory fallback for rate limiting`,
               );
             } else {
               this.logger.error(
-                `Redis connection failed: ${err.message}. Using in-memory fallback for rate limiting`,
+                `Redis connection failed: ${errorMessage}. Using in-memory fallback for rate limiting`,
               );
             }
             this.hasLoggedError = true;

@@ -33,7 +33,11 @@ async function bootstrap() {
     if (
       message.includes('getaddrinfo ENOTFOUND') ||
       message.includes('ECONNREFUSED') ||
-      (message.includes('Redis') && message.includes('connection'))
+      message.includes('Connection is closed') ||
+      message.includes('connect ETIMEDOUT') ||
+      message.includes('connect EAI_AGAIN') ||
+      (message.includes('Redis') && message.includes('connection')) ||
+      (message.includes('ioredis') && (message.includes('ENOTFOUND') || message.includes('ECONNREFUSED')))
     ) {
       return true;
     }

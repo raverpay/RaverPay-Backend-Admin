@@ -94,11 +94,16 @@ import { setRedisClient } from './redis-client';
               let hasLoggedError = false;
               // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
               client.on('error', (err: Error) => {
-                // Suppress ALL DNS lookup errors and repeated errors
+                // Suppress ALL DNS lookup errors, connection errors, and repeated errors
+                const errorMessage = err.message || err.toString() || '';
                 if (
-                  err.message.includes('ENOTFOUND') ||
-                  err.message.includes('WRONGPASS') ||
-                  err.message.includes('ECONNREFUSED')
+                  errorMessage.includes('ENOTFOUND') ||
+                  errorMessage.includes('getaddrinfo') ||
+                  errorMessage.includes('WRONGPASS') ||
+                  errorMessage.includes('ECONNREFUSED') ||
+                  errorMessage.includes('Connection is closed') ||
+                  errorMessage.includes('connect ETIMEDOUT') ||
+                  errorMessage.includes('connect EAI_AGAIN')
                 ) {
                   // Completely suppress these errors - they're expected when Redis is unavailable
                   return;
@@ -109,10 +114,10 @@ import { setRedisClient } from './redis-client';
                     configService.get<string>('NODE_ENV') !== 'production';
                   if (isDevelopment) {
                     console.warn(
-                      `⚠️  Redis cache connection issue: ${err.message}. Using in-memory fallback.`,
+                      `⚠️  Redis cache connection issue: ${errorMessage}. Using in-memory fallback.`,
                     );
                   } else {
-                    console.error('Redis client error:', err.message);
+                    console.error('Redis client error:', errorMessage);
                   }
                   hasLoggedError = true;
                 }

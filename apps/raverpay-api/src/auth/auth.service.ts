@@ -17,6 +17,7 @@ import { UsersService } from '../users/users.service';
 import { DeviceService, DeviceInfo } from '../device/device.service';
 import { NotificationDispatcherService } from '../notifications/notification-dispatcher.service';
 import { IpGeolocationService } from '../common/services/ip-geolocation.service';
+import { PostHogService } from '../common/analytics/posthog.service';
 
 /**
  * Authentication Service
@@ -36,6 +37,7 @@ export class AuthService {
     private readonly deviceService: DeviceService,
     private readonly notificationDispatcher: NotificationDispatcherService,
     private readonly ipGeolocationService: IpGeolocationService,
+    private readonly posthogService: PostHogService,
   ) {}
 
   /**
@@ -311,6 +313,19 @@ export class AuthService {
 
     // Generate tokens
     const tokens = await this.generateTokens(user);
+
+    // Identify user in PostHog
+    this.posthogService.identify(user.id, {
+      email: user.email,
+      phone: user.phone,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      kycTier: user.kycTier,
+      status: user.status,
+      emailVerified: user.emailVerified,
+      phoneVerified: user.phoneVerified,
+      createdAt: user.createdAt.toISOString(),
+    });
 
     // Remove password from response
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -416,6 +416,91 @@ All API responses follow a consistent structure with appropriate HTTP status cod
 - Transaction audit trails
 - Anti-money laundering (AML) considerations in tier limits
 
+## Monitoring & Observability
+
+The API includes comprehensive monitoring and observability infrastructure:
+
+### Error Tracking (Sentry)
+- Automatic error capture with full context
+- Performance monitoring (10% sampling in production)
+- User context tracking
+- Sensitive data filtering
+- Release tracking
+
+**Environment Variables:**
+```env
+SENTRY_DSN=https://xxxxx@xxxxx.ingest.sentry.io/xxxxx
+SENTRY_ENVIRONMENT=production
+SENTRY_RELEASE=1.0.0
+SENTRY_CAPTURE_ALL=false  # Set to true to capture all errors (not just 5xx)
+```
+
+### Log Aggregation (Logtail)
+- Centralized log aggregation
+- Structured logging with context
+- Console output maintained for local development
+- Automatic log forwarding
+
+**Environment Variables:**
+```env
+LOGTAIL_SOURCE_TOKEN=xxxxx_xxxxx_xxxxx
+```
+
+### Product Analytics (PostHog)
+- Event tracking for transactions, VTU purchases, and payments
+- User identification and properties
+- Feature flags support
+- Automatic event batching
+
+**Environment Variables:**
+```env
+POSTHOG_API_KEY=phc_xxxxx
+POSTHOG_HOST=https://app.posthog.com
+```
+
+### Background Job Queue (BullMQ)
+- Redis-based job queue for notifications, webhooks, and reconciliation
+- Automatic retry with exponential backoff
+- Rate limiting per channel
+- Replaces database-backed queue for better performance
+
+**Environment Variables:**
+```env
+# Use existing Redis connection
+REDIS_URL=redis://default:xxxxx@xxxxx.upstash.io:xxxxx
+# OR
+UPSTASH_REDIS_URL=redis://default:xxxxx@xxxxx.upstash.io:xxxxx
+
+# Enable/disable BullMQ (set to 'true' to enable)
+USE_BULLMQ_QUEUE=false
+```
+
+**To Enable/Disable BullMQ:**
+1. Set `USE_BULLMQ_QUEUE=true` in your environment variables to enable
+2. Set `USE_BULLMQ_QUEUE=false` or leave unset to disable
+3. The QueueModule will be conditionally loaded based on this setting
+4. When disabled, the app falls back to the database-backed notification queue
+
+### Database Monitoring (Prisma Pulse)
+- Real-time database change monitoring
+- Transaction and wallet balance change tracking
+- Requires Prisma Accelerate or Pulse subscription
+
+**Environment Variables:**
+```env
+# Enable Prisma Pulse (requires Prisma Accelerate/Pulse subscription)
+ENABLE_PRISMA_PULSE=false
+
+# Update DATABASE_URL to use Accelerate connection string
+# DATABASE_URL=prisma://accelerate.prisma-data.net/?api_key=xxxxx
+```
+
+**Note:** Prisma Pulse requires a Prisma Accelerate or Pulse subscription. Update your `DATABASE_URL` to use the Accelerate connection string to enable real-time monitoring.
+
+### Monitoring Setup
+
+See `IMPLEMENTATION_SUMMARY.md` for detailed setup instructions and `SETUP_GUIDE.md` for account creation steps.
+
 ## Support
 
 For API integration support, webhook configuration, or technical issues, contact the development team.

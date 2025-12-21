@@ -39,6 +39,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
 import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { LogtailModule } from './common/logging/logtail.module';
 import { PostHogModule } from './common/analytics/posthog.module';
+import { PrismaPulseModule } from './common/monitoring/prisma-pulse.module';
 
 @Module({
   imports: [
@@ -75,7 +76,10 @@ import { PostHogModule } from './common/analytics/posthog.module';
     SentryModule.forRoot(), // Error tracking (official NestJS SDK)
     LogtailModule, // Log aggregation
     PostHogModule, // Product analytics
-    // QueueModule, // BullMQ for background jobs - temporarily disabled for testing
+    PrismaPulseModule, // Database change monitoring (requires Prisma Accelerate/Pulse)
+    // BullMQ Queue Module - conditionally enabled via USE_BULLMQ_QUEUE env var
+    // Set USE_BULLMQ_QUEUE=true to enable, false or unset to disable
+    ...(process.env.USE_BULLMQ_QUEUE === 'true' ? [QueueModule] : []),
     AuthModule,
     UsersModule,
     DeviceModule, // Device fingerprinting and management

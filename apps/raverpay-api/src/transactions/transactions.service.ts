@@ -317,6 +317,23 @@ export class TransactionsService {
       },
     });
 
+    // Track transaction initiation
+    this.posthogService.capture({
+      distinctId: userId,
+      event: 'transaction_initiated',
+      properties: {
+        type: 'DEPOSIT',
+        amount,
+        fee: feeCalc.fee,
+        totalAmount: totalToCharge,
+        currency: 'NGN',
+        paymentMethod: 'card',
+        provider: 'paystack',
+        kycTier: user.kycTier,
+        reference,
+      },
+    });
+
     return {
       reference,
       authorizationUrl: payment.authorization_url,
@@ -547,6 +564,25 @@ export class TransactionsService {
         limitExceeded: shouldLockWallet,
         walletLocked: shouldLockWallet,
         channel: payment.channel,
+      },
+    });
+
+    // Track transaction completion
+    this.posthogService.capture({
+      distinctId: userId,
+      event: 'transaction_completed',
+      properties: {
+        type: 'DEPOSIT',
+        amount: depositAmount,
+        fee: Number(transaction.fee),
+        currency: 'NGN',
+        paymentMethod: 'card',
+        provider: 'paystack',
+        kycTier: transaction.user.kycTier,
+        status: 'COMPLETED',
+        reference: transaction.reference,
+        limitExceeded: shouldLockWallet,
+        walletLocked: shouldLockWallet,
       },
     });
 
@@ -1035,6 +1071,23 @@ export class TransactionsService {
         }),
       ]);
 
+      // Track transaction failure
+      this.posthogService.capture({
+        distinctId: userId,
+        event: 'transaction_failed',
+        properties: {
+          type: 'WITHDRAWAL',
+          amount,
+          fee: feeCalc.fee,
+          currency: 'NGN',
+          kycTier: user.kycTier,
+          provider: 'paystack',
+          status: 'FAILED',
+          reference: transaction.reference,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      });
+
       throw new BadRequestException(
         'Withdrawal failed. Amount refunded to wallet.',
       );
@@ -1054,6 +1107,25 @@ export class TransactionsService {
         accountNumber: accountNumber.slice(-4), // Last 4 digits only
         kycTier: user.kycTier,
         provider: 'paystack',
+      },
+    });
+
+    // Track transaction initiation
+    this.posthogService.capture({
+      distinctId: userId,
+      event: 'transaction_initiated',
+      properties: {
+        type: 'WITHDRAWAL',
+        amount,
+        fee: feeCalc.fee,
+        totalAmount: feeCalc.totalAmount,
+        currency: 'NGN',
+        bankCode,
+        bankName,
+        accountNumber: accountNumber.slice(-4),
+        kycTier: user.kycTier,
+        provider: 'paystack',
+        reference: transaction.reference,
       },
     });
 
@@ -1511,6 +1583,21 @@ export class TransactionsService {
     // 10. Generate reference
     const reference = this.generateReference('p2p');
 
+    // Track transaction initiation
+    this.posthogService.capture({
+      distinctId: senderId,
+      event: 'transaction_initiated',
+      properties: {
+        type: 'P2P_TRANSFER',
+        amount,
+        fee: 0,
+        currency: 'NGN',
+        recipientTag: recipientTag,
+        kycTier: sender.kycTier,
+        reference,
+      },
+    });
+
     // 11. Execute transfer atomically with pessimistic locking and serializable isolation
     // Retry logic for serialization conflicts (expected with concurrent requests)
     const maxRetries = 3;
@@ -1712,11 +1799,44 @@ export class TransactionsService {
         }
 
         // Not a serialization conflict or max retries reached - throw error
+        // Track transaction failure before throwing
+        if (attempt === maxRetries) {
+          this.posthogService.capture({
+            distinctId: senderId,
+            event: 'transaction_failed',
+            properties: {
+              type: 'P2P_TRANSFER',
+              amount,
+              fee: 0,
+              currency: 'NGN',
+              recipientTag: recipientTag,
+              kycTier: sender.kycTier,
+              status: 'FAILED',
+              error: error instanceof Error ? error.message : 'Unknown error',
+              retries: attempt,
+            },
+          });
+        }
         throw error;
       }
     }
 
     if (!result) {
+      // Track transaction failure
+      this.posthogService.capture({
+        distinctId: senderId,
+        event: 'transaction_failed',
+        properties: {
+          type: 'P2P_TRANSFER',
+          amount,
+          fee: 0,
+          currency: 'NGN',
+          recipientTag: recipientTag,
+          kycTier: sender.kycTier,
+          status: 'FAILED',
+          error: lastError instanceof Error ? lastError.message : 'Transaction failed after retries',
+        },
+      });
       throw lastError || new Error('Transaction failed after retries');
     }
 
@@ -1807,6 +1927,41 @@ export class TransactionsService {
     this.logger.log(
       `[P2P] Transfer completed: @${sender.tag} → @${receiver.tag} | ₦${amount} | Ref: ${reference}${shouldLockReceiverWallet ? ' | RECEIVER WALLET LOCKED' : ''}`,
     );
+
+    // Track transaction completion
+    this.posthogService.capture({
+      distinctId: senderId,
+      event: 'transaction_completed',
+      properties: {
+        type: 'P2P_TRANSFER',
+        amount,
+        fee: 0,
+        currency: 'NGN',
+        recipientTag: receiver.tag,
+        recipientId: receiver.id,
+        kycTier: sender.kycTier,
+        status: 'COMPLETED',
+        reference: result.p2pTransfer.reference,
+      },
+    });
+
+    // Track transaction completion for receiver (as deposit)
+    this.posthogService.capture({
+      distinctId: receiver.id,
+      event: 'transaction_completed',
+      properties: {
+        type: 'P2P_TRANSFER_RECEIVED',
+        amount,
+        fee: 0,
+        currency: 'NGN',
+        senderTag: sender.tag,
+        senderId: sender.id,
+        kycTier: receiver.kycTier,
+        status: 'COMPLETED',
+        reference: result.p2pTransfer.reference,
+        walletLocked: shouldLockReceiverWallet,
+      },
+    });
 
     return {
       reference: result.p2pTransfer.reference,

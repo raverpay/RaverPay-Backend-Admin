@@ -51,13 +51,13 @@ todos:
       - posthog-setup
   - id: prisma-pulse
     content: Enable Prisma Pulse and create monitoring service for database changes
-    status: pending
+    status: completed
   - id: env-config
     content: Add all new environment variables and update configuration service
     status: completed
   - id: testing
     content: Write unit and integration tests for all new services
-    status: pending
+    status: completed
     dependencies:
       - bullmq-setup
       - sentry-setup
@@ -65,7 +65,10 @@ todos:
       - posthog-setup
   - id: documentation
     content: Update README and document monitoring setup and environment variables
-    status: pending
+    status: completed
+  - id: bullmq-toggle
+    content: Create robust BullMQ enable/disable mechanism with environment variable
+    status: completed
 ---
 
 # Monitoring & Queue Infrastructure Implementation Plan
@@ -428,4 +431,3 @@ apps/raverpay-api/src/
 ## Risk Mitigation
 
 - Test BullMQ migration in staging first
-- Monitor queue processing closely after deployment
