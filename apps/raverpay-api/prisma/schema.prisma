@@ -93,6 +93,8 @@ model User {
   circleWallets          CircleWallet[]
   circleTransactions     CircleTransaction[]
   circleCCTPTransfers    CircleCCTPTransfer[]
+  sentEmails             OutboundEmail[]          @relation("SentEmails")
+  receivedEmails         OutboundEmail[]          @relation("ReceivedEmails")
 
   @@index([email])
   @@index([phone])
@@ -639,6 +641,7 @@ model Conversation {
   inboundEmail       InboundEmail?      @relation("EmailConversations")
   messages           Message[]
   ticket             Ticket?
+  outboundEmails     OutboundEmail[]    @relation("ConversationEmails")
 
   @@index([status])
   @@index([createdAt], map: "conversations_createdat_idx")
@@ -725,6 +728,7 @@ model InboundEmail {
   conversation    Conversation? @relation("EmailConversations", fields: [conversationId], references: [id], map: "inbound_emails_conversationid_fkey")
   ticket          Ticket?       @relation("EmailTickets", fields: [ticketId], references: [id], map: "inbound_emails_ticketid_fkey")
   user            User?         @relation("InboundEmails", fields: [userId], references: [id], map: "inbound_emails_userid_fkey")
+  outboundEmails  OutboundEmail[] @relation("EmailReplies")
 
   @@index([conversationId], map: "inbound_emails_conversationid_idx")
   @@index([isProcessed], map: "inbound_emails_isprocessed_idx")
@@ -734,6 +738,60 @@ model InboundEmail {
   @@index([ticketId], map: "inbound_emails_ticketid_idx")
   @@index([userId], map: "inbound_emails_userid_idx")
   @@map("inbound_emails")
+}
+
+model OutboundEmail {
+  id             String        @id @default(uuid())
+  resendEmailId  String?       @unique
+  
+  // Sender info (admin who sent it)
+  sentBy         String
+  fromEmail      String
+  
+  // Recipient info
+  to             String
+  cc             String[]      @default([])
+  bcc            String[]      @default([])
+  
+  // Content
+  subject        String
+  content        String        // HTML content
+  attachments    Json?         // Array of attachment metadata
+  
+  // Context
+  inReplyTo      String?       // If replying to an InboundEmail
+  inboundEmailId String?
+  conversationId String?
+  userId         String?       // Recipient user ID (if they're a registered user)
+  
+  // Status tracking
+  status         String        @default("SENT") // SENT, DELIVERED, FAILED, BOUNCED, OPENED, CLICKED
+  deliveredAt    DateTime?
+  openedAt       DateTime?
+  clickedAt      DateTime?
+  failureReason  String?
+  
+  // Metadata
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  
+  // Relations
+  sender         User          @relation("SentEmails", fields: [sentBy], references: [id], onDelete: Cascade, map: "outbound_emails_sentby_fkey")
+  user           User?         @relation("ReceivedEmails", fields: [userId], references: [id], onDelete: SetNull, map: "outbound_emails_userid_fkey")
+  inboundEmail   InboundEmail? @relation("EmailReplies", fields: [inboundEmailId], references: [id], onDelete: SetNull, map: "outbound_emails_inboundemailid_fkey")
+  conversation   Conversation? @relation("ConversationEmails", fields: [conversationId], references: [id], onDelete: SetNull, map: "outbound_emails_conversationid_fkey")
+  
+  @@index([sentBy], map: "outbound_emails_sentby_idx")
+  @@index([fromEmail], map: "outbound_emails_fromemail_idx")
+  @@index([to], map: "outbound_emails_to_idx")
+  @@index([inboundEmailId], map: "outbound_emails_inboundemailid_idx")
+  @@index([conversationId], map: "outbound_emails_conversationid_idx")
+  @@index([userId], map: "outbound_emails_userid_idx")
+  @@index([status], map: "outbound_emails_status_idx")
+  @@index([createdAt], map: "outbound_emails_createdat_idx")
+  @@index([sentBy, createdAt], map: "outbound_emails_sentby_createdat_idx")
+  @@map("outbound_emails")
 }
 
 model EmailRouting {

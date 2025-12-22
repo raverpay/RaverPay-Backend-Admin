@@ -889,22 +889,34 @@ export class AdminEmailsService {
     // Default to support@raverpay.com if not specified
     const fromEmail = dto.fromEmail || this.fromEmail;
 
-    // Validate that the from email is one of our allowed team emails
-    const allowedFromEmails = [
-      'support@raverpay.com',
-      'admin@raverpay.com',
-      'promotions@raverpay.com',
-      'security@raverpay.com',
-      'compliance@raverpay.com',
-      'partnerships@raverpay.com',
-      'noreply@raverpay.com',
-    ];
+    // Role-based access control for fromEmail
+    const roleEmailPermissions = {
+      [UserRole.SUPPORT]: ['support@raverpay.com'],
+      [UserRole.ADMIN]: ['support@raverpay.com', 'admin@raverpay.com'],
+      [UserRole.SUPER_ADMIN]: [
+        'support@raverpay.com',
+        'admin@raverpay.com',
+        'promotions@raverpay.com',
+        'security@raverpay.com',
+        'compliance@raverpay.com',
+        'partnerships@raverpay.com',
+        'noreply@raverpay.com',
+      ],
+    };
 
-    if (!allowedFromEmails.includes(fromEmail)) {
-      throw new BadRequestException(
-        `Invalid from email. Allowed emails: ${allowedFromEmails.join(', ')}`,
+    const allowedEmails = roleEmailPermissions[userRole] || [];
+
+    if (!allowedEmails.includes(fromEmail)) {
+      throw new ForbiddenException(
+        `Your role (${userRole}) does not have permission to send from ${fromEmail}. Allowed emails: ${allowedEmails.join(', ')}`,
       );
     }
+
+    // Check if recipient is a registered user
+    const recipientUser = await this.prisma.user.findUnique({
+      where: { email: dto.to },
+      select: { id: true },
+    });
 
     try {
       // Prepare attachments for Resend API
@@ -946,10 +958,40 @@ export class AdminEmailsService {
         `✅ Fresh email sent to ${dto.to} from ${fromEmail} by user ${userId} (Resend ID: ${emailResult.data?.id})`,
       );
 
+      // Save to database
+      const outboundEmail = await this.prisma.outboundEmail.create({
+        data: {
+          resendEmailId: emailResult.data?.id,
+          sentBy: userId,
+          fromEmail,
+          to: dto.to,
+          cc: dto.cc || [],
+          bcc: dto.bcc || [],
+          subject: dto.subject,
+          content: dto.content,
+          attachments: attachments?.map((file) => ({
+            filename: file.originalname,
+            size: file.size,
+            contentType: file.mimetype,
+          })),
+          userId: recipientUser?.id,
+          status: 'SENT',
+          metadata: {
+            sentVia: 'admin_dashboard',
+            userRole,
+          },
+        },
+      });
+
+      this.logger.log(
+        `✅ Email saved to database with ID: ${outboundEmail.id}`,
+      );
+
       return {
         success: true,
         message: 'Email sent successfully',
         resendEmailId: emailResult.data?.id,
+        outboundEmailId: outboundEmail.id,
         to: dto.to,
         from: fromEmail,
         subject: dto.subject,
@@ -957,6 +999,9 @@ export class AdminEmailsService {
     } catch (error) {
       this.logger.error(`Error sending fresh email: ${error}`);
       if (error instanceof BadRequestException) {
+        throw error;
+      }
+      if (error instanceof ForbiddenException) {
         throw error;
       }
       throw new BadRequestException(
