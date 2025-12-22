@@ -82,6 +82,29 @@ export class AdminEmailsController {
   }
 
   /**
+   * Get outbound emails (sent emails)
+   * GET /api/admin/emails/outbound
+   */
+  @Get('outbound')
+  async getOutboundEmails(
+    @GetUser('role') userRole: UserRole,
+    @GetUser('id') userId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('fromEmail') fromEmail?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.emailsService.getOutboundEmails(userRole, userId, {
+      page: page ? parseInt(page) : undefined,
+      limit: limit ? parseInt(limit) : undefined,
+      fromEmail,
+      search,
+      status,
+    });
+  }
+
+  /**
    * Manually process an email from Resend by email ID
    * POST /api/admin/emails/process-from-resend
    *

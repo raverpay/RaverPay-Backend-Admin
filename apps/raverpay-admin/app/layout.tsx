@@ -41,8 +41,8 @@ const primaryFont = Inter({
 // });
 
 export const metadata: Metadata = {
-  title: 'RaverPay Admin Dashboard',
-  description: 'Admin dashboard for RaverPay fintech platform',
+  title: 'Raverpay Admin Dashboard',
+  description: 'Admin dashboard for Raverpay fintech platform',
 };
 
 export default function RootLayout({

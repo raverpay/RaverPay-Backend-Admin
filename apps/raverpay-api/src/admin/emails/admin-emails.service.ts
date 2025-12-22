@@ -211,6 +211,106 @@ export class AdminEmailsService {
   }
 
   /**
+   * Get outbound emails (sent emails) with filtering
+   * - SUPPORT/ADMIN: Can only see emails they sent
+   * - SUPER_ADMIN: Can see all sent emails
+   */
+  async getOutboundEmails(
+    userRole: UserRole,
+    userId: string,
+    filters: {
+      page?: number;
+      limit?: number;
+      fromEmail?: string;
+      search?: string;
+      status?: string;
+    } = {},
+  ) {
+    const page = filters.page || 1;
+    const limit = filters.limit || 20;
+    const skip = (page - 1) * limit;
+
+    // Build where clause
+    const where: any = {};
+
+    // Role-based access control
+    if (userRole !== UserRole.SUPER_ADMIN) {
+      // SUPPORT and ADMIN can only see emails they sent
+      where.sentBy = userId;
+    }
+
+    // Apply filters
+    if (filters.fromEmail) {
+      where.fromEmail = filters.fromEmail;
+    }
+
+    if (filters.status) {
+      where.status = filters.status;
+    }
+
+    if (filters.search) {
+      where.OR = [
+        { subject: { contains: filters.search, mode: 'insensitive' } },
+        { to: { contains: filters.search, mode: 'insensitive' } },
+        { content: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [emails, total] = await Promise.all([
+      this.prisma.outboundEmail.findMany({
+        where,
+        include: {
+          sender: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+          inboundEmail: {
+            select: {
+              id: true,
+              subject: true,
+              from: true,
+            },
+          },
+          conversation: {
+            select: {
+              id: true,
+              status: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      this.prisma.outboundEmail.count({ where }),
+    ]);
+
+    return {
+      data: emails,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
    * Get email by ID with ticket-based access check
    */
   async getEmailById(emailId: string, userRole: UserRole, userId: string) {
@@ -433,11 +533,13 @@ export class AdminEmailsService {
 
       conversationId = conversationResult.conversation.id;
 
-      // Link email to the new conversation
-      await this.prisma.inboundEmail.update({
-        where: { id: emailId },
-        data: { conversationId },
-      });
+      // Link email to the new conversation (only if not already linked)
+      if (!email.conversationId) {
+        await this.prisma.inboundEmail.update({
+          where: { id: emailId },
+          data: { conversationId },
+        });
+      }
 
       this.logger.log(
         `✅ Created conversation ${conversationId} for email ${emailId}`,
