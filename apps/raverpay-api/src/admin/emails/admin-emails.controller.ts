@@ -19,6 +19,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { GetUser } from '../../auth/decorators/get-user.decorator';
 import { UserRole } from '@prisma/client';
 import { ReplyEmailDto } from './dto/reply-email.dto';
+import { SendEmailDto } from './dto/send-email.dto';
 import { ResendWebhookService } from '../../webhooks/resend-webhook.service';
 
 /**
@@ -209,6 +210,37 @@ export class AdminEmailsController {
       userRole,
       userId,
       toEmail || 'raverpay@outlook.com',
+    );
+  }
+
+  /**
+   * Send a fresh email (not a reply)
+   * POST /api/admin/emails/send
+   *
+   * Supports file attachments (max 5 files, 10MB each)
+   * Content-Type: multipart/form-data
+   * Fields: to, subject, content, fromEmail (optional), cc[] (optional), bcc[] (optional)
+   * Files: attachments[] (optional)
+   */
+  @Post('send')
+  @UseInterceptors(
+    FilesInterceptor('attachments', 5, {
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB per file
+      },
+    }),
+  )
+  async sendFreshEmail(
+    @GetUser('role') userRole: UserRole,
+    @GetUser('id') userId: string,
+    @Body() dto: SendEmailDto,
+    @UploadedFiles() attachments?: Express.Multer.File[],
+  ) {
+    return this.emailsService.sendFreshEmail(
+      userRole,
+      userId,
+      dto,
+      attachments,
     );
   }
 }

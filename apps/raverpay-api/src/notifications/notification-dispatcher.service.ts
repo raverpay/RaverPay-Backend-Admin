@@ -347,7 +347,47 @@ export class NotificationDispatcherService {
         'crypto_send_failed',
       ];
 
-      if (cryptoEventTypes.includes(event.eventType)) {
+      // Check if this is a Circle wallet created event
+      const circleWalletEventTypes = ['circle_wallet_created'];
+
+      // Check if this is a Circle USDC transaction event
+      const circleUsdcEventTypes = [
+        'circle_usdc_received',
+        'circle_usdc_sent',
+        'circle_transaction_confirmed',
+        'circle_transaction_failed',
+      ];
+
+      // Check if this is a CCTP transfer event
+      const cctpEventTypes = [
+        'cctp_transfer_initiated',
+        'cctp_burn_complete',
+        'cctp_transfer_complete',
+        'cctp_transfer_failed',
+      ];
+
+      // Check if this is a Circle security alert event
+      const circleSecurityEventTypes = [
+        'circle_large_transaction',
+        'circle_suspicious_activity',
+        'circle_wallet_frozen',
+        'circle_wallet_unfrozen',
+        'circle_low_balance',
+      ];
+
+      if (circleWalletEventTypes.includes(event.eventType)) {
+        // Use Circle wallet created template
+        emailSent = await this.sendCircleWalletCreatedEmail(user, event);
+      } else if (circleUsdcEventTypes.includes(event.eventType)) {
+        // Use Circle USDC transaction template
+        emailSent = await this.sendCircleUsdcTransactionEmail(user, event);
+      } else if (cctpEventTypes.includes(event.eventType)) {
+        // Use CCTP transfer template
+        emailSent = await this.sendCCTPTransferEmail(user, event);
+      } else if (circleSecurityEventTypes.includes(event.eventType)) {
+        // Use Circle security alert template
+        emailSent = await this.sendCircleSecurityAlertEmail(user, event);
+      } else if (cryptoEventTypes.includes(event.eventType)) {
         // Use crypto-specific template
         emailSent = await this.sendCryptoTransactionEmail(user, event);
       } else if (vtuEventTypes.includes(event.eventType)) {
@@ -688,6 +728,163 @@ export class NotificationDispatcherService {
       message: event.data?.message as string | undefined,
       reference: (event.data?.reference as string) || 'N/A',
       transactionType,
+    });
+  }
+
+  /**
+   * Send Circle USDC transaction email with proper template
+   *
+   * @param user - User data
+   * @param event - Notification event
+   * @returns Whether email was sent successfully
+   */
+  private async sendCircleUsdcTransactionEmail(
+    user: { email: string; firstName: string },
+    event: NotificationEvent,
+  ): Promise<boolean> {
+    // Determine transaction type
+    const transactionType =
+      event.eventType === 'circle_usdc_received' ? 'RECEIVE' : 'SEND';
+
+    // Map event type to status
+    const statusMap = {
+      circle_usdc_received: 'COMPLETE' as const,
+      circle_usdc_sent: 'COMPLETE' as const,
+      circle_transaction_confirmed: 'CONFIRMED' as const,
+      circle_transaction_failed: 'FAILED' as const,
+    };
+
+    const status = statusMap[event.eventType] || 'PENDING';
+
+    return await this.emailService.sendCircleUsdcTransactionEmail(user.email, {
+      userName: user.firstName,
+      transactionType,
+      amount: (event.data?.amount as string) || '0',
+      usdValue: event.data?.usdValue as string | undefined,
+      fromAddress: event.data?.fromAddress as string | undefined,
+      toAddress: (event.data?.toAddress as string) || 'N/A',
+      transactionHash: event.data?.transactionHash as string | undefined,
+      blockchain: (event.data?.blockchain as string) || 'Unknown',
+      status,
+      timestamp:
+        (event.data?.timestamp as string) ||
+        new Date().toLocaleString('en-NG', {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        }),
+      networkFee: event.data?.networkFee as string | undefined,
+      networkFeeUsd: event.data?.networkFeeUsd as string | undefined,
+      confirmations: event.data?.confirmations as number | undefined,
+      errorReason: event.data?.errorReason as string | undefined,
+    });
+  }
+
+  /**
+   * Send CCTP transfer email with proper template
+   *
+   * @param user - User data
+   * @param event - Notification event
+   * @returns Whether email was sent successfully
+   */
+  private async sendCCTPTransferEmail(
+    user: { email: string; firstName: string },
+    event: NotificationEvent,
+  ): Promise<boolean> {
+    // Map event type to status
+    const statusMap = {
+      cctp_transfer_initiated: 'INITIATED' as const,
+      cctp_burn_complete: 'BURN_COMPLETE' as const,
+      cctp_transfer_complete: 'COMPLETE' as const,
+      cctp_transfer_failed: 'FAILED' as const,
+    };
+
+    const status = statusMap[event.eventType] || 'INITIATED';
+
+    return await this.emailService.sendCCTPTransferEmail(user.email, {
+      userName: user.firstName,
+      amount: (event.data?.amount as string) || '0',
+      sourceChain: (event.data?.sourceChain as string) || 'Unknown',
+      destinationChain: (event.data?.destinationChain as string) || 'Unknown',
+      status,
+      burnTxHash: event.data?.burnTxHash as string | undefined,
+      mintTxHash: event.data?.mintTxHash as string | undefined,
+      attestationHash: event.data?.attestationHash as string | undefined,
+      timestamp:
+        (event.data?.timestamp as string) ||
+        new Date().toLocaleString('en-NG', {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        }),
+      estimatedTime: event.data?.estimatedTime as string | undefined,
+      errorReason: event.data?.errorReason as string | undefined,
+      burnFee: event.data?.burnFee as string | undefined,
+      mintFee: event.data?.mintFee as string | undefined,
+    });
+  }
+
+  /**
+   * Send Circle security alert email with proper template
+   *
+   * @param user - User data
+   * @param event - Notification event
+   * @returns Whether email was sent successfully
+   */
+  private async sendCircleSecurityAlertEmail(
+    user: { email: string; firstName: string },
+    event: NotificationEvent,
+  ): Promise<boolean> {
+    // Map event type to alert type
+    const alertTypeMap = {
+      circle_large_transaction: 'LARGE_TRANSACTION' as const,
+      circle_suspicious_activity: 'SUSPICIOUS_ACTIVITY' as const,
+      circle_wallet_frozen: 'WALLET_FROZEN' as const,
+      circle_wallet_unfrozen: 'WALLET_UNFROZEN' as const,
+      circle_low_balance: 'LOW_BALANCE' as const,
+    };
+
+    const alertType = alertTypeMap[event.eventType] || 'LARGE_TRANSACTION';
+
+    return await this.emailService.sendCircleSecurityAlertEmail(user.email, {
+      userName: user.firstName,
+      alertType,
+      title: event.title,
+      message: event.message,
+      details: event.data?.details as Record<string, string> | undefined,
+      actionRequired: event.data?.actionRequired as boolean | undefined,
+      actionUrl: event.data?.actionUrl as string | undefined,
+      actionText: event.data?.actionText as string | undefined,
+      timestamp:
+        (event.data?.timestamp as string) ||
+        new Date().toLocaleString('en-NG', {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        }),
+    });
+  }
+
+  /**
+   * Send Circle wallet created email with proper template
+   *
+   * @param user - User data
+   * @param event - Notification event
+   * @returns Whether email was sent successfully
+   */
+  private async sendCircleWalletCreatedEmail(
+    user: { email: string; firstName: string },
+    event: NotificationEvent,
+  ): Promise<boolean> {
+    return await this.emailService.sendCircleWalletCreatedEmail(user.email, {
+      userName: user.firstName,
+      walletAddress: (event.data?.walletAddress as string) || 'N/A',
+      blockchain: (event.data?.blockchain as string) || 'Unknown',
+      accountType: (event.data?.accountType as 'SCA' | 'EOA') || 'SCA',
+      walletName: event.data?.walletName as string | undefined,
+      timestamp:
+        (event.data?.timestamp as string) ||
+        new Date().toLocaleString('en-NG', {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        }),
     });
   }
 

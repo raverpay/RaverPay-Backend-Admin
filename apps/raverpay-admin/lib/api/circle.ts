@@ -35,7 +35,9 @@ export type CCTPTransferState =
   | 'CANCELLED';
 
 export interface CircleWallet {
-  _count: any;
+  _count?: {
+    transactions?: number;
+  };
   id: string;
   circleWalletId: string;
   walletSetId: string;

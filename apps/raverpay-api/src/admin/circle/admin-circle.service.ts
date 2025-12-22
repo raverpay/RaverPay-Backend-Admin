@@ -100,7 +100,7 @@ export class AdminCircleService {
     let totalVolume = '0';
     if (allTransactions.length > 0) {
       const sum = allTransactions.reduce((acc, tx) => {
-        const amounts = tx.amounts as string[];
+        const amounts = tx.amounts;
         const txSum = amounts.reduce(
           (s, amount) => s + parseFloat(amount || '0'),
           0,
@@ -567,7 +567,7 @@ export class AdminCircleService {
     const dailyVolumeMap = new Map<string, { volume: number; count: number }>();
     transactions.forEach((tx) => {
       const date = tx.createdAt.toISOString().split('T')[0];
-      const amounts = tx.amounts as string[];
+      const amounts = tx.amounts;
       const volume = amounts.reduce(
         (sum, amount) => sum + parseFloat(amount || '0'),
         0,
@@ -602,7 +602,7 @@ export class AdminCircleService {
         });
 
         const volume = txs.reduce((acc, tx) => {
-          const amounts = tx.amounts as string[];
+          const amounts = tx.amounts;
           return (
             acc +
             amounts.reduce((s, amount) => s + parseFloat(amount || '0'), 0)

@@ -292,6 +292,79 @@ export const supportApi = {
     });
     return response.data;
   },
+
+  sendFreshEmail: async (data: {
+    to: string;
+    subject: string;
+    content: string;
+    fromEmail?: string;
+    cc?: string[];
+    bcc?: string[];
+    attachments?: File[];
+  }): Promise<{
+    success: boolean;
+    message: string;
+    resendEmailId?: string;
+    to: string;
+    from: string;
+    subject: string;
+  }> => {
+    // Use FormData if attachments are provided, otherwise use JSON
+    if (data.attachments && data.attachments.length > 0) {
+      const formData = new FormData();
+      formData.append('to', data.to);
+      formData.append('subject', data.subject);
+      formData.append('content', data.content);
+      if (data.fromEmail) {
+        formData.append('fromEmail', data.fromEmail);
+      }
+      if (data.cc && data.cc.length > 0) {
+        data.cc.forEach((email) => {
+          formData.append('cc[]', email);
+        });
+      }
+      if (data.bcc && data.bcc.length > 0) {
+        data.bcc.forEach((email) => {
+          formData.append('bcc[]', email);
+        });
+      }
+      data.attachments.forEach((file) => {
+        formData.append('attachments', file);
+      });
+
+      const response = await apiClient.post<{
+        success: boolean;
+        message: string;
+        resendEmailId?: string;
+        to: string;
+        from: string;
+        subject: string;
+      }>('/admin/emails/send', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } else {
+      // No attachments - use JSON
+      const response = await apiClient.post<{
+        success: boolean;
+        message: string;
+        resendEmailId?: string;
+        to: string;
+        from: string;
+        subject: string;
+      }>('/admin/emails/send', {
+        to: data.to,
+        subject: data.subject,
+        content: data.content,
+        fromEmail: data.fromEmail,
+        cc: data.cc,
+        bcc: data.bcc,
+      });
+      return response.data;
+    }
+  },
 };
 
 export interface GetEmailsParams {

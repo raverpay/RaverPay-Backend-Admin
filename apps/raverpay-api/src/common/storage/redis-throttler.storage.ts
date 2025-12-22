@@ -155,7 +155,8 @@ export class RedisThrottlerStorage implements ThrottlerStorage {
       };
     } catch (error) {
       // Suppress connection errors - they're expected when Redis is unavailable
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       if (
         !errorMessage.includes('Connection is closed') &&
         !errorMessage.includes('ECONNREFUSED') &&

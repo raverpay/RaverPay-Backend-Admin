@@ -1,5 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CircleTransactionState, CircleWalletState, CCTPTransferState } from '@prisma/client';
+import {
+  CircleTransactionState,
+  CircleWalletState,
+  CCTPTransferState,
+} from '@prisma/client';
 import * as crypto from 'crypto';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -273,12 +277,16 @@ export class CircleWebhookService {
     }
 
     // Update transaction in database
-    this.logger.log(`[handleTransactionEvent] Looking for transaction ${transactionId} in database...`);
+    this.logger.log(
+      `[handleTransactionEvent] Looking for transaction ${transactionId} in database...`,
+    );
     const updated = await this.prisma.circleTransaction.updateMany({
       where: { circleTransactionId: transactionId },
       data: updateData,
     });
-    this.logger.log(`[handleTransactionEvent] Update result: ${updated.count} rows updated`);
+    this.logger.log(
+      `[handleTransactionEvent] Update result: ${updated.count} rows updated`,
+    );
 
     if (updated.count > 0) {
       this.logger.log(
@@ -301,7 +309,9 @@ export class CircleWebhookService {
       // Transaction not found in our database
       // This could be a CCTP burn transaction that we haven't created a record for yet
       this.logger.warn(`Transaction not found in database: ${transactionId}`);
-      this.logger.log(`Checking for CCTP transaction with refId: ${notification.refId}`);
+      this.logger.log(
+        `Checking for CCTP transaction with refId: ${notification.refId}`,
+      );
 
       // Check if this is a CCTP transaction by looking for a matching refId
       if (notification.refId) {
@@ -309,7 +319,9 @@ export class CircleWebhookService {
           where: { reference: notification.refId },
         });
 
-        this.logger.log(`CCTP transfer lookup result: ${cctpTransfer ? 'Found' : 'Not found'}`);
+        this.logger.log(
+          `CCTP transfer lookup result: ${cctpTransfer ? 'Found' : 'Not found'}`,
+        );
 
         if (cctpTransfer && notification.walletId) {
           // This is a CCTP burn transaction - create the CircleTransaction record
@@ -317,9 +329,15 @@ export class CircleWebhookService {
             where: { circleWalletId: notification.walletId },
           });
 
-          this.logger.log(`Wallet lookup result: ${wallet ? 'Found' : 'Not found'}`);
+          this.logger.log(
+            `Wallet lookup result: ${wallet ? 'Found' : 'Not found'}`,
+          );
 
-          if (wallet && notification.blockchain && notification.destinationAddress) {
+          if (
+            wallet &&
+            notification.blockchain &&
+            notification.destinationAddress
+          ) {
             this.logger.log(
               `Creating CCTP burn transaction record: ${transactionId}`,
             );
@@ -434,7 +452,7 @@ export class CircleWebhookService {
       this.logger.log(
         `Linking burn transaction ${transactionId} to CCTP transfer ${cctpTransfer.id} via refId: ${transaction.refId}`,
       );
-      
+
       cctpTransfer = await this.prisma.circleCCTPTransfer.update({
         where: { id: cctpTransfer.id },
         data: { burnTransactionId: transactionId },
@@ -446,7 +464,7 @@ export class CircleWebhookService {
       // Note: Circle sends all burn transaction updates as 'transactions.outbound'
       // so we need to check the transaction state, not the event type
       const txState = transaction.state;
-      
+
       if (txState === CircleTransactionState.CLEARED) {
         // CLEARED is the first state after burn is initiated
         await this.prisma.circleCCTPTransfer.update({

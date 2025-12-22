@@ -12,6 +12,7 @@ import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 import { SupportService } from '../../support/support.service';
 import { ReplyEmailDto } from './dto/reply-email.dto';
+import { SendEmailDto } from './dto/send-email.dto';
 
 /**
  * Admin Emails Service
@@ -866,6 +867,100 @@ export class AdminEmailsService {
       );
       throw new BadRequestException(
         `Failed to fetch email content: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  /**
+   * Send a fresh email (not a reply)
+   * Allows sending new emails from the admin dashboard
+   */
+  async sendFreshEmail(
+    userRole: UserRole,
+    userId: string,
+    dto: SendEmailDto,
+    attachments?: Express.Multer.File[],
+  ) {
+    if (!this.resend) {
+      throw new BadRequestException('Email service not configured');
+    }
+
+    // Determine the from email address
+    // Default to support@raverpay.com if not specified
+    const fromEmail = dto.fromEmail || this.fromEmail;
+
+    // Validate that the from email is one of our allowed team emails
+    const allowedFromEmails = [
+      'support@raverpay.com',
+      'admin@raverpay.com',
+      'promotions@raverpay.com',
+      'security@raverpay.com',
+      'compliance@raverpay.com',
+      'partnerships@raverpay.com',
+      'noreply@raverpay.com',
+    ];
+
+    if (!allowedFromEmails.includes(fromEmail)) {
+      throw new BadRequestException(
+        `Invalid from email. Allowed emails: ${allowedFromEmails.join(', ')}`,
+      );
+    }
+
+    try {
+      // Prepare attachments for Resend API
+      const resendAttachments =
+        attachments?.map((file) => ({
+          filename: file.originalname,
+          content: file.buffer.toString('base64'),
+        })) || [];
+
+      // Log attachment info
+      if (resendAttachments.length > 0) {
+        this.logger.log(
+          `📎 Sending ${resendAttachments.length} attachment(s): ${resendAttachments.map((a) => a.filename).join(', ')}`,
+        );
+      }
+
+      // Send email via Resend
+      const emailResult = await this.resend.emails.send({
+        from: `${this.fromName} <${fromEmail}>`,
+        to: [dto.to],
+        cc: dto.cc && dto.cc.length > 0 ? dto.cc : undefined,
+        bcc: dto.bcc && dto.bcc.length > 0 ? dto.bcc : undefined,
+        subject: dto.subject,
+        html: dto.content, // Support HTML content
+        text: dto.content.replace(/<[^>]*>/g, ''), // Strip HTML for plain text fallback
+        replyTo: fromEmail, // Set reply-to to the team email
+        attachments:
+          resendAttachments.length > 0 ? resendAttachments : undefined,
+      });
+
+      if (emailResult.error) {
+        this.logger.error(`Failed to send email: ${emailResult.error.message}`);
+        throw new BadRequestException(
+          `Failed to send email: ${emailResult.error.message}`,
+        );
+      }
+
+      this.logger.log(
+        `✅ Fresh email sent to ${dto.to} from ${fromEmail} by user ${userId} (Resend ID: ${emailResult.data?.id})`,
+      );
+
+      return {
+        success: true,
+        message: 'Email sent successfully',
+        resendEmailId: emailResult.data?.id,
+        to: dto.to,
+        from: fromEmail,
+        subject: dto.subject,
+      };
+    } catch (error) {
+      this.logger.error(`Error sending fresh email: ${error}`);
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to send email: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }

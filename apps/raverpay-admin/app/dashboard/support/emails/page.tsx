@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Search, Mail, CheckCircle2, XCircle, Filter } from 'lucide-react';
+import { Search, Mail, CheckCircle2, XCircle, Filter, PenSquare, Paperclip, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { supportApi, GetEmailsParams } from '@/lib/api/support';
@@ -29,6 +29,17 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Pagination } from '@/components/ui/pagination';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { formatRelativeTime, getApiErrorMessage } from '@/lib/utils';
 import { UserRole } from '@/types/support';
 
@@ -98,14 +109,242 @@ export default function EmailsPage() {
     },
   });
 
+  // Compose email state
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [composeTo, setComposeTo] = useState('');
+  const [composeSubject, setComposeSubject] = useState('');
+  const [composeContent, setComposeContent] = useState('');
+  const [composeFromEmail, setComposeFromEmail] = useState('support@raverpay.com');
+  const [composeCc, setComposeCc] = useState('');
+  const [composeBcc, setComposeBcc] = useState('');
+  const [composeAttachments, setComposeAttachments] = useState<File[]>([]);
+
+  const composeMutation = useMutation({
+    mutationFn: () =>
+      supportApi.sendFreshEmail({
+        to: composeTo,
+        subject: composeSubject,
+        content: composeContent,
+        fromEmail: composeFromEmail,
+        cc: composeCc ? composeCc.split(',').map((e) => e.trim()).filter(Boolean) : undefined,
+        bcc: composeBcc ? composeBcc.split(',').map((e) => e.trim()).filter(Boolean) : undefined,
+        attachments: composeAttachments.length > 0 ? composeAttachments : undefined,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['support-emails'] });
+      toast.success('Email sent successfully');
+      setComposeOpen(false);
+      // Reset form
+      setComposeTo('');
+      setComposeSubject('');
+      setComposeContent('');
+      setComposeFromEmail('support@raverpay.com');
+      setComposeCc('');
+      setComposeBcc('');
+      setComposeAttachments([]);
+    },
+    onError: (error: unknown) => {
+      toast.error('Failed to send email', {
+        description: getApiErrorMessage(error),
+      });
+    },
+  });
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Email Inbox</h1>
-        <p className="text-muted-foreground">
-          Manage and view inbound emails from various team addresses
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Email Inbox</h1>
+          <p className="text-muted-foreground">
+            Manage and view inbound emails from various team addresses
+          </p>
+        </div>
+        <Dialog
+          open={composeOpen}
+          onOpenChange={(open) => {
+            setComposeOpen(open);
+            if (!open) {
+              // Reset form when dialog closes
+              setComposeTo('');
+              setComposeSubject('');
+              setComposeContent('');
+              setComposeFromEmail('support@raverpay.com');
+              setComposeCc('');
+              setComposeBcc('');
+              setComposeAttachments([]);
+            }
+          }}
+        >
+          <DialogTrigger asChild>
+            <Button>
+              <PenSquare className="mr-2 h-4 w-4" />
+              Compose Email
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Compose New Email</DialogTitle>
+              <DialogDescription>Send a fresh email from the admin dashboard</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="compose-from">From</Label>
+                  <Select value={composeFromEmail} onValueChange={setComposeFromEmail}>
+                    <SelectTrigger id="compose-from">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="support@raverpay.com">support@raverpay.com</SelectItem>
+                      <SelectItem value="admin@raverpay.com">admin@raverpay.com</SelectItem>
+                      <SelectItem value="promotions@raverpay.com">promotions@raverpay.com</SelectItem>
+                      <SelectItem value="security@raverpay.com">security@raverpay.com</SelectItem>
+                      <SelectItem value="compliance@raverpay.com">compliance@raverpay.com</SelectItem>
+                      <SelectItem value="partnerships@raverpay.com">partnerships@raverpay.com</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="compose-to">To *</Label>
+                  <Input
+                    id="compose-to"
+                    type="email"
+                    placeholder="recipient@example.com"
+                    value={composeTo}
+                    onChange={(e) => setComposeTo(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="compose-subject">Subject *</Label>
+                <Input
+                  id="compose-subject"
+                  placeholder="Email subject"
+                  value={composeSubject}
+                  onChange={(e) => setComposeSubject(e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="compose-cc">CC (comma-separated)</Label>
+                  <Input
+                    id="compose-cc"
+                    placeholder="cc1@example.com, cc2@example.com"
+                    value={composeCc}
+                    onChange={(e) => setComposeCc(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="compose-bcc">BCC (comma-separated)</Label>
+                  <Input
+                    id="compose-bcc"
+                    placeholder="bcc1@example.com, bcc2@example.com"
+                    value={composeBcc}
+                    onChange={(e) => setComposeBcc(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="compose-content">Message *</Label>
+                <Textarea
+                  id="compose-content"
+                  placeholder="Type your message here..."
+                  value={composeContent}
+                  onChange={(e) => setComposeContent(e.target.value)}
+                  rows={12}
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">HTML is supported</p>
+              </div>
+
+              {/* Attachments */}
+              <div className="space-y-2">
+                <Label>Attachments (optional)</Label>
+                <input
+                  type="file"
+                  id="compose-attachments"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setComposeAttachments((prev) => [...prev, ...files]);
+                    // Reset input so same file can be selected again
+                    e.target.value = '';
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById('compose-attachments')?.click()}
+                  disabled={composeMutation.isPending}
+                >
+                  <Paperclip className="mr-2 h-4 w-4" />
+                  Add Attachments
+                </Button>
+
+                {/* Selected files */}
+                {composeAttachments.length > 0 && (
+                  <div className="space-y-2 mt-2">
+                    {composeAttachments.map((file, index) => (
+                      <div
+                        key={`${file.name}-${index}`}
+                        className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm bg-muted"
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <Paperclip className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">
+                              {file.name.length > 60 ? file.name.slice(0, 60) + '...' : file.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {file.type.length > 60 ? file.type.slice(0, 60) + '...' : file.type}{' '}
+                              · {(file.size / 1024).toFixed(1)} KB
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setComposeAttachments((prev) => prev.filter((_, i) => i !== index));
+                          }}
+                          disabled={composeMutation.isPending}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setComposeOpen(false)}
+                disabled={composeMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => composeMutation.mutate()}
+                disabled={composeMutation.isPending || !composeTo.trim() || !composeSubject.trim() || !composeContent.trim()}
+              >
+                {composeMutation.isPending ? (
+                  <>Sending...</>
+                ) : (
+                  <>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Send Email
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Stats Cards */}

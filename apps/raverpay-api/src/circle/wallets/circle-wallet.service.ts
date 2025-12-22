@@ -9,6 +9,7 @@ import { CircleApiClient } from '../circle-api.client';
 import { CircleConfigService } from '../config/circle.config.service';
 import { EntitySecretService } from '../entity/entity-secret.service';
 import { WalletSetService } from './wallet-set.service';
+import { NotificationDispatcherService } from '../../notifications/notification-dispatcher.service';
 import {
   CreateWalletRequest,
   CreateWalletResponse,
@@ -33,6 +34,7 @@ export class CircleWalletService {
     private readonly config: CircleConfigService,
     private readonly entitySecret: EntitySecretService,
     private readonly walletSetService: WalletSetService,
+    private readonly notificationDispatcher: NotificationDispatcherService,
   ) {}
 
   /**
@@ -128,6 +130,38 @@ export class CircleWalletService {
       this.logger.log(
         `Circle wallet created: ${wallet.id} (${wallet.address}) for user ${userId}`,
       );
+
+      // Send notification to user about wallet creation
+      try {
+        await this.notificationDispatcher.sendNotification({
+          userId,
+          eventType: 'circle_wallet_created',
+          category: 'ACCOUNT',
+          channels: ['EMAIL', 'PUSH', 'IN_APP'],
+          title: `${blockchain} USDC Wallet Created`,
+          message: `Your Circle USDC wallet on ${blockchain} has been successfully created and is ready to use!`,
+          data: {
+            walletAddress: wallet.address,
+            blockchain: wallet.blockchain,
+            accountType: wallet.accountType,
+            walletName: wallet.name,
+            timestamp: new Date().toLocaleString('en-NG', {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            }),
+          },
+        });
+
+        this.logger.log(
+          `Circle wallet creation notification sent for user ${userId}`,
+        );
+      } catch (notificationError) {
+        // Log but don't fail wallet creation if notification fails
+        this.logger.error(
+          `Failed to send wallet creation notification for user ${userId}`,
+          notificationError,
+        );
+      }
 
       return wallet;
     } catch (error) {

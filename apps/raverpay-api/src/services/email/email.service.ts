@@ -10,6 +10,10 @@ import { walletLockedTemplate } from './templates/wallet-locked.template';
 import { deviceVerificationTemplate } from './templates/device-verification.template';
 import { p2pTransferEmailTemplate } from './templates/p2p-transfer.template';
 import { cryptoTransactionEmailTemplate } from './templates/crypto-transaction.template';
+import { circleWalletCreatedTemplate } from './templates/circle-wallet-created.template';
+import { circleUsdcTransactionTemplate } from './templates/circle-usdc-transaction.template';
+import { cctpTransferTemplate } from './templates/cctp-transfer.template';
+import { circleSecurityAlertTemplate } from './templates/circle-security-alert.template';
 
 @Injectable()
 export class EmailService {
@@ -23,9 +27,9 @@ export class EmailService {
     const apiKey = this.configService.get<string>('RESEND_API_KEY');
     this.fromEmail =
       this.configService.get<string>('RESEND_FROM_EMAIL') ||
-      'noreply@expertvetteddigital.tech';
+      'noreply@raverpay.com';
     this.fromName =
-      this.configService.get<string>('RESEND_FROM_NAME') || 'RaverPay';
+      this.configService.get<string>('RESEND_FROM_NAME') || 'Raverpay';
     this.enabled =
       this.configService.get<string>('ENABLE_EMAIL_VERIFICATION') === 'true';
 
@@ -857,6 +861,270 @@ export class EmailService {
     } catch (error) {
       this.logger.error(
         `Error sending crypto transaction email to ${email}:`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Send Circle wallet created email
+   */
+  async sendCircleWalletCreatedEmail(
+    email: string,
+    data: {
+      userName: string;
+      walletAddress: string;
+      blockchain: string;
+      accountType: 'SCA' | 'EOA';
+      walletName?: string;
+      timestamp: string;
+    },
+  ): Promise<boolean> {
+    if (!this.enabled) {
+      this.logger.log(
+        `📧 [MOCK] Circle wallet created email to ${email}: ${data.blockchain}`,
+      );
+      return true;
+    }
+
+    if (!this.resend) {
+      this.logger.warn(
+        `📧 [MOCK] Would send Circle wallet created email to ${email}`,
+      );
+      return true;
+    }
+
+    try {
+      const { html, subject } = circleWalletCreatedTemplate(data);
+
+      const result = await this.resend.emails.send({
+        from: `${this.fromName} <${this.fromEmail}>`,
+        to: [email],
+        subject,
+        html,
+      });
+
+      if (result.error) {
+        this.logger.error(
+          `Failed to send Circle wallet created email to ${email}:`,
+          result.error,
+        );
+        return false;
+      }
+
+      this.logger.log(
+        `✅ Circle wallet created email sent to ${email} (ID: ${result.data?.id})`,
+      );
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Error sending Circle wallet created email to ${email}:`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Send Circle USDC transaction email (send or receive)
+   */
+  async sendCircleUsdcTransactionEmail(
+    email: string,
+    data: {
+      userName: string;
+      transactionType: 'SEND' | 'RECEIVE';
+      amount: string;
+      usdValue?: string;
+      fromAddress?: string;
+      toAddress: string;
+      transactionHash?: string;
+      blockchain: string;
+      status: 'PENDING' | 'CONFIRMED' | 'COMPLETE' | 'FAILED';
+      timestamp: string;
+      networkFee?: string;
+      networkFeeUsd?: string;
+      confirmations?: number;
+      errorReason?: string;
+    },
+  ): Promise<boolean> {
+    if (!this.enabled) {
+      this.logger.log(
+        `📧 [MOCK] Circle USDC transaction email to ${email}: ${data.transactionType} ${data.status}`,
+      );
+      return true;
+    }
+
+    if (!this.resend) {
+      this.logger.warn(
+        `📧 [MOCK] Would send Circle USDC transaction email to ${email}`,
+      );
+      return true;
+    }
+
+    try {
+      const { html, subject } = circleUsdcTransactionTemplate(data);
+
+      const result = await this.resend.emails.send({
+        from: `${this.fromName} <${this.fromEmail}>`,
+        to: [email],
+        subject,
+        html,
+      });
+
+      if (result.error) {
+        this.logger.error(
+          `Failed to send Circle USDC transaction email to ${email}:`,
+          result.error,
+        );
+        return false;
+      }
+
+      this.logger.log(
+        `✅ Circle USDC transaction email sent to ${email} (ID: ${result.data?.id})`,
+      );
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Error sending Circle USDC transaction email to ${email}:`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Send CCTP transfer email
+   */
+  async sendCCTPTransferEmail(
+    email: string,
+    data: {
+      userName: string;
+      amount: string;
+      sourceChain: string;
+      destinationChain: string;
+      status:
+        | 'INITIATED'
+        | 'BURN_PENDING'
+        | 'BURN_COMPLETE'
+        | 'ATTESTATION_PENDING'
+        | 'MINT_PENDING'
+        | 'COMPLETE'
+        | 'FAILED';
+      burnTxHash?: string;
+      mintTxHash?: string;
+      attestationHash?: string;
+      timestamp: string;
+      estimatedTime?: string;
+      errorReason?: string;
+      burnFee?: string;
+      mintFee?: string;
+    },
+  ): Promise<boolean> {
+    if (!this.enabled) {
+      this.logger.log(
+        `📧 [MOCK] CCTP transfer email to ${email}: ${data.status}`,
+      );
+      return true;
+    }
+
+    if (!this.resend) {
+      this.logger.warn(`📧 [MOCK] Would send CCTP transfer email to ${email}`);
+      return true;
+    }
+
+    try {
+      const { html, subject } = cctpTransferTemplate(data);
+
+      const result = await this.resend.emails.send({
+        from: `${this.fromName} <${this.fromEmail}>`,
+        to: [email],
+        subject,
+        html,
+      });
+
+      if (result.error) {
+        this.logger.error(
+          `Failed to send CCTP transfer email to ${email}:`,
+          result.error,
+        );
+        return false;
+      }
+
+      this.logger.log(
+        `✅ CCTP transfer email sent to ${email} (ID: ${result.data?.id})`,
+      );
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Error sending CCTP transfer email to ${email}:`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Send Circle security alert email
+   */
+  async sendCircleSecurityAlertEmail(
+    email: string,
+    data: {
+      userName: string;
+      alertType:
+        | 'LARGE_TRANSACTION'
+        | 'SUSPICIOUS_ACTIVITY'
+        | 'WALLET_FROZEN'
+        | 'WALLET_UNFROZEN'
+        | 'LOW_BALANCE';
+      title: string;
+      message: string;
+      details?: Record<string, string>;
+      actionRequired?: boolean;
+      actionUrl?: string;
+      actionText?: string;
+      timestamp: string;
+    },
+  ): Promise<boolean> {
+    if (!this.enabled) {
+      this.logger.log(
+        `📧 [MOCK] Circle security alert email to ${email}: ${data.alertType}`,
+      );
+      return true;
+    }
+
+    if (!this.resend) {
+      this.logger.warn(
+        `📧 [MOCK] Would send Circle security alert email to ${email}`,
+      );
+      return true;
+    }
+
+    try {
+      const { html, subject } = circleSecurityAlertTemplate(data);
+
+      const result = await this.resend.emails.send({
+        from: `${this.fromName} <${this.fromEmail}>`,
+        to: [email],
+        subject,
+        html,
+      });
+
+      if (result.error) {
+        this.logger.error(
+          `Failed to send Circle security alert email to ${email}:`,
+          result.error,
+        );
+        return false;
+      }
+
+      this.logger.log(
+        `✅ Circle security alert email sent to ${email} (ID: ${result.data?.id})`,
+      );
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Error sending Circle security alert email to ${email}:`,
         error,
       );
       return false;

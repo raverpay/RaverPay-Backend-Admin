@@ -1,6 +1,17 @@
-import { IsOptional, IsString, IsInt, Min, IsEnum, IsDateString } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsInt,
+  Min,
+  IsEnum,
+  IsDateString,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { CircleWalletState, CircleTransactionState, CCTPTransferState } from '@prisma/client';
+import {
+  CircleWalletState,
+  CircleTransactionState,
+  CCTPTransferState,
+} from '@prisma/client';
 
 /**
  * Query DTOs for Circle admin endpoints
