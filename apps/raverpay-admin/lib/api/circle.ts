@@ -35,6 +35,7 @@ export type CCTPTransferState =
   | 'CANCELLED';
 
 export interface CircleWallet {
+  _count: any;
   id: string;
   circleWalletId: string;
   walletSetId: string;
@@ -83,8 +84,8 @@ export interface CircleTransaction {
   state: CircleTransactionState;
   sourceAddress?: string;
   destinationAddress: string;
-  amount: string;
-  tokenSymbol: string;
+  amounts: string[]; // Array because Circle supports batch transfers
+  tokenSymbol?: string;
   blockchain: CircleBlockchain;
   transactionHash?: string;
   gasUsed?: string;
@@ -129,12 +130,21 @@ export interface CCTPTransfer {
 
 export interface CircleWebhookLog {
   id: string;
+  subscriptionId?: string;
+  notificationId?: string;
   eventType: string;
-  eventId: string;
   payload: Record<string, unknown>;
+  signature?: string;
+  isValid: boolean;
   processed: boolean;
   processedAt?: string;
   error?: string;
+  retryCount: number;
+  lastRetryAt?: string;
+  entityId?: string;
+  walletId?: string;
+  transactionId?: string;
+  receivedAt: string;
   createdAt: string;
 }
 

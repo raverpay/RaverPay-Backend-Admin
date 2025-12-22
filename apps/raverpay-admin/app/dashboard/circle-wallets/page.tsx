@@ -270,10 +270,10 @@ export default function CircleWalletsPage() {
                         </TableCell>
                         <TableCell className="text-sm">{formatDate(wallet.createdAt)}</TableCell>
                         <TableCell className="text-right">
-                          <Link href={`/dashboard/users/${wallet.userId}`}>
+                          <Link href={`/dashboard/circle-wallets/${wallet.id}`}>
                             <Button variant="ghost" size="sm" className="gap-2">
                               <Eye className="h-4 w-4" />
-                              View User
+                              View Details
                             </Button>
                           </Link>
                         </TableCell>

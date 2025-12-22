@@ -154,7 +154,16 @@ export class RedisThrottlerStorage implements ThrottlerStorage {
         timeToBlockExpire: 0,
       };
     } catch (error) {
-      this.logger.error('Redis increment error:', error);
+      // Suppress connection errors - they're expected when Redis is unavailable
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (
+        !errorMessage.includes('Connection is closed') &&
+        !errorMessage.includes('ECONNREFUSED') &&
+        !errorMessage.includes('ENOTFOUND')
+      ) {
+        this.logger.error('Redis increment error:', error);
+      }
+      // Silently fall back to in-memory storage
       return this.inMemoryIncrement(key, ttl, limit, blockDuration);
     }
   }

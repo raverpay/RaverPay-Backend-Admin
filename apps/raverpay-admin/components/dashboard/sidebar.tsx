@@ -88,12 +88,12 @@ const navigation: NavItem[] = [
     icon: Bitcoin,
     roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
   },
-  {
-    name: 'Venly Wallets',
-    href: '/dashboard/venly-wallets',
-    icon: Coins,
-    roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
-  },
+  // {
+  //   name: 'Venly Wallets',
+  //   href: '/dashboard/venly-wallets',
+  //   icon: Coins,
+  //   roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
+  // },
   {
     name: 'Circle USDC',
     href: '/dashboard/circle-wallets',

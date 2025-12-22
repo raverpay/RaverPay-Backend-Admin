@@ -57,17 +57,15 @@ export default function CircleTransactionsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 300, 2);
-  const [typeFilter, setTypeFilter] = useState<string>('all');
   const [stateFilter, setStateFilter] = useState<string>('all');
 
   const { data: transactionsData, isLoading } = useQuery({
-    queryKey: ['circle-transactions', page, debouncedSearch, typeFilter, stateFilter],
+    queryKey: ['circle-transactions', page, debouncedSearch, stateFilter],
     queryFn: () =>
       circleApi.getTransactions({
         page,
         limit: 20,
         ...(debouncedSearch && { search: debouncedSearch }),
-        ...(typeFilter !== 'all' && { type: typeFilter }),
         ...(stateFilter !== 'all' && { state: stateFilter }),
       }),
   });
@@ -123,17 +121,6 @@ export default function CircleTransactionsPage() {
                 className="pl-10"
               />
             </div>
-
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-full md:w-[150px]">
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="INBOUND">Received</SelectItem>
-                <SelectItem value="OUTBOUND">Sent</SelectItem>
-              </SelectContent>
-            </Select>
 
             <Select value={stateFilter} onValueChange={setStateFilter}>
               <SelectTrigger className="w-full md:w-[150px]">
@@ -211,7 +198,10 @@ export default function CircleTransactionsPage() {
                             <span
                               className={`font-mono font-medium ${isInbound ? 'text-green-600' : 'text-red-600'}`}
                             >
-                              {isInbound ? '+' : '-'}${parseFloat(tx.amount).toFixed(2)}
+                              {isInbound ? '+' : '-'}$
+                              {tx.amounts
+                                .reduce((sum, amt) => sum + parseFloat(amt || '0'), 0)
+                                .toFixed(2)}
                             </span>
                             <span className="text-xs text-muted-foreground ml-1">USDC</span>
                           </TableCell>
@@ -249,7 +239,7 @@ export default function CircleTransactionsPage() {
                                   <ExternalLink className="h-4 w-4" />
                                 </a>
                               )}
-                              <Link href={`/dashboard/users/${tx.userId}`}>
+                              <Link href={`/dashboard/circle-wallets/transactions/${tx.id}`}>
                                 <Button variant="ghost" size="sm">
                                   <Eye className="h-4 w-4" />
                                 </Button>

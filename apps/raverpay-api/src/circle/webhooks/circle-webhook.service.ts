@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CircleTransactionState, CircleWalletState } from '@prisma/client';
+import { CircleTransactionState, CircleWalletState, CCTPTransferState } from '@prisma/client';
 import * as crypto from 'crypto';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -65,6 +65,10 @@ export class CircleWebhookService {
    * Process incoming webhook event
    */
   async processWebhook(event: CircleWebhookEvent): Promise<void> {
+    this.logger.log(
+      `[processWebhook] START - ${event.notificationType} - ${event.notificationId}`,
+    );
+
     // Use upsert to handle duplicate webhook events (Circle retries webhooks)
     const webhookLog = await this.prisma.circleWebhookLog.upsert({
       where: { notificationId: event.notificationId },
@@ -86,6 +90,10 @@ export class CircleWebhookService {
         lastRetryAt: new Date(),
       },
     });
+
+    this.logger.log(
+      `[processWebhook] Upsert complete - processed: ${webhookLog.processed}, retry: ${webhookLog.retryCount}`,
+    );
 
     // Skip processing if already processed
     if (webhookLog.processed) {
@@ -160,6 +168,10 @@ export class CircleWebhookService {
     const { notification, notificationType } = event;
     const transactionId = notification.id;
     const state = notification.state;
+
+    this.logger.log(
+      `[handleTransactionEvent] Processing ${notificationType} for transaction ${transactionId}, state: ${state}, refId: ${notification.refId}`,
+    );
 
     // Map Circle state to our enum
     const stateMap: Record<string, CircleTransactionState> = {
@@ -261,10 +273,12 @@ export class CircleWebhookService {
     }
 
     // Update transaction in database
+    this.logger.log(`[handleTransactionEvent] Looking for transaction ${transactionId} in database...`);
     const updated = await this.prisma.circleTransaction.updateMany({
       where: { circleTransactionId: transactionId },
       data: updateData,
     });
+    this.logger.log(`[handleTransactionEvent] Update result: ${updated.count} rows updated`);
 
     if (updated.count > 0) {
       this.logger.log(
@@ -284,7 +298,77 @@ export class CircleWebhookService {
         event,
       );
     } else {
+      // Transaction not found in our database
+      // This could be a CCTP burn transaction that we haven't created a record for yet
       this.logger.warn(`Transaction not found in database: ${transactionId}`);
+      this.logger.log(`Checking for CCTP transaction with refId: ${notification.refId}`);
+
+      // Check if this is a CCTP transaction by looking for a matching refId
+      if (notification.refId) {
+        const cctpTransfer = await this.prisma.circleCCTPTransfer.findFirst({
+          where: { reference: notification.refId },
+        });
+
+        this.logger.log(`CCTP transfer lookup result: ${cctpTransfer ? 'Found' : 'Not found'}`);
+
+        if (cctpTransfer && notification.walletId) {
+          // This is a CCTP burn transaction - create the CircleTransaction record
+          const wallet = await this.prisma.circleWallet.findFirst({
+            where: { circleWalletId: notification.walletId },
+          });
+
+          this.logger.log(`Wallet lookup result: ${wallet ? 'Found' : 'Not found'}`);
+
+          if (wallet && notification.blockchain && notification.destinationAddress) {
+            this.logger.log(
+              `Creating CCTP burn transaction record: ${transactionId}`,
+            );
+
+            await this.prisma.circleTransaction.create({
+              data: {
+                reference: notification.refId,
+                userId: wallet.userId,
+                circleTransactionId: transactionId,
+                walletId: wallet.id,
+                type: 'TRANSFER',
+                state: mappedState || CircleTransactionState.INITIATED,
+                blockchain: notification.blockchain,
+                tokenId: notification.tokenId,
+                sourceAddress: notification.sourceAddress,
+                destinationAddress: notification.destinationAddress,
+                amounts: notification.amounts || [],
+                transactionHash: notification.txHash,
+                networkFee: notification.networkFee,
+                refId: notification.refId,
+                errorReason: notification.errorReason,
+                ...(notificationType === 'transactions.confirmed' && {
+                  firstConfirmDate: new Date(),
+                }),
+                ...(notificationType === 'transactions.complete' && {
+                  completedDate: new Date(),
+                }),
+              },
+            });
+
+            // Now process CCTP progress
+            await this.checkCCTPProgress(transactionId, notificationType);
+
+            this.logger.log(
+              `CCTP burn transaction created and processed: ${transactionId}`,
+            );
+          } else {
+            this.logger.warn(
+              `Cannot create CCTP transaction: wallet=${!!wallet}, blockchain=${!!notification.blockchain}, destination=${!!notification.destinationAddress}`,
+            );
+          }
+        } else {
+          this.logger.log(
+            `Not a CCTP transaction or missing walletId: cctpTransfer=${!!cctpTransfer}, walletId=${!!notification.walletId}`,
+          );
+        }
+      } else {
+        this.logger.log('No refId in notification, skipping CCTP check');
+      }
     }
   }
 
@@ -325,32 +409,93 @@ export class CircleWebhookService {
     transactionId: string,
     eventType: string,
   ): Promise<void> {
-    // Check if this transaction is a burn transaction for CCTP
-    const cctpTransfer = await this.prisma.circleCCTPTransfer.findFirst({
-      where: { burnTransactionId: transactionId },
+    // Get the transaction to access its refId
+    const transaction = await this.prisma.circleTransaction.findFirst({
+      where: { circleTransactionId: transactionId },
     });
 
-    if (cctpTransfer) {
-      if (
-        eventType === 'transactions.complete' ||
-        eventType === 'transactions.confirmed'
-      ) {
-        // Get transaction details to get the tx hash
-        const transaction = await this.prisma.circleTransaction.findFirst({
-          where: { circleTransactionId: transactionId },
-        });
+    if (!transaction) {
+      return;
+    }
 
-        if (transaction?.transactionHash) {
+    // First, check if this transaction is linked by refId to a CCTP transfer
+    // This is the primary way Circle links burn transactions to CCTP transfers
+    let cctpTransfer = await this.prisma.circleCCTPTransfer.findFirst({
+      where: {
+        OR: [
+          { burnTransactionId: transactionId },
+          ...(transaction.refId ? [{ reference: transaction.refId }] : []),
+        ],
+      },
+    });
+
+    // If we found a CCTP transfer by refId but burnTransactionId isn't set yet, set it now
+    if (cctpTransfer && !cctpTransfer.burnTransactionId) {
+      this.logger.log(
+        `Linking burn transaction ${transactionId} to CCTP transfer ${cctpTransfer.id} via refId: ${transaction.refId}`,
+      );
+      
+      cctpTransfer = await this.prisma.circleCCTPTransfer.update({
+        where: { id: cctpTransfer.id },
+        data: { burnTransactionId: transactionId },
+      });
+    }
+
+    if (cctpTransfer) {
+      // Handle burn transaction state changes
+      // Note: Circle sends all burn transaction updates as 'transactions.outbound'
+      // so we need to check the transaction state, not the event type
+      const txState = transaction.state;
+      
+      if (txState === CircleTransactionState.CLEARED) {
+        // CLEARED is the first state after burn is initiated
+        await this.prisma.circleCCTPTransfer.update({
+          where: { id: cctpTransfer.id },
+          data: { state: CCTPTransferState.BURN_PENDING },
+        });
+        this.logger.log(
+          `CCTP burn transaction cleared: ${cctpTransfer.id} - ${transactionId}`,
+        );
+      } else if (txState === CircleTransactionState.QUEUED) {
+        // Transaction is queued for processing
+        await this.prisma.circleCCTPTransfer.update({
+          where: { id: cctpTransfer.id },
+          data: { state: CCTPTransferState.BURN_PENDING },
+        });
+        this.logger.log(
+          `CCTP burn transaction queued: ${cctpTransfer.id} - ${transactionId}`,
+        );
+      } else if (txState === CircleTransactionState.SENT) {
+        // Transaction has been sent to the blockchain
+        await this.prisma.circleCCTPTransfer.update({
+          where: { id: cctpTransfer.id },
+          data: { state: CCTPTransferState.BURN_PENDING },
+        });
+        this.logger.log(
+          `CCTP burn transaction sent: ${cctpTransfer.id} - ${transactionId}`,
+        );
+      } else if (
+        txState === CircleTransactionState.CONFIRMED ||
+        txState === CircleTransactionState.COMPLETE
+      ) {
+        // Burn transaction is confirmed on-chain
+        if (transaction.transactionHash) {
           await this.cctpService.updateBurnStatus(
             cctpTransfer.id,
             transaction.transactionHash,
           );
+          this.logger.log(
+            `CCTP burn confirmed: ${cctpTransfer.id} - TxHash: ${transaction.transactionHash}`,
+          );
         }
-      } else if (eventType === 'transactions.failed') {
+      } else if (txState === CircleTransactionState.FAILED) {
         await this.cctpService.markTransferFailed(
           cctpTransfer.id,
           'BURN_FAILED',
-          'Burn transaction failed',
+          transaction.errorReason || 'Burn transaction failed',
+        );
+        this.logger.log(
+          `CCTP burn failed: ${cctpTransfer.id} - ${transactionId}`,
         );
       }
     }
@@ -365,22 +510,24 @@ export class CircleWebhookService {
         eventType === 'transactions.complete' ||
         eventType === 'transactions.confirmed'
       ) {
-        const transaction = await this.prisma.circleTransaction.findFirst({
-          where: { circleTransactionId: transactionId },
-        });
-
-        if (transaction?.transactionHash) {
+        if (transaction.transactionHash) {
           await this.cctpService.updateMintStatus(
             cctpMintTransfer.id,
             transaction.transactionHash,
             transactionId,
+          );
+          this.logger.log(
+            `CCTP mint confirmed: ${cctpMintTransfer.id} - TxHash: ${transaction.transactionHash}`,
           );
         }
       } else if (eventType === 'transactions.failed') {
         await this.cctpService.markTransferFailed(
           cctpMintTransfer.id,
           'MINT_FAILED',
-          'Mint transaction failed',
+          transaction.errorReason || 'Mint transaction failed',
+        );
+        this.logger.log(
+          `CCTP mint failed: ${cctpMintTransfer.id} - ${transactionId}`,
         );
       }
     }

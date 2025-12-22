@@ -146,8 +146,9 @@ export default function CircleWebhooksPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Event Type</TableHead>
-                      <TableHead>Event ID</TableHead>
+                      <TableHead>Notification ID</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Retries</TableHead>
                       <TableHead>Processed At</TableHead>
                       <TableHead>Received</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
@@ -162,9 +163,13 @@ export default function CircleWebhooksPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <code className="text-xs bg-muted px-2 py-1 rounded">
-                            {log.eventId.substring(0, 12)}...
-                          </code>
+                          {log.notificationId ? (
+                            <code className="text-xs bg-muted px-2 py-1 rounded">
+                              {log.notificationId.substring(0, 12)}...
+                            </code>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           {log.processed ? (
@@ -184,10 +189,19 @@ export default function CircleWebhooksPage() {
                             </div>
                           )}
                         </TableCell>
+                        <TableCell>
+                          {log.retryCount > 0 ? (
+                            <Badge variant="outline" className="text-xs">
+                              {log.retryCount} {log.retryCount === 1 ? 'retry' : 'retries'}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-sm">
                           {log.processedAt ? formatDate(log.processedAt) : '—'}
                         </TableCell>
-                        <TableCell className="text-sm">{formatDate(log.createdAt)}</TableCell>
+                        <TableCell className="text-sm">{formatDate(log.receivedAt || log.createdAt)}</TableCell>
                         <TableCell className="text-right">
                           <Dialog>
                             <DialogTrigger asChild>
@@ -199,7 +213,7 @@ export default function CircleWebhooksPage() {
                               <DialogHeader>
                                 <DialogTitle>Webhook Payload</DialogTitle>
                                 <DialogDescription>
-                                  Event: {log.eventType} | ID: {log.eventId}
+                                  Event: {log.eventType} | ID: {log.notificationId || log.id}
                                 </DialogDescription>
                               </DialogHeader>
                               <div className="max-h-[60vh] overflow-auto">

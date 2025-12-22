@@ -1,0 +1,629 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
+import { CircleConfigService } from '../../circle/config/circle.config.service';
+import {
+  QueryCircleWalletsDto,
+  QueryCircleTransactionsDto,
+  QueryCCTPTransfersDto,
+  QueryWebhookLogsDto,
+  CircleAnalyticsDto,
+} from './admin-circle.dto';
+import { Prisma } from '@prisma/client';
+
+@Injectable()
+export class AdminCircleService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly circleConfig: CircleConfigService,
+  ) {}
+
+  /**
+   * Get Circle configuration
+   */
+  async getConfig() {
+    return {
+      environment: this.circleConfig.environment,
+      supportedBlockchains: this.circleConfig.getSupportedBlockchains(),
+      defaultBlockchain: this.circleConfig.defaultBlockchain,
+      isConfigured: this.circleConfig.isConfigured(),
+    };
+  }
+
+  /**
+   * Get Circle statistics
+   */
+  async getStats() {
+    const [
+      totalWalletSets,
+      totalWallets,
+      totalTransactions,
+      totalCCTPTransfers,
+      transactionsByState,
+      transactionsByType,
+      walletsByBlockchain,
+      allTransactions,
+      lastTransaction,
+      lastCCTPTransfer,
+    ] = await Promise.all([
+      this.prisma.circleWalletSet.count(),
+      this.prisma.circleWallet.count(),
+      this.prisma.circleTransaction.count(),
+      this.prisma.circleCCTPTransfer.count(),
+      this.prisma.circleTransaction.groupBy({
+        by: ['state'],
+        _count: true,
+      }),
+      this.prisma.circleTransaction.groupBy({
+        by: ['type'],
+        _count: true,
+      }),
+      this.prisma.circleWallet.groupBy({
+        by: ['blockchain'],
+        _count: true,
+      }),
+      // Get all transactions to calculate volume manually
+      this.prisma.circleTransaction.findMany({
+        select: {
+          amounts: true,
+        },
+      }),
+      this.prisma.circleTransaction.findFirst({
+        orderBy: { createdAt: 'desc' },
+        include: {
+          wallet: true,
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      }),
+      this.prisma.circleCCTPTransfer.findFirst({
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    // Calculate total volume from amounts array
+    let totalVolume = '0';
+    if (allTransactions.length > 0) {
+      const sum = allTransactions.reduce((acc, tx) => {
+        const amounts = tx.amounts as string[];
+        const txSum = amounts.reduce(
+          (s, amount) => s + parseFloat(amount || '0'),
+          0,
+        );
+        return acc + txSum;
+      }, 0);
+      totalVolume = sum.toFixed(2);
+    }
+
+    return {
+      totalWalletSets,
+      totalWallets,
+      totalTransactions,
+      totalCCTPTransfers,
+      transactionsByState: transactionsByState.map((item) => ({
+        state: item.state,
+        count: item._count,
+      })),
+      transactionsByType: transactionsByType.map((item) => ({
+        type: item.type,
+        count: item._count,
+      })),
+      walletsByBlockchain: walletsByBlockchain.map((item) => ({
+        blockchain: item.blockchain,
+        count: item._count,
+      })),
+      totalVolume,
+      recentActivity: {
+        lastTransaction,
+        lastCCTPTransfer,
+      },
+    };
+  }
+
+  /**
+   * Get paginated wallets with filters
+   */
+  async getWallets(query: QueryCircleWalletsDto) {
+    const { page = 1, limit = 20, search, blockchain, state } = query;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.CircleWalletWhereInput = {};
+
+    if (search) {
+      where.OR = [
+        { address: { contains: search, mode: 'insensitive' } },
+        { user: { email: { contains: search, mode: 'insensitive' } } },
+        { user: { firstName: { contains: search, mode: 'insensitive' } } },
+        { user: { lastName: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
+    if (blockchain) {
+      where.blockchain = blockchain;
+    }
+
+    if (state) {
+      where.state = state;
+    }
+
+    const [wallets, total] = await Promise.all([
+      this.prisma.circleWallet.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              phone: true,
+            },
+          },
+        },
+      }),
+      this.prisma.circleWallet.count({ where }),
+    ]);
+
+    return {
+      data: wallets,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * Get wallet by ID
+   */
+  async getWalletById(id: string) {
+    const wallet = await this.prisma.circleWallet.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+          },
+        },
+        circleTransactions: {
+          take: 10,
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    if (!wallet) {
+      throw new NotFoundException('Wallet not found');
+    }
+
+    // Add transaction count
+    const transactionCount = await this.prisma.circleTransaction.count({
+      where: { walletId: id },
+    });
+
+    return {
+      ...wallet,
+      _count: {
+        transactions: transactionCount,
+      },
+    };
+  }
+
+  /**
+   * Get wallets by user ID
+   */
+  async getWalletsByUser(userId: string) {
+    const wallets = await this.prisma.circleWallet.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return wallets;
+  }
+
+  /**
+   * Get paginated wallet sets
+   */
+  async getWalletSets(query: { page?: number; limit?: number }) {
+    const { page = 1, limit = 20 } = query;
+    const skip = (page - 1) * limit;
+
+    const [walletSets, total] = await Promise.all([
+      this.prisma.circleWalletSet.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          circleWallets: {
+            take: 5,
+          },
+        },
+      }),
+      this.prisma.circleWalletSet.count(),
+    ]);
+
+    // Add wallet count for each wallet set
+    const walletSetsWithCount = await Promise.all(
+      walletSets.map(async (ws) => {
+        const walletCount = await this.prisma.circleWallet.count({
+          where: { walletSetId: ws.id },
+        });
+        return {
+          ...ws,
+          _count: {
+            wallets: walletCount,
+          },
+        };
+      }),
+    );
+
+    return {
+      data: walletSetsWithCount,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * Get wallet set by ID
+   */
+  async getWalletSetById(id: string) {
+    const walletSet = await this.prisma.circleWalletSet.findUnique({
+      where: { id },
+      include: {
+        circleWallets: true,
+      },
+    });
+
+    if (!walletSet) {
+      throw new NotFoundException('Wallet set not found');
+    }
+
+    return walletSet;
+  }
+
+  /**
+   * Get paginated transactions with filters
+   */
+  async getTransactions(query: QueryCircleTransactionsDto) {
+    const { page = 1, limit = 20, state, type, blockchain, userId } = query;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.CircleTransactionWhereInput = {};
+
+    if (state) {
+      where.state = state;
+    }
+
+    // Note: type filter removed because the database uses CircleTransactionType enum
+    // (TRANSFER, CONTRACT_EXECUTION, CCTP_BURN, CCTP_MINT)
+    // The frontend sends INBOUND/OUTBOUND which don't exist in the enum
+    // TODO: Implement direction-based filtering if needed
+
+    if (blockchain) {
+      where.blockchain = blockchain;
+    }
+
+    if (userId) {
+      where.userId = userId;
+    }
+
+    const [transactions, total] = await Promise.all([
+      this.prisma.circleTransaction.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          wallet: true,
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      }),
+      this.prisma.circleTransaction.count({ where }),
+    ]);
+
+    return {
+      data: transactions,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * Get transaction by ID
+   */
+  async getTransactionById(id: string) {
+    const transaction = await this.prisma.circleTransaction.findUnique({
+      where: { id },
+      include: {
+        wallet: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    if (!transaction) {
+      throw new NotFoundException('Transaction not found');
+    }
+
+    return transaction;
+  }
+
+  /**
+   * Get paginated CCTP transfers with filters
+   */
+  async getCCTPTransfers(query: QueryCCTPTransfersDto) {
+    const {
+      page = 1,
+      limit = 20,
+      state,
+      userId,
+      sourceChain,
+      destinationChain,
+    } = query;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.CircleCCTPTransferWhereInput = {};
+
+    if (state) {
+      where.state = state;
+    }
+
+    if (userId) {
+      where.userId = userId;
+    }
+
+    if (sourceChain) {
+      where.sourceChain = sourceChain;
+    }
+
+    if (destinationChain) {
+      where.destinationChain = destinationChain;
+    }
+
+    const [transfers, total] = await Promise.all([
+      this.prisma.circleCCTPTransfer.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      }),
+      this.prisma.circleCCTPTransfer.count({ where }),
+    ]);
+
+    return {
+      data: transfers,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * Get CCTP transfer by ID
+   */
+  async getCCTPTransferById(id: string) {
+    const transfer = await this.prisma.circleCCTPTransfer.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    if (!transfer) {
+      throw new NotFoundException('CCTP transfer not found');
+    }
+
+    return transfer;
+  }
+
+  /**
+   * Get paginated webhook logs
+   */
+  async getWebhookLogs(query: QueryWebhookLogsDto) {
+    const { page = 1, limit = 20, processed, eventType } = query;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.CircleWebhookLogWhereInput = {};
+
+    if (processed !== undefined) {
+      where.processed = processed;
+    }
+
+    if (eventType) {
+      where.eventType = eventType;
+    }
+
+    const [logs, total] = await Promise.all([
+      this.prisma.circleWebhookLog.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.circleWebhookLog.count({ where }),
+    ]);
+
+    return {
+      data: logs,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * Get analytics data
+   */
+  async getAnalytics(params: CircleAnalyticsDto) {
+    const { startDate, endDate, blockchain } = params;
+
+    const where: Prisma.CircleTransactionWhereInput = {};
+
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) {
+        where.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        where.createdAt.lte = new Date(endDate);
+      }
+    }
+
+    if (blockchain) {
+      where.blockchain = blockchain;
+    }
+
+    const [byBlockchain, byState, transactions] = await Promise.all([
+      this.prisma.circleTransaction.groupBy({
+        by: ['blockchain'],
+        where,
+        _count: true,
+      }),
+      this.prisma.circleTransaction.groupBy({
+        by: ['state'],
+        where,
+        _count: true,
+      }),
+      this.prisma.circleTransaction.findMany({
+        where,
+        select: {
+          createdAt: true,
+          amounts: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+    ]);
+
+    // Group transactions by day
+    const dailyVolumeMap = new Map<string, { volume: number; count: number }>();
+    transactions.forEach((tx) => {
+      const date = tx.createdAt.toISOString().split('T')[0];
+      const amounts = tx.amounts as string[];
+      const volume = amounts.reduce(
+        (sum, amount) => sum + parseFloat(amount || '0'),
+        0,
+      );
+
+      const existing = dailyVolumeMap.get(date) || { volume: 0, count: 0 };
+      dailyVolumeMap.set(date, {
+        volume: existing.volume + volume,
+        count: existing.count + 1,
+      });
+    });
+
+    const dailyVolume = Array.from(dailyVolumeMap.entries()).map(
+      ([date, data]) => ({
+        date,
+        volume: data.volume.toFixed(2),
+        count: data.count,
+      }),
+    );
+
+    // Calculate volume by blockchain
+    const blockchainVolumes = await Promise.all(
+      byBlockchain.map(async (item) => {
+        const txs = await this.prisma.circleTransaction.findMany({
+          where: {
+            ...where,
+            blockchain: item.blockchain,
+          },
+          select: {
+            amounts: true,
+          },
+        });
+
+        const volume = txs.reduce((acc, tx) => {
+          const amounts = tx.amounts as string[];
+          return (
+            acc +
+            amounts.reduce((s, amount) => s + parseFloat(amount || '0'), 0)
+          );
+        }, 0);
+
+        return {
+          blockchain: item.blockchain,
+          volume: volume.toFixed(2),
+          count: item._count,
+        };
+      }),
+    );
+
+    return {
+      dailyVolume,
+      byBlockchain: blockchainVolumes,
+      byState: byState.map((item) => ({
+        state: item.state,
+        count: item._count,
+      })),
+    };
+  }
+}

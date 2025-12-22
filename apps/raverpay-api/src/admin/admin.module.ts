@@ -36,6 +36,8 @@ import { AdminEmailsController } from './emails/admin-emails.controller';
 import { AdminEmailsService } from './emails/admin-emails.service';
 import { RateLimitsController } from './rate-limits/rate-limits.controller';
 import { RateLimitsService } from './rate-limits/rate-limits.service';
+import { AdminCircleController } from './circle/admin-circle.controller';
+import { AdminCircleService } from './circle/admin-circle.service';
 import { HierarchyService } from '../common/services/hierarchy.service';
 import { AccountLockingService } from '../common/services/account-locking.service';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -46,6 +48,7 @@ import { SupportModule } from '../support/support.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { WebhooksModule } from '../webhooks/webhooks.module';
 import { WalletModule } from '../wallet/wallet.module';
+import { CircleModule } from '../circle/circle.module';
 
 @Module({
   imports: [
@@ -57,6 +60,7 @@ import { WalletModule } from '../wallet/wallet.module';
     SupportModule,
     WebhooksModule,
     WalletModule,
+    CircleModule,
     forwardRef(() => TransactionsModule),
   ],
   controllers: [
@@ -75,6 +79,7 @@ import { WalletModule } from '../wallet/wallet.module';
     AdminAuditLogsController,
     AdminAdminsController,
     // AdminVenlyWalletsController, // COMMENTED OUT (not using Venly anymore, using Circle)
+    AdminCircleController,
     AdminEmailsController,
     RateLimitsController,
   ],
@@ -95,6 +100,7 @@ import { WalletModule } from '../wallet/wallet.module';
     AdminAuditLogsService,
     AdminAdminsService,
     // AdminVenlyWalletsService, // COMMENTED OUT (not using Venly anymore, using Circle)
+    AdminCircleService,
     AdminEmailsService,
     RateLimitsService,
     AccountLockingService,
