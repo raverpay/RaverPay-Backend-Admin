@@ -79,7 +79,9 @@ export class BundlerService {
     const url = this.configService.get<string>(envKey);
 
     if (!url) {
-      this.logger.warn(`No bundler URL configured for ${blockchain} (${envKey})`);
+      this.logger.warn(
+        `No bundler URL configured for ${blockchain} (${envKey})`,
+      );
     }
 
     return url || null;
@@ -194,10 +196,7 @@ export class BundlerService {
         callGasLimit: hexToBigInt(callGasLimit),
       };
     } catch (error) {
-      this.logger.error(
-        `Failed to estimate gas for ${blockchain}:`,
-        error,
-      );
+      this.logger.error(`Failed to estimate gas for ${blockchain}:`, error);
       throw error;
     }
   }
@@ -306,9 +305,7 @@ export class BundlerService {
       }
     }
 
-    throw new Error(
-      `Timeout waiting for UserOperation receipt: ${userOpHash}`,
-    );
+    throw new Error(`Timeout waiting for UserOperation receipt: ${userOpHash}`);
   }
 
   /**

@@ -92,6 +92,10 @@ export class PaymasterServiceV2 {
     const paymasterAddress = this.getPaymasterAddress(blockchain);
     const usdcAddress = this.config.getUsdcTokenAddress(blockchain);
 
+    if (!usdcAddress) {
+      throw new Error(`USDC not supported on ${blockchain}`);
+    }
+
     // 3. Encode paymaster data with permit signature
     const parsedSignature = this.permitService.parsePermitSignature(
       permitSignature as `0x${string}`,
@@ -106,17 +110,32 @@ export class PaymasterServiceV2 {
       permitSignature: parsedSignature,
     });
 
-    // 4. Construct call data (USDC transfer)
+    // 4. Get account nonce from EntryPoint
+    const publicClient = this.bundlerService.getPublicClient(blockchain);
+    if (!publicClient) {
+      throw new Error(`No public client for ${blockchain}`);
+    }
+
+    const nonce = await publicClient.readContract({
+      address: this.ENTRY_POINT as `0x${string}`,
+      abi: parseAbi([
+        'function getNonce(address sender, uint192 key) view returns (uint256)',
+      ]),
+      functionName: 'getNonce',
+      args: [wallet.address as `0x${string}`, 0n],
+    });
+
+    // 5. Construct call data (USDC transfer)
     const callData = encodeFunctionData({
       abi: this.USDC_ABI,
       functionName: 'transfer',
       args: [destinationAddress as `0x${string}`, BigInt(amount)],
     });
 
-    // 5. Build UserOperation
+    // 6. Build UserOperation
     const userOp = {
       sender: wallet.address,
-      nonce: '0x0', // TODO: Get actual nonce from account
+      nonce: `0x${nonce.toString(16)}`,
       callData,
       callGasLimit: '0x0',
       verificationGasLimit: '0x0',
@@ -130,7 +149,7 @@ export class PaymasterServiceV2 {
       signature: '0x', // Will be filled by bundler
     };
 
-    // 6. Estimate gas
+    // 7. Estimate gas
     const gasEstimate = await this.bundlerService.estimateUserOperationGas({
       blockchain,
       userOp,
@@ -143,7 +162,7 @@ export class PaymasterServiceV2 {
     userOp.maxFeePerGas = `0x${gasEstimate.maxFeePerGas.toString(16)}`;
     userOp.maxPriorityFeePerGas = `0x${gasEstimate.maxPriorityFeePerGas.toString(16)}`;
 
-    // 7. Calculate estimated gas cost in USDC
+    // 8. Calculate estimated gas cost in USDC
     const totalGas =
       gasEstimate.callGasLimit +
       gasEstimate.verificationGasLimit +
@@ -153,18 +172,15 @@ export class PaymasterServiceV2 {
 
     const gasCostWei = totalGas * gasEstimate.maxFeePerGas;
     // Approximate: 1 ETH = 3000 USDC, 1 USDC = 1e6
-    const estimatedGasUsdc = (
-      (Number(gasCostWei) / 1e18) *
-      3000
-    ).toFixed(6);
+    const estimatedGasUsdc = ((Number(gasCostWei) / 1e18) * 3000).toFixed(6);
 
-    // 8. Submit to bundler
+    // 9. Submit to bundler
     const userOpHash = await this.bundlerService.submitUserOperation({
       blockchain,
       userOp,
     });
 
-    // 9. Store in database
+    // 10. Store in database
     await this.prisma.paymasterUserOperation.create({
       data: {
         userOpHash,
@@ -239,7 +255,10 @@ export class PaymasterServiceV2 {
    * Get Paymaster address for blockchain
    */
   private getPaymasterAddress(blockchain: CircleBlockchain): string {
-    const isTestnet = blockchain.includes('SEPOLIA') || blockchain.includes('FUJI') || blockchain.includes('AMOY');
+    const isTestnet =
+      blockchain.includes('SEPOLIA') ||
+      blockchain.includes('FUJI') ||
+      blockchain.includes('AMOY');
     return isTestnet
       ? this.PAYMASTER_ADDRESSES.testnet
       : this.PAYMASTER_ADDRESSES.mainnet;
@@ -264,6 +283,10 @@ export class PaymasterServiceV2 {
     }
 
     const usdcAddress = this.config.getUsdcTokenAddress(blockchain);
+    if (!usdcAddress) {
+      throw new Error(`USDC not supported on ${blockchain}`);
+    }
+
     const paymasterAddress = this.getPaymasterAddress(blockchain);
     const chain = this.bundlerService.getChain(blockchain);
 

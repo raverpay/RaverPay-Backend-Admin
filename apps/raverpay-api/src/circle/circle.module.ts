@@ -24,6 +24,9 @@ import { CCTPService } from './transactions/cctp.service';
 import { PaymasterService } from './paymaster/paymaster.service';
 import { PermitService } from './paymaster/permit.service';
 import { BundlerService } from './paymaster/bundler.service';
+import { PaymasterServiceV2 } from './paymaster/paymaster-v2.service';
+import { PaymasterEventService } from './paymaster/paymaster-event.service';
+import { PaymasterController } from './paymaster/paymaster.controller';
 
 // Webhook Services
 import { CircleWebhookService } from './webhooks/circle-webhook.service';
@@ -48,7 +51,7 @@ import { CircleController } from './circle.controller';
     PrismaModule,
     forwardRef(() => NotificationsModule), // Use forwardRef to break circular dependency
   ],
-  controllers: [CircleController, CircleWebhookController],
+  controllers: [CircleController, CircleWebhookController, PaymasterController],
   providers: [
     // Configuration
     CircleConfigService,
@@ -71,6 +74,8 @@ import { CircleController } from './circle.controller';
     PaymasterService,
     PermitService,
     BundlerService,
+    PaymasterServiceV2,
+    PaymasterEventService,
 
     // Webhook Services
     CircleWebhookService,
@@ -86,6 +91,8 @@ import { CircleController } from './circle.controller';
     PaymasterService,
     PermitService,
     BundlerService,
+    PaymasterServiceV2,
+    PaymasterEventService,
     CircleWebhookService,
   ],
 })

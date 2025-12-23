@@ -298,8 +298,8 @@ export class PaymasterService {
 
     const config = this.paymasterConfigs[blockchain];
 
-    // TODO: Implement actual gas estimation using bundler
-    // For now, return placeholder estimates
+    // Note: This is a placeholder implementation
+    // Full implementation with actual bundler integration is in PaymasterServiceV2
     const estimatedGasInNative = '0.001'; // 0.001 ETH equivalent
     const estimatedGasInUsdc = '3.00'; // $3 USDC
     const surchargeAmount = (
@@ -331,18 +331,21 @@ export class PaymasterService {
   async createSponsoredTransaction(
     request: SponsoredTransactionRequest,
   ): Promise<SponsoredTransactionResponse> {
-    const { walletId, destinationAddress, amount, blockchain, feeLevel = 'MEDIUM' } = request;
+    const {
+      walletId,
+      destinationAddress,
+      amount,
+      blockchain,
+      feeLevel = 'MEDIUM',
+    } = request;
 
     if (!this.isPaymasterSupported(blockchain)) {
       throw new Error(`Paymaster not supported for blockchain: ${blockchain}`);
     }
 
-    // TODO: Full implementation requires:
-    // 1. Get permit signature from client
-    // 2. Construct UserOperation with paymaster data
-    // 3. Submit to bundler
-    // 4. Track in database
-    // 5. Listen for UserOperationSponsored event
+    // Note: This is a placeholder implementation
+    // Full implementation with permit signatures, UserOperation construction,
+    // and bundler submission is in PaymasterServiceV2
 
     // Placeholder response
     const userOpHash = `0x${Date.now().toString(16)}`;

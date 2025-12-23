@@ -8,34 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, RefreshCw, Search } from 'lucide-react';
-
-interface PaymasterEvent {
-  id: string;
-  userOpHash: string;
-  sender: string;
-  transactionHash: string;
-  actualTokenNeeded: string;
-  feeTokenAmount: string;
-  nativeTokenPrice: string;
-  blockNumber: number;
-  createdAt: string;
-}
-
-interface PaymasterUserOp {
-  id: string;
-  userOpHash: string;
-  sender: string;
-  blockchain: string;
-  transactionHash: string | null;
-  status: string;
-  estimatedGasUsdc: string;
-  actualGasUsdc: string | null;
-  createdAt: string;
-  events: PaymasterEvent[];
-}
+import { paymasterApi, PaymasterUserOperation } from '@/lib/api/paymaster';
 
 export default function PaymasterEventsPage() {
-  const [userOps, setUserOps] = useState<PaymasterUserOp[]>([]);
+  const [userOps, setUserOps] = useState<PaymasterUserOperation[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -47,12 +23,11 @@ export default function PaymasterEventsPage() {
   const fetchUserOps = async () => {
     setLoading(true);
     try {
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/admin/paymaster/user-ops');
-      const data = await response.json();
-      setUserOps(data.userOps || []);
+      const response = await paymasterApi.getUserOperations();
+      setUserOps(response.data || []);
     } catch (error) {
       console.error('Failed to fetch user ops:', error);
+      setUserOps([]);
     } finally {
       setLoading(false);
     }

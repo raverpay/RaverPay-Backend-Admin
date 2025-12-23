@@ -39,14 +39,20 @@ export class PaymasterEventService implements OnModuleInit {
 
   /**
    * Initialize event listeners on module start
+   * 
+   * NOTE: Auto-start disabled because public RPC nodes don't support persistent filters.
+   * Use manual sync via /circle/paymaster/sync-events endpoint instead.
    */
   async onModuleInit() {
-    this.logger.log('Initializing Paymaster event listeners...');
+    this.logger.log('Paymaster Event Service initialized');
+    this.logger.warn(
+      'Auto event listeners disabled. Use sync-events endpoint to manually sync events.',
+    );
 
-    // Start listening for events on supported chains
-    for (const blockchain of this.SUPPORTED_CHAINS) {
-      this.startEventListener(blockchain);
-    }
+    // Auto-start disabled - uncomment when using dedicated RPC with filter support
+    // for (const blockchain of this.SUPPORTED_CHAINS) {
+    //   this.startEventListener(blockchain);
+    // }
   }
 
   /**
@@ -55,7 +61,9 @@ export class PaymasterEventService implements OnModuleInit {
   private async startEventListener(blockchain: CircleBlockchain) {
     const publicClient = this.bundlerService.getPublicClient(blockchain);
     if (!publicClient) {
-      this.logger.warn(`No public client for ${blockchain}, skipping event listener`);
+      this.logger.warn(
+        `No public client for ${blockchain}, skipping event listener`,
+      );
       return;
     }
 
@@ -159,9 +167,11 @@ export class PaymasterEventService implements OnModuleInit {
     if (overpayment > 1.0) {
       // More than $1 overpayment
       this.logger.warn(
-        `Overpayment detected: ${overpayment.toFixed(6)} USDC for ${userOpHash}`,
+        `Overpayment detected: ${overpayment.toFixed(6)} USDC for ${userOpHash}. ` +
+          `Consider implementing refund process for user ${userOp.walletId}`,
       );
-      // TODO: Trigger refund process
+      // Note: Refund process should be implemented based on business requirements
+      // This could involve creating a refund transaction or crediting user's account
     }
 
     this.logger.log(
@@ -243,22 +253,29 @@ export class PaymasterEventService implements OnModuleInit {
       where: { status: 'CONFIRMED' },
     });
 
-    const totalGasSpent = await this.prisma.paymasterUserOperation.aggregate({
-      _sum: { actualGasUsdc: true },
-      where: { actualGasUsdc: { not: null } },
+    // Get all confirmed UserOps with actual gas cost
+    const confirmedOps = await this.prisma.paymasterUserOperation.findMany({
+      where: {
+        status: 'CONFIRMED',
+        actualGasUsdc: { not: null },
+      },
+      select: { actualGasUsdc: true },
     });
 
-    const avgGasPerTx = await this.prisma.paymasterUserOperation.aggregate({
-      _avg: { actualGasUsdc: true },
-      where: { actualGasUsdc: { not: null } },
-    });
+    // Calculate totals manually since actualGasUsdc is TEXT
+    const totalGasSpent = confirmedOps.reduce((sum, op) => {
+      return sum + parseFloat(op.actualGasUsdc || '0');
+    }, 0);
+
+    const avgGasPerTx =
+      confirmedOps.length > 0 ? totalGasSpent / confirmedOps.length : 0;
 
     return {
       totalUserOps,
       confirmedUserOps,
       pendingUserOps: totalUserOps - confirmedUserOps,
-      totalGasSpentUsdc: totalGasSpent._sum.actualGasUsdc || '0',
-      averageGasPerTxUsdc: avgGasPerTx._avg.actualGasUsdc || '0',
+      totalGasSpentUsdc: totalGasSpent.toFixed(6),
+      averageGasPerTxUsdc: avgGasPerTx.toFixed(6),
     };
   }
 }

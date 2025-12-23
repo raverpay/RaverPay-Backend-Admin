@@ -3,14 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, TrendingUp, Activity, Zap } from 'lucide-react';
-
-interface PaymasterStats {
-  totalUserOps: number;
-  confirmedUserOps: number;
-  pendingUserOps: number;
-  totalGasSpentUsdc: string;
-  averageGasPerTxUsdc: string;
-}
+import { paymasterApi, PaymasterStats } from '@/lib/api/paymaster';
 
 export default function PaymasterAnalyticsPage() {
   const [stats, setStats] = useState<PaymasterStats | null>(null);
@@ -23,12 +16,11 @@ export default function PaymasterAnalyticsPage() {
   const fetchStats = async () => {
     setLoading(true);
     try {
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/admin/paymaster/stats');
-      const data = await response.json();
-      setStats(data.stats);
+      const data = await paymasterApi.getStats();
+      setStats(data);
     } catch (error) {
       console.error('Failed to fetch stats:', error);
+      setStats(null);
     } finally {
       setLoading(false);
     }

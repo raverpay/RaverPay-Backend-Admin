@@ -8,6 +8,7 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PaymasterServiceV2 } from './paymaster-v2.service';
 import { PaymasterEventService } from './paymaster-event.service';
@@ -22,8 +23,16 @@ interface AuthRequest {
  * DTO for generating permit data
  */
 class GeneratePermitDto {
+  @IsString()
+  @IsNotEmpty()
   walletId: string;
+
+  @IsString()
+  @IsNotEmpty()
   amount: string;
+
+  @IsString()
+  @IsNotEmpty()
   blockchain: string;
 }
 
@@ -31,12 +40,32 @@ class GeneratePermitDto {
  * DTO for submitting UserOperation
  */
 class SubmitUserOpDto {
+  @IsString()
+  @IsNotEmpty()
   walletId: string;
+
+  @IsString()
+  @IsNotEmpty()
   destinationAddress: string;
+
+  @IsString()
+  @IsNotEmpty()
   amount: string;
+
+  @IsString()
+  @IsNotEmpty()
   blockchain: string;
+
+  @IsString()
+  @IsNotEmpty()
   permitSignature: string;
+
+  @IsString()
+  @IsOptional()
   feeLevel?: string;
+
+  @IsString()
+  @IsOptional()
   memo?: string;
 }
 
@@ -44,8 +73,16 @@ class SubmitUserOpDto {
  * DTO for syncing events
  */
 class SyncEventsDto {
+  @IsString()
+  @IsNotEmpty()
   blockchain: string;
+
+  @IsString()
+  @IsNotEmpty()
   fromBlock: string;
+
+  @IsString()
+  @IsNotEmpty()
   toBlock: string;
 }
 
