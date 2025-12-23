@@ -1,0 +1,309 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
+import { CircleConfigService } from '../config/circle.config.service';
+import { CircleApiClient } from '../circle-api.client';
+import { CircleBlockchain, CircleFeeLevel } from '../circle.types';
+import { PermitService } from './permit.service';
+import { BundlerService } from './bundler.service';
+import { createPublicClient, http, parseAbi, encodeFunctionData } from 'viem';
+
+/**
+ * DTO for submitting a UserOperation with Paymaster
+ */
+export interface SubmitUserOpRequest {
+  walletId: string;
+  destinationAddress: string;
+  amount: string;
+  blockchain: CircleBlockchain;
+  permitSignature: string; // EIP-2612 permit signature from client
+  feeLevel?: CircleFeeLevel;
+  memo?: string;
+}
+
+/**
+ * Response from UserOperation submission
+ */
+export interface SubmitUserOpResponse {
+  userOpHash: string;
+  status: string;
+  estimatedGasUsdc: string;
+  paymasterAddress: string;
+}
+
+/**
+ * Paymaster Service - Full Implementation
+ * Handles gas fee sponsorship using Circle's Paymaster v0.8
+ */
+@Injectable()
+export class PaymasterServiceV2 {
+  private readonly logger = new Logger(PaymasterServiceV2.name);
+
+  // Paymaster v0.8 addresses
+  private readonly PAYMASTER_ADDRESSES = {
+    mainnet: '0x0578cFB241215b77442a541325d6A4E6dFE700Ec',
+    testnet: '0x3BA9A96eE3eFf3A69E2B18886AcF52027EFF8966',
+  };
+
+  // EntryPoint v0.7 address (same across all chains)
+  private readonly ENTRY_POINT = '0x0000000071727De22E5E9d8BAf0edAc6f37da032';
+
+  // USDC transfer ABI
+  private readonly USDC_ABI = parseAbi([
+    'function transfer(address to, uint256 amount) returns (bool)',
+  ]);
+
+  constructor(
+    private readonly config: CircleConfigService,
+    private readonly apiClient: CircleApiClient,
+    private readonly prisma: PrismaService,
+    private readonly permitService: PermitService,
+    private readonly bundlerService: BundlerService,
+  ) {}
+
+  /**
+   * Submit a UserOperation with Paymaster sponsorship
+   */
+  async submitUserOperation(
+    request: SubmitUserOpRequest,
+  ): Promise<SubmitUserOpResponse> {
+    const {
+      walletId,
+      destinationAddress,
+      amount,
+      blockchain,
+      permitSignature,
+      feeLevel = 'MEDIUM',
+    } = request;
+
+    // 1. Get wallet details
+    const wallet = await this.prisma.circleWallet.findUnique({
+      where: { id: walletId },
+    });
+
+    if (!wallet) {
+      throw new Error('Wallet not found');
+    }
+
+    if (wallet.accountType !== 'SCA') {
+      throw new Error('Only SCA wallets support Paymaster');
+    }
+
+    // 2. Get Paymaster address for this chain
+    const paymasterAddress = this.getPaymasterAddress(blockchain);
+    const usdcAddress = this.config.getUsdcTokenAddress(blockchain);
+
+    // 3. Encode paymaster data with permit signature
+    const parsedSignature = this.permitService.parsePermitSignature(
+      permitSignature as `0x${string}`,
+    );
+
+    // Estimate permit amount (gas fee + transfer amount)
+    const permitAmount = BigInt(amount) + BigInt(10_000_000); // Add 10 USDC buffer for gas
+
+    const paymasterData = this.permitService.encodePaymasterData({
+      tokenAddress: usdcAddress,
+      permitAmount,
+      permitSignature: parsedSignature,
+    });
+
+    // 4. Construct call data (USDC transfer)
+    const callData = encodeFunctionData({
+      abi: this.USDC_ABI,
+      functionName: 'transfer',
+      args: [destinationAddress as `0x${string}`, BigInt(amount)],
+    });
+
+    // 5. Build UserOperation
+    const userOp = {
+      sender: wallet.address,
+      nonce: '0x0', // TODO: Get actual nonce from account
+      callData,
+      callGasLimit: '0x0',
+      verificationGasLimit: '0x0',
+      preVerificationGas: '0x0',
+      maxFeePerGas: '0x0',
+      maxPriorityFeePerGas: '0x0',
+      paymaster: paymasterAddress,
+      paymasterVerificationGasLimit: '0x30d40', // 200,000
+      paymasterPostOpGasLimit: '0x3a98', // 15,000
+      paymasterData,
+      signature: '0x', // Will be filled by bundler
+    };
+
+    // 6. Estimate gas
+    const gasEstimate = await this.bundlerService.estimateUserOperationGas({
+      blockchain,
+      userOp,
+    });
+
+    // Update UserOp with gas estimates
+    userOp.callGasLimit = `0x${gasEstimate.callGasLimit.toString(16)}`;
+    userOp.verificationGasLimit = `0x${gasEstimate.verificationGasLimit.toString(16)}`;
+    userOp.preVerificationGas = `0x${gasEstimate.preVerificationGas.toString(16)}`;
+    userOp.maxFeePerGas = `0x${gasEstimate.maxFeePerGas.toString(16)}`;
+    userOp.maxPriorityFeePerGas = `0x${gasEstimate.maxPriorityFeePerGas.toString(16)}`;
+
+    // 7. Calculate estimated gas cost in USDC
+    const totalGas =
+      gasEstimate.callGasLimit +
+      gasEstimate.verificationGasLimit +
+      gasEstimate.preVerificationGas +
+      200000n + // paymasterVerificationGasLimit
+      15000n; // paymasterPostOpGasLimit
+
+    const gasCostWei = totalGas * gasEstimate.maxFeePerGas;
+    // Approximate: 1 ETH = 3000 USDC, 1 USDC = 1e6
+    const estimatedGasUsdc = (
+      (Number(gasCostWei) / 1e18) *
+      3000
+    ).toFixed(6);
+
+    // 8. Submit to bundler
+    const userOpHash = await this.bundlerService.submitUserOperation({
+      blockchain,
+      userOp,
+    });
+
+    // 9. Store in database
+    await this.prisma.paymasterUserOperation.create({
+      data: {
+        userOpHash,
+        sender: wallet.address,
+        walletId: wallet.id,
+        blockchain,
+        status: 'PENDING',
+        estimatedGasUsdc,
+        permitSignature,
+        paymasterData,
+      },
+    });
+
+    this.logger.log(
+      `UserOperation submitted: ${userOpHash} for wallet ${walletId}`,
+    );
+
+    return {
+      userOpHash,
+      status: 'PENDING',
+      estimatedGasUsdc,
+      paymasterAddress,
+    };
+  }
+
+  /**
+   * Get UserOperation status
+   */
+  async getUserOperationStatus(userOpHash: string) {
+    const userOp = await this.prisma.paymasterUserOperation.findUnique({
+      where: { userOpHash },
+      include: {
+        wallet: true,
+        events: true,
+      },
+    });
+
+    if (!userOp) {
+      throw new Error('UserOperation not found');
+    }
+
+    // Try to get receipt from bundler if still pending
+    if (userOp.status === 'PENDING' && !userOp.transactionHash) {
+      try {
+        const receipt = await this.bundlerService.waitForUserOperationReceipt({
+          blockchain: userOp.blockchain as CircleBlockchain,
+          userOpHash,
+          timeout: 5000, // 5 second timeout for status check
+        });
+
+        // Update database with transaction hash
+        await this.prisma.paymasterUserOperation.update({
+          where: { userOpHash },
+          data: {
+            transactionHash: receipt.transactionHash,
+            status: receipt.success ? 'CONFIRMED' : 'FAILED',
+          },
+        });
+
+        userOp.transactionHash = receipt.transactionHash;
+        userOp.status = receipt.success ? 'CONFIRMED' : 'FAILED';
+      } catch (error) {
+        // Still pending
+        this.logger.debug(`UserOp ${userOpHash} still pending`);
+      }
+    }
+
+    return userOp;
+  }
+
+  /**
+   * Get Paymaster address for blockchain
+   */
+  private getPaymasterAddress(blockchain: CircleBlockchain): string {
+    const isTestnet = blockchain.includes('SEPOLIA') || blockchain.includes('FUJI') || blockchain.includes('AMOY');
+    return isTestnet
+      ? this.PAYMASTER_ADDRESSES.testnet
+      : this.PAYMASTER_ADDRESSES.mainnet;
+  }
+
+  /**
+   * Generate permit typed data for client to sign
+   */
+  async generatePermitData(params: {
+    walletId: string;
+    amount: string;
+    blockchain: CircleBlockchain;
+  }) {
+    const { walletId, amount, blockchain } = params;
+
+    const wallet = await this.prisma.circleWallet.findUnique({
+      where: { id: walletId },
+    });
+
+    if (!wallet) {
+      throw new Error('Wallet not found');
+    }
+
+    const usdcAddress = this.config.getUsdcTokenAddress(blockchain);
+    const paymasterAddress = this.getPaymasterAddress(blockchain);
+    const chain = this.bundlerService.getChain(blockchain);
+
+    if (!chain) {
+      throw new Error(`Chain not supported: ${blockchain}`);
+    }
+
+    // Get current nonce from USDC contract
+    const publicClient = this.bundlerService.getPublicClient(blockchain);
+    if (!publicClient) {
+      throw new Error(`No public client for ${blockchain}`);
+    }
+
+    const nonce = await publicClient.readContract({
+      address: usdcAddress as `0x${string}`,
+      abi: this.permitService.getEip2612Abi(),
+      functionName: 'nonces',
+      args: [wallet.address as `0x${string}`],
+    });
+
+    // Estimate permit amount (transfer + gas buffer)
+    const permitAmount = BigInt(amount) + BigInt(10_000_000); // 10 USDC buffer
+
+    // Generate typed data
+    const typedData = await this.permitService.generatePermitTypedData({
+      tokenAddress: usdcAddress,
+      tokenName: 'USD Coin',
+      tokenVersion: '2',
+      chainId: chain.id,
+      ownerAddress: wallet.address,
+      spenderAddress: paymasterAddress,
+      value: permitAmount,
+      nonce: nonce as bigint,
+    });
+
+    return {
+      typedData,
+      permitAmount: permitAmount.toString(),
+      paymasterAddress,
+      usdcAddress,
+    };
+  }
+}

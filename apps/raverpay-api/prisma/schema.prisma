@@ -1142,6 +1142,7 @@ model CircleWallet {
   user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   walletSet        CircleWalletSet     @relation(fields: [walletSetId], references: [id], onDelete: Cascade)
   circleTransactions CircleTransaction[]
+  paymasterUserOps PaymasterUserOperation[]
 
   @@unique([userId, blockchain])
   @@index([circleWalletId])
@@ -1268,6 +1269,52 @@ model CircleCCTPTransfer {
   @@index([createdAt])
   @@map("circle_cctp_transfers")
 }
+
+model PaymasterUserOperation {
+  id                String             @id @default(uuid())
+  userOpHash        String             @unique
+  sender            String
+  walletId          String
+  blockchain        String
+  transactionHash   String?
+  status            String             @default("PENDING")
+  estimatedGasUsdc  String
+  actualGasUsdc     String?
+  permitSignature   String
+  paymasterData     String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  wallet            CircleWallet       @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  events            PaymasterEvent[]
+
+  @@index([walletId])
+  @@index([status])
+  @@index([blockchain])
+  @@index([sender])
+  @@index([createdAt])
+  @@map("paymaster_user_operations")
+}
+
+model PaymasterEvent {
+  id                  String                   @id @default(uuid())
+  userOpHash          String
+  token               String
+  sender              String
+  nativeTokenPrice    String
+  actualTokenNeeded   String
+  feeTokenAmount      String
+  transactionHash     String
+  blockNumber         Int
+  createdAt           DateTime                 @default(now())
+  userOp              PaymasterUserOperation   @relation(fields: [userOpHash], references: [userOpHash], onDelete: Restrict)
+
+  @@index([userOpHash])
+  @@index([sender])
+  @@index([transactionHash])
+  @@index([createdAt])
+  @@map("paymaster_events")
+}
+
 
 model P2PTransfer {
   id                    String   @id @default(uuid())

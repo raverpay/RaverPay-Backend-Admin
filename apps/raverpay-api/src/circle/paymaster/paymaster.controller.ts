@@ -1,0 +1,182 @@
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { PaymasterServiceV2 } from './paymaster-v2.service';
+import { PaymasterEventService } from './paymaster-event.service';
+import { CircleWalletService } from '../wallets/circle-wallet.service';
+import { CircleBlockchain } from '../circle.types';
+
+interface AuthRequest {
+  user: { id: string; email: string; role: string };
+}
+
+/**
+ * DTO for generating permit data
+ */
+class GeneratePermitDto {
+  walletId: string;
+  amount: string;
+  blockchain: string;
+}
+
+/**
+ * DTO for submitting UserOperation
+ */
+class SubmitUserOpDto {
+  walletId: string;
+  destinationAddress: string;
+  amount: string;
+  blockchain: string;
+  permitSignature: string;
+  feeLevel?: string;
+  memo?: string;
+}
+
+/**
+ * DTO for syncing events
+ */
+class SyncEventsDto {
+  blockchain: string;
+  fromBlock: string;
+  toBlock: string;
+}
+
+/**
+ * Paymaster Controller
+ * Handles Circle Paymaster v0.8 operations
+ */
+@Controller('circle/paymaster')
+@UseGuards(JwtAuthGuard)
+export class PaymasterController {
+  constructor(
+    private readonly paymasterService: PaymasterServiceV2,
+    private readonly eventService: PaymasterEventService,
+    private readonly walletService: CircleWalletService,
+  ) {}
+
+  /**
+   * Generate permit typed data for client to sign
+   * POST /circle/paymaster/generate-permit
+   */
+  @Post('generate-permit')
+  async generatePermit(
+    @Request() req: AuthRequest,
+    @Body() dto: GeneratePermitDto,
+  ) {
+    // Verify wallet belongs to user
+    await this.walletService.getWallet(dto.walletId, req.user.id);
+
+    const permitData = await this.paymasterService.generatePermitData({
+      walletId: dto.walletId,
+      amount: dto.amount,
+      blockchain: dto.blockchain as CircleBlockchain,
+    });
+
+    return {
+      success: true,
+      data: permitData,
+    };
+  }
+
+  /**
+   * Submit UserOperation with Paymaster
+   * POST /circle/paymaster/submit-userop
+   */
+  @Post('submit-userop')
+  async submitUserOp(
+    @Request() req: AuthRequest,
+    @Body() dto: SubmitUserOpDto,
+  ) {
+    // Verify wallet belongs to user
+    await this.walletService.getWallet(dto.walletId, req.user.id);
+
+    const result = await this.paymasterService.submitUserOperation({
+      walletId: dto.walletId,
+      destinationAddress: dto.destinationAddress,
+      amount: dto.amount,
+      blockchain: dto.blockchain as CircleBlockchain,
+      permitSignature: dto.permitSignature,
+      feeLevel: dto.feeLevel as any,
+      memo: dto.memo,
+    });
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  /**
+   * Get UserOperation status
+   * GET /circle/paymaster/userop/:hash
+   */
+  @Get('userop/:hash')
+  async getUserOpStatus(@Param('hash') hash: string) {
+    const userOp = await this.paymasterService.getUserOperationStatus(hash);
+
+    return {
+      success: true,
+      data: userOp,
+    };
+  }
+
+  /**
+   * Get Paymaster events for a wallet
+   * GET /circle/paymaster/events/:walletId
+   */
+  @Get('events/:walletId')
+  async getWalletEvents(
+    @Request() req: AuthRequest,
+    @Param('walletId') walletId: string,
+  ) {
+    // Verify wallet belongs to user
+    await this.walletService.getWallet(walletId, req.user.id);
+
+    const events = await this.eventService.getWalletEvents(walletId);
+
+    return {
+      success: true,
+      data: events,
+    };
+  }
+
+  /**
+   * Get Paymaster statistics
+   * GET /circle/paymaster/stats
+   */
+  @Get('stats')
+  async getStats() {
+    const stats = await this.eventService.getPaymasterStats();
+
+    return {
+      success: true,
+      data: stats,
+    };
+  }
+
+  /**
+   * Sync events for a block range (admin only)
+   * POST /circle/paymaster/sync-events
+   */
+  @Post('sync-events')
+  async syncEvents(@Body() dto: SyncEventsDto) {
+    const result = await this.eventService.syncEvents({
+      blockchain: dto.blockchain as CircleBlockchain,
+      fromBlock: BigInt(dto.fromBlock),
+      toBlock: BigInt(dto.toBlock),
+    });
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
+}
