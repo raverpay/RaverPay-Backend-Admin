@@ -26,6 +26,7 @@ import { PermitService } from './paymaster/permit.service';
 import { BundlerService } from './paymaster/bundler.service';
 import { PaymasterServiceV2 } from './paymaster/paymaster-v2.service';
 import { PaymasterEventService } from './paymaster/paymaster-event.service';
+import { PaymasterApprovalService } from './paymaster/paymaster-approval.service';
 import { PaymasterController } from './paymaster/paymaster.controller';
 
 // Webhook Services
@@ -76,6 +77,7 @@ import { CircleController } from './circle.controller';
     BundlerService,
     PaymasterServiceV2,
     PaymasterEventService,
+    PaymasterApprovalService,
 
     // Webhook Services
     CircleWebhookService,
@@ -93,6 +95,7 @@ import { CircleController } from './circle.controller';
     BundlerService,
     PaymasterServiceV2,
     PaymasterEventService,
+    PaymasterApprovalService,
     CircleWebhookService,
   ],
 })

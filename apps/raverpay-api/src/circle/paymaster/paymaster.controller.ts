@@ -12,6 +12,7 @@ import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PaymasterServiceV2 } from './paymaster-v2.service';
 import { PaymasterEventService } from './paymaster-event.service';
+import { PaymasterApprovalService } from './paymaster-approval.service';
 import { CircleWalletService } from '../wallets/circle-wallet.service';
 import { CircleBlockchain } from '../circle.types';
 
@@ -87,6 +88,19 @@ class SyncEventsDto {
 }
 
 /**
+ * DTO for approving Paymaster
+ */
+class ApprovePaymasterDto {
+  @IsString()
+  @IsNotEmpty()
+  walletId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  blockchain: string;
+}
+
+/**
  * Paymaster Controller
  * Handles Circle Paymaster v0.8 operations
  */
@@ -96,6 +110,7 @@ export class PaymasterController {
   constructor(
     private readonly paymasterService: PaymasterServiceV2,
     private readonly eventService: PaymasterEventService,
+    private readonly approvalService: PaymasterApprovalService,
     private readonly walletService: CircleWalletService,
   ) {}
 
@@ -209,6 +224,53 @@ export class PaymasterController {
       blockchain: dto.blockchain as CircleBlockchain,
       fromBlock: BigInt(dto.fromBlock),
       toBlock: BigInt(dto.toBlock),
+    });
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  /**
+   * Approve Paymaster to spend USDC (one-time setup)
+   * POST /circle/paymaster/approve
+   */
+  @Post('approve')
+  async approvePaymaster(
+    @Request() req: AuthRequest,
+    @Body() dto: ApprovePaymasterDto,
+  ) {
+    // Verify wallet belongs to user
+    await this.walletService.getWallet(dto.walletId, req.user.id);
+
+    const result = await this.approvalService.approvePaymaster({
+      walletId: dto.walletId,
+      blockchain: dto.blockchain as CircleBlockchain,
+    });
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  /**
+   * Check if Paymaster is approved for a wallet
+   * GET /circle/paymaster/approval/:walletId/:blockchain
+   */
+  @Get('approval/:walletId/:blockchain')
+  async checkApproval(
+    @Request() req: AuthRequest,
+    @Param('walletId') walletId: string,
+    @Param('blockchain') blockchain: string,
+  ) {
+    // Verify wallet belongs to user
+    await this.walletService.getWallet(walletId, req.user.id);
+
+    const result = await this.approvalService.checkApproval({
+      walletId,
+      blockchain: blockchain as CircleBlockchain,
     });
 
     return {
