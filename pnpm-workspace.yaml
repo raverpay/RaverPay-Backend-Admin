@@ -1,3 +1,4 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+  - '!apps/w3s-pw-web-sdk-master'

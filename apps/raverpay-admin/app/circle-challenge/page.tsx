@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { Suspense, useEffect, useRef, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { W3SSdk } from '@circle-fin/w3s-pw-web-sdk';
 
@@ -13,7 +13,7 @@ declare global {
   }
 }
 
-export default function CircleChallengePage() {
+function CircleChallengeContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'executing' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
@@ -71,11 +71,16 @@ export default function CircleChallengePage() {
         setStatus('executing');
 
         // Execute challenge
-        sdk.execute(challengeId, (error, result) => {
+        sdk.execute(challengeId, (error: any, result: any) => {
           if (error) {
             console.error('Challenge error:', error);
             handleError(error.message || 'Challenge failed');
             return;
+          }
+
+          if (!result) {
+             handleError('Challenge completed but no result returned');
+             return;
           }
 
           console.log('Challenge completed:', result);
@@ -101,18 +106,18 @@ export default function CircleChallengePage() {
   }, [appId, userToken, encryptionKey, challengeId, sendToReactNative, handleError]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       {status === 'loading' && (
         <div className="text-center">
-          <div className="w-10 h-10 border-3 border-gray-200 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Initializing secure wallet...</p>
+          <div className="w-10 h-10 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Initializing secure wallet...</p>
         </div>
       )}
 
       {status === 'executing' && (
         <div className="text-center">
-          <div className="w-10 h-10 border-3 border-gray-200 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Setting up your wallet...</p>
+          <div className="w-10 h-10 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Setting up your wallet...</p>
         </div>
       )}
 
@@ -123,7 +128,7 @@ export default function CircleChallengePage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <p className="text-gray-800 font-semibold">Wallet setup complete!</p>
+          <p className="text-gray-800 dark:text-white font-semibold">Wallet setup complete!</p>
         </div>
       )}
 
@@ -135,9 +140,24 @@ export default function CircleChallengePage() {
             </svg>
           </div>
           <p className="text-red-600 font-semibold mb-2">Something went wrong</p>
-          <p className="text-gray-600 text-sm">{errorMessage}</p>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">{errorMessage}</p>
         </div>
       )}
     </div>
+  );
+}
+
+export default function CircleChallengePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <div className="w-10 h-10 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    }>
+      <CircleChallengeContent />
+    </Suspense>
   );
 }
