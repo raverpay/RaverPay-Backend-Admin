@@ -1183,7 +1183,7 @@ model CircleWallet {
   circleTransactions CircleTransaction[]
   paymasterUserOps PaymasterUserOperation[]
 
-  @@unique([userId, blockchain])
+  @@unique([userId, blockchain, custodyType])
   @@index([circleWalletId])
   @@index([userId])
   @@index([walletSetId])

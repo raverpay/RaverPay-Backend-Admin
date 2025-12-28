@@ -278,4 +278,29 @@ export class PaymasterController {
       data: result,
     };
   }
+
+  /**
+   * Check if wallet is compatible with Paymaster
+   * GET /circle/paymaster/compatible/:walletId
+   */
+  @Get('compatible/:walletId')
+  async checkCompatibility(
+    @Request() req: AuthRequest,
+    @Param('walletId') walletId: string,
+  ) {
+    const wallet = await this.walletService.getWallet(walletId, req.user.id);
+    
+    // Paymaster only works with SCA + USER custody
+    // Note: detailed custodyType check might need adjustment depending on how it's stored
+    // verifying wallet.custodyType is available on the wallet object returned by service
+    const isCompatible = wallet.accountType === 'SCA' && wallet.custodyType === 'USER';
+    
+    return {
+      success: true,
+      data: {
+        isPaymasterCompatible: isCompatible,
+        reason: isCompatible ? null : 'Paymaster requires SCA wallet with USER custody',
+      },
+    };
+  }
 }

@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useAuthStore } from '@/lib/auth-store';
 
-const PUBLIC_ROUTES = ['/login', '/forgot-password'];
+const PUBLIC_ROUTES = ['/login', '/forgot-password', '/circle-challenge'];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -20,8 +20,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Redirect to dashboard if authenticated and trying to access login
-    if (isAuthenticated && isPublicRoute) {
+    // Redirect to dashboard if authenticated and trying to access login/forgot-password
+    // But allow stay on circle-challenge even if authenticated
+    if (isAuthenticated && isPublicRoute && pathname !== '/circle-challenge') {
       router.push('/dashboard');
       return;
     }

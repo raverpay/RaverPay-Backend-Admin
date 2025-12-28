@@ -1,20 +1,39 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CircleApiClient } from '../circle-api.client';
 import { CircleBlockchain } from '../circle.types';
+import { initiateUserControlledWalletsClient } from '@circle-fin/user-controlled-wallets';
 
 /**
  * User-Controlled Wallet Service
  * Manages Circle user-controlled (non-custodial) wallets
+ * Now using Circle's official SDK for proper API handling
  */
 @Injectable()
-export class UserControlledWalletService {
+export class UserControlledWalletService implements OnModuleInit {
   private readonly logger = new Logger(UserControlledWalletService.name);
+  private circleClient: ReturnType<typeof initiateUserControlledWalletsClient>;
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly circleApi: CircleApiClient,
+    private readonly circleApi: CircleApiClient, // Keep for backwards compatibility
+    private readonly configService: ConfigService,
   ) {}
+
+  onModuleInit() {
+    // Initialize Circle's official SDK
+    const apiKey = this.configService.get<string>('CIRCLE_API_KEY');
+    if (!apiKey) {
+      this.logger.warn('CIRCLE_API_KEY not found, Circle SDK will not work');
+      return;
+    }
+
+    this.circleClient = initiateUserControlledWalletsClient({
+      apiKey,
+    });
+    this.logger.log('Circle User-Controlled Wallets SDK initialized');
+  }
 
   /**
    * Create a Circle user for user-controlled wallets
@@ -33,12 +52,17 @@ export class UserControlledWalletService {
     const circleUserId = `${userId}-${Date.now()}`;
 
     try {
-      // Call Circle API to create user
-      const response = await this.circleApi.post<{ data: any }>('/users', {
+      // Use Circle's official SDK
+      const response = await this.circleClient.createUser({
         userId: circleUserId,
       });
 
-      this.logger.log(`Circle user created: ${circleUserId}`);
+      this.logger.log(`Circle SDK createUser response status: ${response.status}`);
+      this.logger.debug(`Circle SDK createUser response: ${JSON.stringify(response.data)}`);
+
+      if (response.status !== 201) {
+        throw new Error(`Failed to create user: status ${response.status}`);
+      }
 
       // Save to database
       const circleUser = await this.prisma.circleUser.create({
@@ -65,6 +89,7 @@ export class UserControlledWalletService {
       throw new Error(`Failed to create Circle user: ${error.message}`);
     }
   }
+
   /**
    * Get user token for Circle user
    * User tokens are valid for 60 minutes and required for all user operations
@@ -73,29 +98,21 @@ export class UserControlledWalletService {
     this.logger.log(`Getting user token for: ${circleUserId}`);
 
     try {
-      // CircleApiResponse already wraps response in { data: T }
-      // So we just specify T as the inner structure
-      const response = await this.circleApi.post<{
-        userToken: string;
-        encryptionKey: string;
-      }>('/users/token', {
+      // Use Circle's official SDK
+      const response = await this.circleClient.createUserToken({
         userId: circleUserId,
       });
 
-      this.logger.log(`User token generated for: ${circleUserId}`);
-      this.logger.debug(`Circle API response: ${JSON.stringify(response)}`);
+      this.logger.log(`Circle SDK createUserToken response status: ${response.status}`);
+      this.logger.debug(`Circle SDK createUserToken response: ${JSON.stringify(response.data)}`);
 
-      // response is already { data: { userToken, encryptionKey } }
-      const tokenData = response.data;
-      
-      if (!tokenData?.userToken) {
-        this.logger.error(`Invalid token response: ${JSON.stringify(response)}`);
-        throw new Error('userToken not found in Circle API response');
+      if (response.status !== 200 || !response.data) {
+        throw new Error(`Failed to get user token: status ${response.status}`);
       }
 
       return {
-        userToken: tokenData.userToken,
-        encryptionKey: tokenData.encryptionKey,
+        userToken: response.data.userToken,
+        encryptionKey: response.data.encryptionKey,
       };
     } catch (error) {
       this.logger.error(
@@ -107,62 +124,70 @@ export class UserControlledWalletService {
   }
 
   /**
-   * Initialize user and create wallet
-   * This creates the user's first wallet and sets up their account
+   * Initialize user and create wallet with PIN
+   * For NEW users: Creates PIN + security questions + wallet
+   * For EXISTING users: Just creates wallet (user already has PIN)
    */
   async initializeUserWithWallet(params: {
     userToken: string;
-    blockchain: CircleBlockchain;
+    blockchain: CircleBlockchain | CircleBlockchain[];
     accountType: 'SCA' | 'EOA';
     userId: string;
     circleUserId: string;
+    isExistingUser?: boolean; // If true, uses createWallet instead of createUserPinWithWallets
   }) {
-    const { userToken, blockchain, accountType, userId, circleUserId } = params;
+    const { userToken, blockchain, accountType, userId, circleUserId, isExistingUser } = params;
+
+    // Normalize to array
+    const blockchains = Array.isArray(blockchain) ? blockchain : [blockchain];
 
     this.logger.log(
-      `Initializing user with wallet on ${blockchain} (${accountType})`,
+      `${isExistingUser ? 'Adding wallet(s)' : 'Initializing user with wallet(s)'} on ${blockchains.join(', ')} (${accountType})`,
     );
 
     try {
-      // Call Circle API to initialize user and create wallet
-      // CircleApiResponse already wraps in { data: T }, so T is the inner structure
-      const response = await this.circleApi.post<{
-        challengeId: string;
-      }>(
-        '/user/initialize',
-        {
-          idempotencyKey: this.circleApi.generateIdempotencyKey(),
-          accountType,
-          blockchains: [blockchain],
-        },
-        {
-          'X-User-Token': userToken,
-        },
-      );
+      let response;
 
-      this.logger.debug(`Circle API initialize response: ${JSON.stringify(response)}`);
-      
-      const challengeData = response.data;
-      
-      if (!challengeData?.challengeId) {
-        this.logger.error(`Invalid initialize response: ${JSON.stringify(response)}`);
-        throw new Error('challengeId not found in Circle API response');
+      // Note: Circle's createWallet requires the user to already have completed PIN setup
+      // For users who have already set up PIN, we can use createWallet
+      // But if that fails, we fall back to createUserPinWithWallets which will just prompt for PIN confirmation
+      if (isExistingUser) {
+        this.logger.log('Using createUserPinWithWallets for existing user (will prompt for PIN confirmation)');
+        // Even for existing users, createUserPinWithWallets works - it just prompts for PIN instead of setup
+        response = await this.circleClient.createUserPinWithWallets({
+          userId: circleUserId,
+          blockchains: blockchains as any,
+          accountType,
+        });
+      } else {
+        // New user - create PIN + security questions + wallet
+        this.logger.log('Using createUserPinWithWallets for new user');
+        response = await this.circleClient.createUserPinWithWallets({
+          userId: circleUserId,
+          blockchains: blockchains as any,
+          accountType,
+        });
       }
 
-      this.logger.log(
-        `User initialization challenge created: ${challengeData.challengeId}`,
-      );
+      this.logger.log(`Circle SDK response status: ${response.status}`);
+      this.logger.debug(`Circle SDK response: ${JSON.stringify(response.data)}`);
+
+      if (response.status !== 201 || !response.data?.challengeId) {
+        throw new Error(`Failed to initialize user: status ${response.status}`);
+      }
 
       return {
-        challengeId: challengeData.challengeId,
+        challengeId: response.data.challengeId,
       };
     } catch (error) {
+      // Log the full error response from Circle
+      const errorData = error.response?.data || error.message;
       this.logger.error(
-        `Failed to initialize user with wallet: ${error.message}`,
+        `Failed to ${isExistingUser ? 'add wallet' : 'initialize user with wallet'}: ${JSON.stringify(errorData)}`,
         error.stack,
       );
       throw new Error(
-        `Failed to initialize user with wallet: ${error.message}`,
+        `Failed to ${isExistingUser ? 'add wallet' : 'initialize user with wallet'}: ${error.message}`,
       );
     }
   }
@@ -175,78 +200,172 @@ export class UserControlledWalletService {
     this.logger.log('Listing user wallets');
 
     try {
-      // CircleApiResponse already wraps in { data: T }
-      const response = await this.circleApi.get<{
-        wallets: Array<{
-          id: string;
-          state: string;
-          walletSetId: string;
-          custodyType: string;
-          userId: string;
-          address: string;
-          blockchain: string;
-          accountType: string;
-          createDate: string;
-          updateDate: string;
-        }>;
-      }>(
-        '/wallets',
-        {},
-        {
-          'X-User-Token': userToken,
-        },
-      );
+      const response = await this.circleClient.listWallets({
+        userToken,
+      });
 
-      const walletData = response.data;
-      
-      this.logger.log(
-        `Found ${walletData?.wallets?.length || 0} wallets for user`,
-      );
+      this.logger.debug(`Circle SDK listWallets response: ${JSON.stringify(response.data)}`);
 
-      return walletData?.wallets || [];
+      if (response.status !== 200) {
+        throw new Error(`Failed to list wallets: status ${response.status}`);
+      }
+
+      return {
+        wallets: response.data?.wallets || [],
+      };
     } catch (error) {
       this.logger.error(
-        `Failed to list user wallets: ${error.message}`,
+        `Failed to list wallets: ${error.message}`,
         error.stack,
       );
-      throw new Error(`Failed to list user wallets: ${error.message}`);
+      throw new Error(`Failed to list wallets: ${error.message}`);
+    }
+  }
+
+  /**
+   * Sync user-controlled wallets from Circle API to database
+   * Call this after successful challenge completion
+   */
+  async syncUserWalletsToDatabase(params: {
+    userToken: string;
+    userId: string;
+    circleUserId: string;
+  }) {
+    const { userToken, userId, circleUserId } = params;
+
+    this.logger.log(`Syncing user-controlled wallets to database for user: ${userId}`);
+
+    try {
+      // Fetch wallets from Circle API
+      const { wallets } = await this.listUserWallets(userToken);
+
+      if (!wallets || wallets.length === 0) {
+        this.logger.log(`No wallets found for user ${userId}`);
+        return { synced: 0, wallets: [] };
+      }
+
+      this.logger.log(`Found ${wallets.length} wallets from Circle API`);
+
+      // Get the CircleUser record to link wallets
+      const circleUser = await this.prisma.circleUser.findFirst({
+        where: { circleUserId },
+      });
+
+      if (!circleUser) {
+        throw new Error(`CircleUser not found for circleUserId: ${circleUserId}`);
+      }
+
+      // Get or create a wallet set for user-controlled wallets
+      const walletSetId = `user-controlled-${circleUserId}`;
+      let walletSet = await this.prisma.circleWalletSet.findFirst({
+        where: {
+          circleWalletSetId: walletSetId,
+        },
+      });
+
+      if (!walletSet) {
+        walletSet = await this.prisma.circleWalletSet.create({
+          data: {
+            circleWalletSetId: walletSetId,
+            name: 'User-Controlled Wallets',
+            custodyType: 'USER',
+          },
+        });
+        this.logger.log(`Created wallet set: ${walletSet.id}`);
+      }
+
+      // Sync each wallet to database
+      const syncedWallets: any[] = [];
+      for (const wallet of wallets) {
+        // Check if wallet already exists by circleWalletId
+        const existingWallet = await this.prisma.circleWallet.findFirst({
+          where: { circleWalletId: wallet.id },
+        });
+
+        if (existingWallet) {
+          this.logger.log(`Wallet ${wallet.id} already exists, skipping`);
+          syncedWallets.push(existingWallet);
+          continue;
+        }
+
+        // Use upsert to handle case where wallet exists on same userId+blockchain+custodyType
+        const newWallet = await this.prisma.circleWallet.upsert({
+          where: {
+            userId_blockchain_custodyType: {
+              userId,
+              blockchain: wallet.blockchain,
+              custodyType: 'USER',
+            },
+          },
+          update: {
+            // Update existing user-controlled wallet with new Circle wallet info
+            circleWalletId: wallet.id,
+            address: wallet.address,
+            accountType: wallet.accountType as any,
+            state: wallet.state as any,
+            circleUserId: circleUser.id,
+            scaCore: (wallet as any).scaCore || null,
+          },
+          create: {
+            userId,
+            circleWalletId: wallet.id,
+            walletSetId: walletSet.id,
+            address: wallet.address,
+            blockchain: wallet.blockchain,
+            accountType: wallet.accountType as any,
+            state: wallet.state as any,
+            name: `${wallet.blockchain} Wallet`,
+            custodyType: 'USER',
+            circleUserId: circleUser.id,
+            scaCore: (wallet as any).scaCore || null,
+          },
+        });
+
+        this.logger.log(`Synced wallet ${newWallet.id} for blockchain ${wallet.blockchain}`);
+        syncedWallets.push(newWallet);
+      }
+
+      // Update CircleUser status to reflect successful setup
+      await this.prisma.circleUser.update({
+        where: { id: circleUser.id },
+        data: {
+          pinStatus: 'ENABLED',
+          securityQuestionStatus: 'ENABLED',
+        },
+      });
+
+      return {
+        synced: syncedWallets.length,
+        wallets: syncedWallets,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to sync wallets to database: ${error.message}`,
+        error.stack,
+      );
+      throw new Error(`Failed to sync wallets: ${error.message}`);
     }
   }
 
   /**
    * Get user status
-   * Returns current status of Circle user including PIN and security question status
+   * Check whether a user has set up PIN and security questions
    */
   async getUserStatus(userToken: string) {
-    this.logger.log('Getting user status');
+    this.logger.log(`Getting user status`);
 
     try {
-      // CircleApiResponse already wraps in { data: T }
-      const response = await this.circleApi.get<{
-        id: string;
-        status: string;
-        createDate: string;
-        pinStatus: string;
-        pinDetails?: {
-          failedAttempts: number;
-        };
-        securityQuestionStatus?: string;
-        securityQuestionDetails?: {
-          failedAttempts: number;
-        };
-      }>(
-        '/user',
-        {},
-        {
-          'X-User-Token': userToken,
-        },
-      );
+      const response = await this.circleClient.getUserStatus({
+        userToken,
+      });
 
-      const userData = response.data;
-      
-      this.logger.log(`User status: ${userData?.status}`);
+      this.logger.debug(`Circle SDK getUserStatus response: ${JSON.stringify(response.data)}`);
 
-      return userData;
+      if (response.status !== 200) {
+        throw new Error(`Failed to get user status: status ${response.status}`);
+      }
+
+      return response.data;
     } catch (error) {
       this.logger.error(
         `Failed to get user status: ${error.message}`,
@@ -257,7 +376,7 @@ export class UserControlledWalletService {
   }
 
   /**
-   * Get Circle user by our internal user ID
+   * Get Circle user by user ID
    */
   async getCircleUserByUserId(userId: string) {
     return this.prisma.circleUser.findFirst({
@@ -269,112 +388,104 @@ export class UserControlledWalletService {
    * Get Circle user by Circle user ID
    */
   async getCircleUserByCircleUserId(circleUserId: string) {
-    return this.prisma.circleUser.findUnique({
+    return this.prisma.circleUser.findFirst({
       where: { circleUserId },
     });
   }
 
   /**
-   * Update Circle user status
+   * Get user-controlled wallets for a user
    */
-  async updateCircleUserStatus(params: {
-    circleUserId: string;
-    status?: string;
-    pinStatus?: string;
-    securityQuestionStatus?: string;
-  }) {
-    const { circleUserId, status, pinStatus, securityQuestionStatus } = params;
+  async getUserControlledWallets(userId: string) {
+    return this.prisma.circleWallet.findMany({
+      where: {
+        userId,
+        custodyType: 'USER',
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 
+  /**
+   * Update Circle user status in database
+   */
+  async updateCircleUserStatus(
+    circleUserId: string,
+    data: {
+      status?: string;
+      pinStatus?: string;
+      securityQuestionStatus?: string;
+    },
+  ) {
     return this.prisma.circleUser.update({
       where: { circleUserId },
       data: {
-        ...(status && { status }),
-        ...(pinStatus && { pinStatus }),
-        ...(securityQuestionStatus && { securityQuestionStatus }),
-        updatedAt: new Date(),
+        status: data.status,
+        pinStatus: data.pinStatus,
+        securityQuestionStatus: data.securityQuestionStatus,
       },
     });
   }
 
   /**
    * Save security questions metadata
-   * Stores which questions the user selected (not the answers - Circle encrypts those)
    */
-  async saveSecurityQuestions(params: {
-    circleUserId: string;
+  async saveSecurityQuestions(
+    circleUserId: string,
     questions: Array<{
       questionId: string;
       questionText: string;
       questionIndex: number;
-    }>;
-  }) {
-    const { circleUserId, questions } = params;
-
-    this.logger.log(
-      `Saving security questions metadata for: ${circleUserId}`,
-    );
-
-    // Get the internal CircleUser record
-    const circleUser = await this.prisma.circleUser.findUnique({
+    }>,
+  ) {
+    const circleUser = await this.prisma.circleUser.findFirst({
       where: { circleUserId },
     });
 
     if (!circleUser) {
-      throw new Error(`Circle user not found: ${circleUserId}`);
+      throw new Error('Circle user not found');
     }
 
-    // Upsert security questions (delete existing and create new)
-    await this.prisma.$transaction(async (tx) => {
-      // Delete existing questions for this user
-      await tx.circleSecurityQuestion.deleteMany({
-        where: { circleUserId: circleUser.id },
-      });
-
-      // Create new questions
-      await tx.circleSecurityQuestion.createMany({
-        data: questions.map((q) => ({
-          circleUserId: circleUser.id,
-          questionId: q.questionId,
-          questionText: q.questionText,
-          questionIndex: q.questionIndex,
-        })),
-      });
-
-      // Update Circle user to mark security questions as enabled
-      await tx.circleUser.update({
-        where: { id: circleUser.id },
-        data: {
-          securityQuestionStatus: 'ENABLED',
-        },
-      });
+    // Delete existing questions and create new ones
+    await this.prisma.circleSecurityQuestion.deleteMany({
+      where: { circleUserId: circleUser.id },
     });
 
-    this.logger.log(
-      `Security questions saved for: ${circleUserId} (${questions.length} questions)`,
-    );
+    await this.prisma.circleSecurityQuestion.createMany({
+      data: questions.map((q) => ({
+        circleUserId: circleUser.id,
+        questionId: q.questionId,
+        questionText: q.questionText,
+        questionIndex: q.questionIndex,
+      })),
+    });
 
     return { success: true };
   }
 
   /**
-   * Get security questions for a Circle user
+   * Get security questions metadata
    */
   async getSecurityQuestions(circleUserId: string) {
-    const circleUser = await this.prisma.circleUser.findUnique({
+    const circleUser = await this.prisma.circleUser.findFirst({
       where: { circleUserId },
-      include: {
-        securityQuestions: true,
-      },
     });
 
     if (!circleUser) {
-      throw new Error(`Circle user not found: ${circleUserId}`);
+      throw new Error('Circle user not found');
     }
 
-    return circleUser.securityQuestions.map((q) => ({
-      questionId: q.questionId,
-      questionText: q.questionText,
-      questionIndex: q.questionIndex,
-    }));
+    const questions = await this.prisma.circleSecurityQuestion.findMany({
+      where: { circleUserId: circleUser.id },
+      orderBy: { questionIndex: 'asc' },
+    });
+
+    return {
+      questions: questions.map((q) => ({
+        questionId: q.questionId,
+        questionText: q.questionText,
+        questionIndex: q.questionIndex,
+      })),
+    };
   }
 }

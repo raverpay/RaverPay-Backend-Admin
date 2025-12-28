@@ -58,6 +58,51 @@ export class UserControlledWalletController {
   }
 
   /**
+   * Check if user has existing Circle user and wallets
+   * GET /circle/user-controlled/users/check-status
+   */
+  @Get('users/check-status')
+  async checkUserStatus(@Request() req: AuthRequest) {
+    const circleUser = await this.userControlledWalletService.getCircleUserByUserId(req.user.id);
+    
+    if (!circleUser) {
+      return {
+        success: true,
+        data: {
+          hasCircleUser: false,
+          hasUserControlledWallet: false,
+          circleUser: null,
+          wallets: [],
+        },
+      };
+    }
+
+    // Check for user-controlled wallets
+    const wallets = await this.userControlledWalletService.getUserControlledWallets(req.user.id);
+
+    return {
+      success: true,
+      data: {
+        hasCircleUser: true,
+        hasUserControlledWallet: wallets.length > 0,
+        circleUser: {
+          id: circleUser.id,
+          circleUserId: circleUser.circleUserId,
+          authMethod: circleUser.authMethod,
+          pinStatus: circleUser.pinStatus,
+          status: circleUser.status,
+        },
+        wallets: wallets.map(w => ({
+          id: w.id,
+          address: w.address,
+          blockchain: w.blockchain,
+          state: w.state,
+        })),
+      },
+    };
+  }
+
+  /**
    * Get user token
    * POST /circle/user-controlled/users/token
    */
@@ -129,7 +174,7 @@ export class UserControlledWalletController {
     @Request() req: AuthRequest,
     @Body() dto: InitializeUserWalletDto,
   ) {
-    const { circleUserId, blockchain, accountType, userToken } = dto;
+    const { circleUserId, blockchain, accountType, userToken, isExistingUser } = dto;
 
     // Verify ownership
     const circleUser =
@@ -144,10 +189,13 @@ export class UserControlledWalletController {
     const result =
       await this.userControlledWalletService.initializeUserWithWallet({
         userToken,
-        blockchain: blockchain as CircleBlockchain,
+        blockchain: Array.isArray(blockchain) 
+          ? blockchain.map(b => b as CircleBlockchain)
+          : blockchain as CircleBlockchain,
         accountType: accountType || 'SCA',
         userId: req.user.id,
         circleUserId,
+        isExistingUser,
       });
 
     return {
@@ -173,6 +221,40 @@ export class UserControlledWalletController {
     return {
       success: true,
       data: wallets,
+    };
+  }
+
+  /**
+   * Sync wallets to database after challenge completion
+   * POST /circle/user-controlled/wallets/sync
+   */
+  @Post('wallets/sync')
+  async syncWallets(
+    @Request() req: AuthRequest,
+    @Body() dto: { circleUserId: string; userToken: string },
+  ) {
+    const { circleUserId, userToken } = dto;
+
+    // Verify ownership
+    const circleUser =
+      await this.userControlledWalletService.getCircleUserByCircleUserId(
+        circleUserId,
+      );
+
+    if (!circleUser || circleUser.userId !== req.user.id) {
+      throw new Error('Circle user not found or unauthorized');
+    }
+
+    const result =
+      await this.userControlledWalletService.syncUserWalletsToDatabase({
+        userToken,
+        userId: req.user.id,
+        circleUserId,
+      });
+
+    return {
+      success: true,
+      data: result,
     };
   }
 
@@ -219,10 +301,8 @@ export class UserControlledWalletController {
     }
 
     const result = await this.userControlledWalletService.saveSecurityQuestions(
-      {
-        circleUserId,
-        questions: dto.questions,
-      },
+      circleUserId,
+      dto.questions,
     );
 
     return {

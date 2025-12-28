@@ -108,6 +108,7 @@ export class CircleController {
         accountType: w.accountType,
         state: w.state,
         name: w.name,
+        custodyType: w.custodyType, // DEVELOPER | USER
         createdAt: w.createdAt,
       })),
     };

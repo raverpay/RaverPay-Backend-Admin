@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@circle-fin/developer-controlled-wallets": "^9.6.0",
+    "@circle-fin/user-controlled-wallets": "^3.0.0",
     "@logtail/node": "^0.5.6",
     "@nest-lab/throttler-storage-redis": "^1.1.0",
     "@nestjs/bullmq": "^11.0.4",

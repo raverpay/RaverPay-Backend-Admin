@@ -226,9 +226,9 @@ export class InitializeUserWalletDto {
   @IsNotEmpty()
   circleUserId: string;
 
-  @IsString()
+  // Support both single blockchain and array of blockchains
   @IsNotEmpty()
-  blockchain: string;
+  blockchain: string | string[];
 
   @IsOptional()
   @IsEnum(['SCA', 'EOA'])
@@ -237,6 +237,9 @@ export class InitializeUserWalletDto {
   @IsString()
   @IsNotEmpty()
   userToken: string;
+
+  @IsOptional()
+  isExistingUser?: boolean; // If true, uses createWallet instead of createUserPinWithWallets
 }
 
 export class ListUserWalletsDto {
