@@ -5,7 +5,7 @@ import { CircleApiClient } from '../circle-api.client';
 import { CircleBlockchain, CircleFeeLevel } from '../circle.types';
 import { PermitService } from './permit.service';
 import { BundlerService } from './bundler.service';
-import { createPublicClient, http, parseAbi, encodeFunctionData } from 'viem';
+import { createPublicClient, http, parseAbi, encodeFunctionData, parseUnits } from 'viem';
 
 /**
  * DTO for submitting a UserOperation with Paymaster
@@ -112,7 +112,9 @@ export class PaymasterServiceV2 {
 
     // Add 20% safety margin to gas estimate
     const gasBuffer = (gasBufferUsdc * 120n) / 100n;
-    const permitAmount = BigInt(amount) + gasBuffer;
+    // Convert amount to atomic units (USDC has 6 decimals)
+    const amountAtomic = parseUnits(amount, 6);
+    const permitAmount = amountAtomic + gasBuffer;
 
     const paymasterData = this.permitService.encodePaymasterData({
       tokenAddress: usdcAddress,
@@ -139,7 +141,7 @@ export class PaymasterServiceV2 {
     const callData = encodeFunctionData({
       abi: this.USDC_ABI,
       functionName: 'transfer',
-      args: [destinationAddress as `0x${string}`, BigInt(amount)],
+      args: [destinationAddress as `0x${string}`, parseUnits(amount, 6)],
     });
 
     // 6. Build UserOperation
@@ -329,7 +331,10 @@ export class PaymasterServiceV2 {
 
     // Add 20% safety margin to gas estimate
     const gasBuffer = (estimatedGasUsdc * 120n) / 100n;
-    const permitAmount = BigInt(amount) + gasBuffer;
+    
+    // Convert amount to atomic units (USDC has 6 decimals)
+    const amountAtomic = parseUnits(amount, 6);
+    const permitAmount = amountAtomic + gasBuffer;
 
     this.logger.debug(
       `Permit calculation: amount=${amount}, gasBuffer=${gasBuffer.toString()}, total=${permitAmount.toString()}`,

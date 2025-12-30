@@ -415,13 +415,7 @@ export class TransactionsService {
       };
     }
 
-    // Credit wallet and complete transaction atomically
-    const wallet = transaction.user.wallets?.[0];
-    if (!wallet) {
-      throw new NotFoundException('Wallet not found');
-    }
-
-    // 🚨 NEW: Check deposit limits before processing (Option 2: Allow Deposit, Lock Wallet)
+    // FIXED: Credit wallet with pessimistic locking to prevent race conditions
     const depositAmount = Number(transaction.amount);
     let shouldLockWallet = false;
     let lockReason = '';
@@ -449,44 +443,101 @@ export class TransactionsService {
       // Continue with deposit even if limit check fails (fail-open for deposits)
     }
 
-    const newBalance = wallet.balance.plus(transaction.amount);
+    // FIXED: Use pessimistic locking for wallet credit
+    const maxRetries = 3;
+    let retryCount = 0;
+    let walletId: string = '';
 
-    await this.prisma.$transaction([
-      // Update wallet balance (and lock if needed)
-      this.prisma.wallet.update({
-        where: { id: wallet.id },
-        data: {
-          balance: newBalance,
-          ledgerBalance: newBalance,
-          // Lock wallet if limit exceeded
-          ...(shouldLockWallet && {
-            isLocked: true,
-            lockedReason: lockReason,
-          }),
-        },
-      }),
-      // Update transaction
-      this.prisma.transaction.update({
-        where: { id: transaction.id },
-        data: {
-          status: TransactionStatus.COMPLETED,
-          balanceAfter: newBalance,
-          completedAt: new Date(),
-          providerStatus: payment.status,
-          metadata: {
-            ...(transaction.metadata as object),
-            paystackResponse: {
-              amount: payment.amount,
-              fees: payment.fees,
-              channel: payment.channel,
-              paid_at: payment.paid_at,
-            },
-            limitExceeded: shouldLockWallet,
-            lockedWallet: shouldLockWallet,
+    while (retryCount < maxRetries) {
+      try {
+        await this.prisma.$transaction(
+          async (tx) => {
+            // Lock wallet row with SELECT FOR UPDATE
+            const walletRows = await tx.$queryRaw<
+              Array<{
+                id: string;
+                balance: Decimal;
+                ledgerBalance: Decimal;
+              }>
+            >`
+              SELECT id, balance, "ledgerBalance"
+              FROM wallets
+              WHERE "userId" = ${userId} AND type = 'NAIRA'
+              FOR UPDATE
+            `;
+
+            if (!walletRows || walletRows.length === 0) {
+              throw new NotFoundException('Wallet not found');
+            }
+
+            const wallet = walletRows[0];
+            walletId = wallet.id;
+            const currentBalance = new Decimal(wallet.balance.toString());
+            const newBalance = currentBalance.plus(transaction.amount);
+
+            // Update wallet balance (and lock if needed)
+            await tx.wallet.update({
+              where: { id: wallet.id },
+              data: {
+                balance: newBalance,
+                ledgerBalance: newBalance,
+                ...(shouldLockWallet && {
+                  isLocked: true,
+                  lockedReason: lockReason,
+                }),
+              },
+            });
+
+            // Update transaction
+            await tx.transaction.update({
+              where: { id: transaction.id },
+              data: {
+                status: TransactionStatus.COMPLETED,
+                balanceAfter: newBalance,
+                completedAt: new Date(),
+                providerStatus: payment.status,
+                metadata: {
+                  ...(transaction.metadata as object),
+                  paystackResponse: {
+                    amount: payment.amount,
+                    fees: payment.fees,
+                    channel: payment.channel,
+                    paid_at: payment.paid_at,
+                  },
+                  limitExceeded: shouldLockWallet,
+                  lockedWallet: shouldLockWallet,
+                },
+              },
+            });
           },
-        },
-      }),
-    ]);
+          {
+            isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+            maxWait: 10000,
+            timeout: 20000,
+          },
+        );
+        break; // Success - exit retry loop
+      } catch (error: any) {
+        // Check if it's a serialization conflict
+        if (
+          error.code === 'P2010' ||
+          error.code === '40001' ||
+          (error.message && error.message.includes('serialization'))
+        ) {
+          retryCount++;
+          if (retryCount >= maxRetries) {
+            throw new BadRequestException(
+              'Transaction conflict. Please try again.',
+            );
+          }
+          await new Promise((resolve) =>
+            setTimeout(resolve, Math.pow(2, retryCount) * 100),
+          );
+          continue;
+        }
+        throw error;
+      }
+    }
 
     // Increment daily deposit spending
     await this.limitsService.incrementDailySpend(
@@ -532,7 +583,7 @@ export class TransactionsService {
           userId,
           action: 'WALLET_LOCKED',
           resource: 'WALLET',
-          resourceId: wallet.id,
+          resourceId: walletId,
           ipAddress: '0.0.0.0',
           userAgent: 'SYSTEM',
           metadata: {
@@ -720,20 +771,8 @@ export class TransactionsService {
     );
 
     const user = virtualAccount.user;
-    const wallet = user.wallets?.[0];
 
-    if (!wallet) {
-      console.error(
-        `❌ [processVirtualAccountCredit] Wallet not found for user: ${virtualAccount.userId}`,
-      );
-      throw new NotFoundException('Wallet not found');
-    }
-
-    console.log(
-      `✅ [processVirtualAccountCredit] Wallet found - Current balance: ₦${wallet.balance.toString()}, KYC Tier: ${user.kycTier}`,
-    );
-
-    // Check if transaction already exists
+    // Check if transaction already exists (idempotency check)
     const existing = await this.prisma.transaction.findUnique({
       where: { reference },
     });
@@ -742,16 +781,14 @@ export class TransactionsService {
       console.log(
         `⚠️ [processVirtualAccountCredit] Transaction already processed: ${reference}`,
       );
-      // Already processed
       return;
     }
 
-    // 🚨 NEW: Check deposit limits before processing (Option 2: Allow Deposit, Lock Wallet)
+    // Check deposit limits before processing
     let shouldLockWallet = false;
     let lockReason = '';
 
     try {
-      // Check both per-transaction and daily deposit limits
       const limitInfo = await this.limitsService.checkDailyLimit(
         user.id,
         amount,
@@ -770,57 +807,110 @@ export class TransactionsService {
       console.error(
         `❌ [processVirtualAccountCredit] Error checking deposit limits: ${error.message}`,
       );
-      // Continue with deposit even if limit check fails (fail-open for deposits)
     }
 
-    // Create transaction and credit wallet atomically
-    const newBalance = wallet.balance.plus(netAmount);
-    console.log(
-      `💰 [processVirtualAccountCredit] Crediting wallet - Old balance: ₦${wallet.balance.toString()}, Net amount: ₦${netAmount}, New balance: ₦${newBalance.toString()}`,
-    );
+    // FIXED: Use pessimistic locking for wallet credit
+    const maxRetries = 3;
+    let retryCount = 0;
+    let walletIdForAudit: string = '';
 
-    await this.prisma.$transaction([
-      // Credit wallet
-      this.prisma.wallet.update({
-        where: { id: wallet.id },
-        data: {
-          balance: newBalance,
-          ledgerBalance: newBalance,
-          // Lock wallet if limit exceeded
-          ...(shouldLockWallet && {
-            isLocked: true,
-            lockedReason: lockReason,
-          }),
-        },
-      }),
-      // Create transaction
-      this.prisma.transaction.create({
-        data: {
-          reference,
-          userId: user.id,
-          type: TransactionType.DEPOSIT,
-          status: TransactionStatus.COMPLETED,
-          amount: new Decimal(amount), // Original amount sent
-          fee: new Decimal(paystackFee), // Paystack DVA fee (1% capped at ₦300)
-          totalAmount: new Decimal(netAmount), // Net amount after fee
-          balanceBefore: wallet.balance,
-          balanceAfter: newBalance,
-          currency: 'NGN',
-          description: `Bank transfer deposit of ₦${amount.toLocaleString()}${paystackFee > 0 ? ` (Fee: ₦${paystackFee.toFixed(2)})` : ''}${shouldLockWallet ? ' (Wallet locked - limit exceeded)' : ''}`,
-          completedAt: new Date(),
-          metadata: {
-            paymentMethod: 'bank_transfer',
-            provider: 'paystack',
-            accountNumber,
-            grossAmount: amount,
-            paystackFee: paystackFee,
-            netAmount: netAmount,
-            limitExceeded: shouldLockWallet,
-            lockedWallet: shouldLockWallet,
+    while (retryCount < maxRetries) {
+      try {
+        await this.prisma.$transaction(
+          async (tx) => {
+            // Lock wallet row with SELECT FOR UPDATE
+            const walletRows = await tx.$queryRaw<
+              Array<{
+                id: string;
+                balance: Decimal;
+                ledgerBalance: Decimal;
+              }>
+            >`
+              SELECT id, balance, "ledgerBalance"
+              FROM wallets
+              WHERE "userId" = ${user.id} AND type = 'NAIRA'
+              FOR UPDATE
+            `;
+
+            if (!walletRows || walletRows.length === 0) {
+              throw new NotFoundException('Wallet not found');
+            }
+
+            const wallet = walletRows[0];
+            walletIdForAudit = wallet.id;
+            const currentBalance = new Decimal(wallet.balance.toString());
+            const newBalance = currentBalance.plus(netAmount);
+
+            console.log(
+              `💰 [processVirtualAccountCredit] Crediting wallet - Old: ₦${currentBalance.toString()}, Net: ₦${netAmount}, New: ₦${newBalance.toString()}`,
+            );
+
+            // Credit wallet
+            await tx.wallet.update({
+              where: { id: wallet.id },
+              data: {
+                balance: newBalance,
+                ledgerBalance: newBalance,
+                ...(shouldLockWallet && {
+                  isLocked: true,
+                  lockedReason: lockReason,
+                }),
+              },
+            });
+
+            // Create transaction
+            await tx.transaction.create({
+              data: {
+                reference,
+                userId: user.id,
+                type: TransactionType.DEPOSIT,
+                status: TransactionStatus.COMPLETED,
+                amount: new Decimal(amount),
+                fee: new Decimal(paystackFee),
+                totalAmount: new Decimal(netAmount),
+                balanceBefore: currentBalance,
+                balanceAfter: newBalance,
+                currency: 'NGN',
+                description: `Bank transfer deposit of ₦${amount.toLocaleString()}${paystackFee > 0 ? ` (Fee: ₦${paystackFee.toFixed(2)})` : ''}${shouldLockWallet ? ' (Wallet locked - limit exceeded)' : ''}`,
+                completedAt: new Date(),
+                metadata: {
+                  paymentMethod: 'bank_transfer',
+                  provider: 'paystack',
+                  accountNumber,
+                  grossAmount: amount,
+                  paystackFee: paystackFee,
+                  netAmount: netAmount,
+                  limitExceeded: shouldLockWallet,
+                  lockedWallet: shouldLockWallet,
+                },
+              },
+            });
           },
-        },
-      }),
-    ]);
+          {
+            isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+            maxWait: 10000,
+            timeout: 20000,
+          },
+        );
+        break; // Success
+      } catch (error: any) {
+        if (
+          error.code === 'P2010' ||
+          error.code === '40001' ||
+          (error.message && error.message.includes('serialization'))
+        ) {
+          retryCount++;
+          if (retryCount >= maxRetries) {
+            throw new Error('Transaction conflict. Please try again.');
+          }
+          await new Promise((resolve) =>
+            setTimeout(resolve, Math.pow(2, retryCount) * 100),
+          );
+          continue;
+        }
+        throw error;
+      }
+    }
 
     // Increment daily deposit spending
     await this.limitsService.incrementDailySpend(
@@ -866,7 +956,7 @@ export class TransactionsService {
           userId: user.id,
           action: 'WALLET_LOCKED',
           resource: 'WALLET',
-          resourceId: wallet.id,
+          resourceId: walletIdForAudit,
           ipAddress: '0.0.0.0',
           userAgent: 'SYSTEM',
           metadata: {
@@ -882,6 +972,7 @@ export class TransactionsService {
 
   /**
    * Withdraw funds to bank account
+   * FIXED: Uses pessimistic locking (SELECT FOR UPDATE) to prevent race conditions
    */
   async withdrawFunds(
     userId: string,
@@ -892,26 +983,20 @@ export class TransactionsService {
     pin: string,
     narration?: string,
   ): Promise<WithdrawalResponse> {
-    // Verify PIN
+    // Verify PIN first (outside transaction)
     await this.usersService.verifyPin(userId, pin);
 
-    // Get user and wallet
+    // Get user info only (wallet will be locked inside transaction)
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { wallets: { where: { type: 'NAIRA' } } },
+      select: { id: true, kycTier: true, firstName: true, email: true },
     });
 
-    const wallet = user?.wallets?.[0];
-    if (!user || !wallet) {
-      throw new NotFoundException('User or wallet not found');
+    if (!user) {
+      throw new NotFoundException('User not found');
     }
 
-    // Check if wallet is locked
-    if (wallet.isLocked) {
-      throw new ForbiddenException('Wallet is locked');
-    }
-
-    // Check daily transaction limit
+    // Check daily transaction limit (uses Redis, ok outside transaction)
     await this.limitsService.enforceLimit(
       userId,
       amount,
@@ -928,61 +1013,140 @@ export class TransactionsService {
       );
     }
 
-    // Calculate fee with user's KYC tier for tier-specific config
+    // Calculate fee
     const feeCalc = await this.calculateFee(amount, 'withdrawal', user.kycTier);
-
-    // Check sufficient balance
-    if (wallet.balance.lessThan(feeCalc.totalAmount)) {
-      throw new BadRequestException('Insufficient balance');
-    }
 
     // Generate reference
     const reference = this.generateReference('withdrawal');
 
-    // Get bank name from bank code (for metadata)
+    // Get bank name from bank code
     const bankName = await this.getBankNameFromCode(bankCode);
 
-    // Debit wallet and create transaction atomically
-    const newBalance = wallet.balance.minus(feeCalc.totalAmount);
+    // FIXED: Debit wallet with pessimistic locking and serializable isolation
+    const maxRetries = 3;
+    let retryCount = 0;
+    let transaction: any;
+    let walletId: string = '';
+    let balanceBefore: Decimal = new Decimal(0);
 
-    const transaction = await this.prisma.$transaction(async (tx) => {
-      // Debit wallet
-      await tx.wallet.update({
-        where: { id: wallet.id },
-        data: {
-          balance: newBalance,
-          ledgerBalance: newBalance,
-        },
-      });
+    while (retryCount < maxRetries) {
+      try {
+        const result = await this.prisma.$transaction(
+          async (tx) => {
+            // Lock wallet row with SELECT FOR UPDATE - prevents concurrent reads
+            const walletRows = await tx.$queryRaw<
+              Array<{
+                id: string;
+                balance: Decimal;
+                ledgerBalance: Decimal;
+                isLocked: boolean;
+              }>
+            >`
+              SELECT id, balance, "ledgerBalance", "isLocked"
+              FROM wallets
+              WHERE "userId" = ${userId} AND type = 'NAIRA'
+              FOR UPDATE
+            `;
 
-      // Create transaction
-      return tx.transaction.create({
-        data: {
-          reference,
-          userId: user.id,
-          type: TransactionType.WITHDRAWAL,
-          status: TransactionStatus.PROCESSING,
-          amount: new Decimal(amount),
-          fee: new Decimal(feeCalc.fee),
-          totalAmount: new Decimal(feeCalc.totalAmount),
-          balanceBefore: wallet.balance,
-          balanceAfter: newBalance,
-          currency: 'NGN',
-          description:
-            narration ||
-            `Withdrawal of ₦${amount.toLocaleString()} to ${accountName}`,
-          metadata: {
-            accountNumber,
-            accountName,
-            bankCode,
-            bankName,
-            provider: 'paystack',
+            if (!walletRows || walletRows.length === 0) {
+              throw new NotFoundException('Wallet not found');
+            }
+
+            const wallet = walletRows[0];
+
+            // Check if wallet is locked
+            if (wallet.isLocked) {
+              throw new ForbiddenException('Wallet is locked');
+            }
+
+            // Check balance with LOCKED data
+            const currentBalance = new Decimal(wallet.balance.toString());
+            if (currentBalance.lt(feeCalc.totalAmount)) {
+              throw new BadRequestException(
+                `Insufficient balance. Required: ₦${feeCalc.totalAmount.toLocaleString()}, Available: ₦${currentBalance.toFixed(2)}`,
+              );
+            }
+
+            // Calculate new balance from locked data
+            const newBalance = currentBalance.minus(feeCalc.totalAmount);
+
+            // Update wallet atomically
+            await tx.wallet.update({
+              where: { id: wallet.id },
+              data: {
+                balance: newBalance,
+                ledgerBalance: newBalance,
+              },
+            });
+
+            // Create transaction record
+            const txn = await tx.transaction.create({
+              data: {
+                reference,
+                userId: user.id,
+                type: TransactionType.WITHDRAWAL,
+                status: TransactionStatus.PROCESSING,
+                amount: new Decimal(amount),
+                fee: new Decimal(feeCalc.fee),
+                totalAmount: new Decimal(feeCalc.totalAmount),
+                balanceBefore: currentBalance,
+                balanceAfter: newBalance,
+                currency: 'NGN',
+                description:
+                  narration ||
+                  `Withdrawal of ₦${amount.toLocaleString()} to ${accountName}`,
+                metadata: {
+                  accountNumber,
+                  accountName,
+                  bankCode,
+                  bankName,
+                  provider: 'paystack',
+                },
+              },
+            });
+
+            return { txn, walletId: wallet.id, balanceBefore: currentBalance };
           },
-        },
-      });
-    });
+          {
+            isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+            maxWait: 10000,
+            timeout: 20000,
+          },
+        );
 
-    // Initiate Paystack transfer (async)
+        transaction = result.txn;
+        walletId = result.walletId;
+        balanceBefore = result.balanceBefore;
+        break; // Success - exit retry loop
+      } catch (error: any) {
+        // Check if it's a serialization conflict
+        if (
+          error.code === 'P2010' ||
+          error.code === '40001' ||
+          (error.message && error.message.includes('serialization'))
+        ) {
+          retryCount++;
+          if (retryCount >= maxRetries) {
+            throw new BadRequestException(
+              'Transaction conflict. Please try again.',
+            );
+          }
+          // Exponential backoff
+          await new Promise((resolve) =>
+            setTimeout(resolve, Math.pow(2, retryCount) * 100),
+          );
+          continue;
+        }
+        // Not a serialization conflict, throw immediately
+        throw error;
+      }
+    }
+
+    if (!transaction) {
+      throw new BadRequestException('Withdrawal failed. Please try again.');
+    }
+
+    // Initiate Paystack transfer
     try {
       const transfer = await this.paystackService.processWithdrawal(
         amount,
@@ -993,7 +1157,7 @@ export class TransactionsService {
         reference,
       );
 
-      // Update transaction with provider reference (preserve existing metadata including bankName)
+      // Update transaction with provider reference
       await this.prisma.transaction.update({
         where: { id: transaction.id },
         data: {
@@ -1046,16 +1210,18 @@ export class TransactionsService {
           `Failed to send withdrawal initiation notification to user ${user.id}`,
           notifError,
         );
-        // Don't fail the withdrawal if notification fails
       }
     } catch (error) {
       // If transfer fails, refund wallet and mark transaction as failed
+      // FIXED: Use increment to add back the amount, not set to a stale value
+      const refundAmount = new Decimal(feeCalc.totalAmount);
+      
       await this.prisma.$transaction([
         this.prisma.wallet.update({
-          where: { id: wallet.id },
+          where: { id: walletId },
           data: {
-            balance: wallet.balance,
-            ledgerBalance: wallet.balance,
+            balance: { increment: refundAmount },
+            ledgerBalance: { increment: refundAmount },
           },
         }),
         this.prisma.transaction.update({
@@ -1066,6 +1232,8 @@ export class TransactionsService {
             metadata: {
               ...(transaction.metadata as object),
               error: error instanceof Error ? error.message : 'Unknown error',
+              refunded: true,
+              refundAmount: refundAmount.toString(),
             },
           },
         }),

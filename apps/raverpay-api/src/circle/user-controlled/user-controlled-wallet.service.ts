@@ -550,20 +550,8 @@ export class UserControlledWalletService implements OnModuleInit {
     const { userToken, walletId, destinationAddress, amounts, tokenId, feeLevel = 'MEDIUM', memo } = params;
 
     this.logger.log(`Creating transaction for wallet ${walletId}`);
-    this.logger.log(`Requested Token ID: ${tokenId} Amount: ${amounts[0]}`);
 
     try {
-      // DEBUG: Check wallet balance
-      try {
-        const balances = await this.circleClient.getWalletTokenBalance({
-          walletId,
-          userToken,
-        });
-        this.logger.log(`Wallet Balances: ${JSON.stringify(balances.data?.tokenBalances)}`);
-      } catch (err) {
-        this.logger.warn(`Failed to fetch balance for debug: ${err.message}`);
-      }
-
       const idempotencyKey = crypto.randomUUID();
       const response = await this.circleClient.createTransaction({
         userToken,
