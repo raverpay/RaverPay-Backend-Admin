@@ -98,6 +98,7 @@ function CircleChallengeContent() {
     console.log('[CircleSDK] Executing challenge:', challengeId);
     // Following Circle's reference implementation - only check for error
     // If no error, the challenge completed successfully
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     sdk.execute(challengeId, (error: any) => {
       if (error) {
         console.error('=== Circle SDK Error ===');

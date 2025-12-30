@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactNode, useState } from 'react';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function QueryProvider({ children }: { children: any }) {
   const [queryClient] = useState(
     () =>
