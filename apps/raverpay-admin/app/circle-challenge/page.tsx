@@ -98,7 +98,7 @@ function CircleChallengeContent() {
     console.log('[CircleSDK] Executing challenge:', challengeId);
     // Following Circle's reference implementation - only check for error
     // If no error, the challenge completed successfully
-    sdk.execute(challengeId, (error: { code?: number; message?: string } | null) => {
+    sdk.execute(challengeId, (error: any) => {
       if (error) {
         console.error('=== Circle SDK Error ===');
         console.error('Full error object:', error);

@@ -48,7 +48,7 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     ) {
       const token = authHeader.split(' ')[1];
       try {
-        const decoded = this.jwtService.decode(token) as { sub: string } | null;
+        const decoded = this.jwtService.decode(token);
         if (decoded?.sub) {
           console.log(`[Throttler] Tracking by decoded JWT: ${decoded.sub}`);
           return `user:${decoded.sub}`;

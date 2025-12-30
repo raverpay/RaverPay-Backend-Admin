@@ -1,0 +1,12 @@
+
+> @raverpay/raverpay-admin@0.1.0 typecheck /Users/joseph/Desktop/raverpay/apps/raverpay-admin
+> tsc --noEmit
+
+app/circle-challenge/page.tsx(101,30): error TS2345: Argument of type '(error: { code?: number; message?: string; } | null) => void' is not assignable to parameter of type 'ChallengeCompleteCallback'.
+  Types of parameters 'error' and 'error' are incompatible.
+    Type 'Error | undefined' is not assignable to type '{ code?: number | undefined; message?: string | undefined; } | null'.
+      Type 'undefined' is not assignable to type '{ code?: number | undefined; message?: string | undefined; } | null'.
+components/providers/query-provider.tsx(20,52): error TS2322: Type 'import("/Users/joseph/Desktop/raverpay/node_modules/.pnpm/@types+react@19.2.7/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+  Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+    Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+ ELIFECYCLE  Command failed with exit code 1.

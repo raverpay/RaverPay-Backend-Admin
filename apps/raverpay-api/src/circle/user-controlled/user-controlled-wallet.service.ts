@@ -557,12 +557,12 @@ export class UserControlledWalletService implements OnModuleInit {
         challengeId: response.data.challengeId,
       };
     } catch (error) {
-      const errorData = (error as any).response?.data || (error as any).message;
+      const errorData = error.response?.data || error.message;
       this.logger.error(
         `Failed to sign typed data: ${JSON.stringify(errorData)}`,
-        (error as any).stack,
+        error.stack,
       );
-      throw new Error(`Failed to sign typed data: ${(error as any).message}`);
+      throw new Error(`Failed to sign typed data: ${error.message}`);
     }
   }
 
@@ -624,14 +624,12 @@ export class UserControlledWalletService implements OnModuleInit {
         challengeId: response.data.challengeId,
       };
     } catch (error) {
-      const errorData = (error as any).response?.data || (error as any).message;
+      const errorData = error.response?.data || error.message;
       this.logger.error(
         `Failed to create transaction: ${JSON.stringify(errorData)}`,
-        (error as any).stack,
+        error.stack,
       );
-      throw new Error(
-        `Failed to create transaction: ${(error as any).message}`,
-      );
+      throw new Error(`Failed to create transaction: ${error.message}`);
     }
   }
 }
