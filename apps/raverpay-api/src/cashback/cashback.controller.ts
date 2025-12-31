@@ -8,7 +8,16 @@ import {
   UseGuards,
   Patch,
   Delete,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { CashbackService } from './cashback.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -19,6 +28,8 @@ import { CalculateCashbackDto } from './dto/calculate-cashback.dto';
 import { CreateCashbackConfigDto } from './dto/create-cashback-config.dto';
 import { UpdateCashbackConfigDto } from './dto/update-cashback-config.dto';
 
+@ApiTags('Cashback')
+@ApiBearerAuth()
 @Controller('cashback')
 @UseGuards(JwtAuthGuard)
 export class CashbackController {
@@ -30,6 +41,9 @@ export class CashbackController {
    * Get user's cashback wallet balance
    */
   @Get('wallet')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get Cashback Balance', description: 'Get current cashback wallet balance' })
+  @ApiResponse({ status: 200, description: 'Balance retrieved' })
   async getCashbackWallet(@GetUser('id') userId: string) {
     return this.cashbackService.getCashbackBalance(userId);
   }
@@ -38,6 +52,12 @@ export class CashbackController {
    * Get user's cashback transaction history
    */
   @Get('history')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get Cashback History', description: 'Get cashback transaction history' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'type', required: false, enum: ['EARNED', 'REDEEMED'] })
+  @ApiResponse({ status: 200, description: 'History retrieved' })
   async getCashbackHistory(
     @GetUser('id') userId: string,
     @Query('page') page?: string,
@@ -56,6 +76,9 @@ export class CashbackController {
    * Get active cashback configurations (for displaying on mobile app)
    */
   @Get('config')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get Active Configs', description: 'Get list of active cashback offers' })
+  @ApiResponse({ status: 200, description: 'Configurations retrieved' })
   async getActiveConfigs() {
     return this.cashbackService.getActiveConfigs();
   }
@@ -64,6 +87,9 @@ export class CashbackController {
    * Calculate cashback for a potential purchase
    */
   @Post('calculate')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Calculate Cashback', description: 'Calculate potential cashback for a transaction' })
+  @ApiResponse({ status: 200, description: 'Calculation result' })
   async calculateCashback(@Body() dto: CalculateCashbackDto) {
     return this.cashbackService.calculateCashback(
       dto.serviceType,

@@ -13,43 +13,18 @@ import { PaystackService } from './paystack.service';
 import { TransactionsService } from '../transactions/transactions.service';
 import { NotificationDispatcherService } from '../notifications/notification-dispatcher.service';
 import { PostHogService } from '../common/analytics/posthog.service';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiHeader,
+  ApiBody,
+} from '@nestjs/swagger';
+import { PaystackWebhookDto } from './dto/paystack-webhook.dto';
 
-interface PaystackWebhookPayload {
-  event: string;
-  data: {
-    reference: string;
-    amount: number;
-    status: string;
-    channel?: string; // e.g., "dedicated_nuban", "card"
-    paid_at?: string;
-    fees?: number;
-    customer?: {
-      email: string;
-      customer_code: string;
-    };
-    authorization?: {
-      channel?: string;
-      receiver_bank_account_number?: string;
-      sender_bank?: string;
-      sender_name?: string;
-      [key: string]: any;
-    };
-    metadata?: {
-      receiver_account_number?: string;
-      receiver_bank?: string;
-      [key: string]: any;
-    };
-    dedicated_account?: {
-      account_number: string;
-      account_name: string;
-      bank: {
-        name: string;
-        slug: string;
-      };
-    };
-  };
-}
 
+
+@ApiTags('Payments')
 @Controller('payments/webhooks')
 export class PaymentsController {
   private readonly logger = new Logger(PaymentsController.name);
@@ -66,10 +41,19 @@ export class PaymentsController {
    * POST /api/payments/webhooks/paystack
    */
   @Post('paystack')
+  @ApiOperation({ summary: 'Paystack Webhook', description: 'Handle Paystack payment events' })
+  @ApiHeader({
+    name: 'x-paystack-signature',
+    description: 'Paystack signature for verification',
+    required: true,
+  })
+  @ApiBody({ type: PaystackWebhookDto })
+  @ApiResponse({ status: 201, description: 'Webhook processed successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid signature or payload' })
   async handlePaystackWebhook(
     @Headers('x-paystack-signature') signature: string,
     @Req() req: RawBodyRequest<Request>,
-    @Body() payload: PaystackWebhookPayload,
+    @Body() payload: PaystackWebhookDto,
   ) {
     try {
       // Get raw body for signature verification
@@ -155,7 +139,10 @@ export class PaymentsController {
   /**
    * Handle successful charge (card payment or bank transfer)
    */
-  private async handleChargeSuccess(payload: PaystackWebhookPayload) {
+  /**
+   * Handle successful charge (card payment or bank transfer)
+   */
+  private async handleChargeSuccess(payload: PaystackWebhookDto) {
     const { reference, amount, status } = payload.data;
 
     // DEBUG: Log full payload to understand structure
@@ -341,7 +328,10 @@ export class PaymentsController {
   /**
    * Handle successful transfer (withdrawal completed)
    */
-  private async handleTransferSuccess(payload: PaystackWebhookPayload) {
+  /**
+   * Handle successful transfer (withdrawal completed)
+   */
+  private async handleTransferSuccess(payload: PaystackWebhookDto) {
     const { reference } = payload.data;
 
     try {
@@ -449,7 +439,10 @@ export class PaymentsController {
   /**
    * Handle failed transfer (withdrawal failed)
    */
-  private async handleTransferFailed(payload: PaystackWebhookPayload) {
+  /**
+   * Handle failed transfer (withdrawal failed)
+   */
+  private async handleTransferFailed(payload: PaystackWebhookDto) {
     const { reference } = payload.data;
 
     try {
@@ -569,7 +562,10 @@ export class PaymentsController {
   /**
    * Handle reversed transfer
    */
-  private async handleTransferReversed(payload: PaystackWebhookPayload) {
+  /**
+   * Handle reversed transfer
+   */
+  private async handleTransferReversed(payload: PaystackWebhookDto) {
     // Same as failed transfer
     await this.handleTransferFailed(payload);
   }

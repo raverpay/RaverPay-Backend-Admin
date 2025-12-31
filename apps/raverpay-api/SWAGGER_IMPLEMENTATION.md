@@ -138,6 +138,30 @@ All phases of the Swagger/OpenAPI documentation have been successfully implement
 - ✅ Multi-server support (local, staging, production)
 
 ### Phase 2: Core Documentation ✅
+
+| Module           | Coverage | Notes                               | Exclusions                |
+| :--------------- | :------- | :---------------------------------- | :------------------------ |
+| Payments         | 100%     | Full coverage (Webhooks documented) | -                         |
+| Virtual Accounts | 100%     | Full coverage                       | -                         |
+| Cashback         | 100%     | Full coverage (Public endpoints)    | Admin endpoints excluded  |
+| Device           | 100%     | Full coverage                       | -                         |
+| Support          | 100%     | Full coverage (Support & Help)      | Admin endpoints excluded  |
+| Notifications    | 100%     | Full coverage                       | -                         |
+| Admin            | 0%       | Excluded by request                 | -                         |
+
+## Recent Updates
+
+- **Payments**: Created `PaystackWebhookDto` and documented webhook endpoint.
+- **Virtual Accounts**: Documented DTOs and Controller.
+- **Cashback**: Documented public endpoints and DTOs.
+- **Device**: Documented Controller.
+- **Support**: Documented Support and Help controllers + all DTOs.
+- **Notifications**: Documented Notifications and Preferences controllers + DTOs.
+
+## Next Steps
+
+1.  Review generated `openapi.json` for validation.
+2.  Deploy to staging environment.
 - ✅ All Auth DTOs documented with examples and validation rules
 - ✅ All Auth endpoints documented with request/response schemas
 - ✅ All Wallet endpoints documented
@@ -145,6 +169,12 @@ All phases of the Swagger/OpenAPI documentation have been successfully implement
 - ✅ All Circle endpoints documented
 - ✅ All Transaction DTOs documented
 - ✅ All Transaction endpoints documented
+- ✅ All Payments webhooks documented
+- ✅ All Virtual Accounts endpoints documented
+- ✅ All Cashback endpoints documented
+- ✅ All Device endpoints documented
+- ✅ All Support endpoints documented
+- ✅ All Notifications endpoints documented
 
 ### Phase 3: Advanced Features ✅
 - ✅ Created reusable response decorators (`src/common/decorators/api-responses.decorator.ts`)
@@ -249,7 +279,7 @@ This generates `openapi.json` in the project root.
 
 ## 📊 Statistics
 
-- **Total Modules Documented**: 4
+- **Total Modules Documented**: 10
 - **Total DTOs Documented**: 33+
 - **Total Endpoints Documented**: 54+
 - **Total Lines of Documentation**: 2000+
