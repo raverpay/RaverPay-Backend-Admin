@@ -120,11 +120,23 @@ async function bootstrap() {
   logger.log('   - P2P transfers: 20 attempts/hour');
   logger.log('   - Admin operations: 100 requests/minute');
 
+  // Setup Swagger/OpenAPI documentation
+  const { setupSwagger, shouldEnableSwagger } = await import(
+    './config/swagger.config.js'
+  );
+  if (shouldEnableSwagger()) {
+    setupSwagger(app);
+    logger.log('📚 Swagger documentation enabled at /api/docs');
+  }
+
   const port = process.env.PORT || 3001;
   await app.listen(port);
 
   logger.log(`🚀 RaverPay API running on http://localhost:${port}`);
   logger.log(`📚 API endpoints available at http://localhost:${port}/api`);
+  if (shouldEnableSwagger()) {
+    logger.log(`📖 API documentation at http://localhost:${port}/api/docs`);
+  }
 }
 
 void bootstrap();
