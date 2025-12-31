@@ -10,6 +10,13 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { Throttle } from '@nestjs/throttler';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import {
   RegisterDto,
@@ -32,6 +39,7 @@ import { GetUser, Public } from './decorators';
  * - GET /auth/me - Get current user profile
  */
 @Controller('auth')
+@ApiTags('Authentication')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
@@ -45,6 +53,35 @@ export class AuthController {
   @Throttle({ default: { limit: 3, ttl: 3600000 } }) // 3 registrations per hour per IP
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Register new user',
+    description:
+      'Create a new user account with email, phone, password, and name. Returns JWT tokens and user profile. Rate limited to 3 registrations per hour per IP.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'User successfully registered',
+    schema: {
+      example: {
+        user: {
+          id: 'user_123',
+          email: 'john.doe@example.com',
+          phone: '08012345678',
+          firstName: 'John',
+          lastName: 'Doe',
+          isEmailVerified: false,
+          isPhoneVerified: false,
+        },
+        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input or email/phone already exists',
+  })
+  @ApiResponse({ status: 429, description: 'Too many registration attempts' })
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
@@ -60,6 +97,42 @@ export class AuthController {
   @Throttle({ default: { limit: 5, ttl: 900000 } }) // 5 login attempts per 15 minutes per IP
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'User login',
+    description:
+      'Authenticate user with email/phone and password. Includes device fingerprinting for security. May require device verification if logging in from a new device. Rate limited to 5 attempts per 15 minutes.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Login successful',
+    schema: {
+      example: {
+        user: {
+          id: 'user_123',
+          email: 'john.doe@example.com',
+          firstName: 'John',
+          lastName: 'Doe',
+        },
+        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 202,
+    description: 'Device verification required',
+    schema: {
+      example: {
+        requiresDeviceVerification: true,
+        userId: 'user_123',
+        deviceId: 'device_456',
+        message: 'Verification code sent to your email',
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  @ApiResponse({ status: 403, description: 'Account locked due to too many failed attempts' })
+  @ApiResponse({ status: 429, description: 'Too many login attempts' })
   async login(@Body() dto: LoginDto, @Req() req: Request) {
     // Extract IP address
     const ipAddress =
@@ -89,6 +162,22 @@ export class AuthController {
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Refresh access token',
+    description:
+      'Get a new access token using a valid refresh token. Both tokens are rotated for security.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Tokens refreshed successfully',
+    schema: {
+      example: {
+        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
   async refresh(@Body() dto: RefreshTokenDto) {
     return this.authService.refreshTokens(dto.refreshToken);
   }
@@ -101,6 +190,30 @@ export class AuthController {
    */
   @UseGuards(JwtAuthGuard)
   @Get('me')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get current user profile',
+    description: 'Retrieve the authenticated user profile. Requires valid JWT token.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User profile retrieved',
+    schema: {
+      example: {
+        user: {
+          id: 'user_123',
+          email: 'john.doe@example.com',
+          phone: '08012345678',
+          firstName: 'John',
+          lastName: 'Doe',
+          isEmailVerified: true,
+          isPhoneVerified: true,
+          kycTier: 'TIER_1',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
   getMe(@GetUser() user: unknown) {
     return {
       user,
@@ -117,6 +230,22 @@ export class AuthController {
   @Throttle({ default: { limit: 3, ttl: 3600000 } }) // 3 password reset requests per hour per IP
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Request password reset',
+    description:
+      'Send a 6-digit verification code to the user email for password reset. Rate limited to 3 requests per hour.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Reset code sent to email',
+    schema: {
+      example: {
+        message: 'Password reset code sent to your email',
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Email not found' })
+  @ApiResponse({ status: 429, description: 'Too many reset requests' })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto.email);
   }
@@ -130,6 +259,23 @@ export class AuthController {
   @Public()
   @Post('verify-reset-code')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Verify password reset code',
+    description:
+      'Verify the 6-digit code sent to email. Returns a reset token to be used for password reset.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Code verified successfully',
+    schema: {
+      example: {
+        resetToken: 'reset_token_abc123xyz789',
+        message: 'Code verified. Use the reset token to set new password.',
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Invalid or expired code' })
+  @ApiResponse({ status: 404, description: 'Email not found' })
   async verifyResetCode(@Body() dto: VerifyResetCodeDto) {
     return this.authService.verifyResetCode(dto.email, dto.code);
   }
@@ -143,6 +289,21 @@ export class AuthController {
   @Public()
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Reset password',
+    description:
+      'Set a new password using the reset token obtained from verify-reset-code endpoint.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset successfully',
+    schema: {
+      example: {
+        message: 'Password reset successfully. You can now login with your new password.',
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Invalid or expired reset token' })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto.resetToken, dto.newPassword);
   }
@@ -156,6 +317,34 @@ export class AuthController {
   @Public()
   @Post('verify-device')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Verify new device',
+    description:
+      'Verify a new device using the OTP code sent to email when logging in from an unrecognized device.',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        userId: { type: 'string', example: 'user_123' },
+        deviceId: { type: 'string', example: 'device_456' },
+        code: { type: 'string', example: '123456' },
+      },
+      required: ['userId', 'deviceId', 'code'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Device verified successfully',
+    schema: {
+      example: {
+        user: { id: 'user_123', email: 'john.doe@example.com' },
+        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Invalid verification code' })
   async verifyDevice(
     @Body() dto: { deviceId: string; code: string; userId: string },
   ) {
@@ -176,6 +365,22 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Logout user',
+    description:
+      'Revoke refresh token to logout. If no refresh token provided, revokes all tokens for the user.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Logout successful',
+    schema: {
+      example: {
+        message: 'Logged out successfully',
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async logout(@GetUser('id') userId: string, @Body() dto?: RefreshTokenDto) {
     return this.authService.logout(userId, dto?.refreshToken);
   }

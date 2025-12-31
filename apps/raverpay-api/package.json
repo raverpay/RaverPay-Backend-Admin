@@ -23,7 +23,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "migrate:encrypt-bvns": "ts-node scripts/encrypt-existing-bvns.ts"
+    "migrate:encrypt-bvns": "ts-node scripts/encrypt-existing-bvns.ts",
+    "swagger:export": "ts-node scripts/export-swagger.ts"
   },
   "dependencies": {
     "@circle-fin/developer-controlled-wallets": "^9.6.0",

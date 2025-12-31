@@ -13,6 +13,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
+import {
   CCTPTransferState,
   CircleTransactionState,
   CircleTransactionType,
@@ -50,6 +58,8 @@ interface AuthRequest {
  */
 @Controller('circle')
 @UseGuards(JwtAuthGuard)
+@ApiTags('Circle')
+@ApiBearerAuth('JWT-auth')
 export class CircleController {
   constructor(
     private readonly walletService: CircleWalletService,
@@ -68,6 +78,10 @@ export class CircleController {
    * POST /circle/wallets
    */
   @Post('wallets')
+  @ApiOperation({ summary: 'Create Circle wallet', description: 'Create a new USDC wallet on specified blockchain' })
+  @ApiResponse({ status: 201, description: 'Wallet created successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid input' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async createWallet(
     @Request() req: AuthRequest,
     @Body() dto: CreateCircleWalletDto,
@@ -96,6 +110,9 @@ export class CircleController {
    * GET /circle/wallets
    */
   @Get('wallets')
+  @ApiOperation({ summary: 'Get user wallets', description: 'Retrieve all Circle wallets for authenticated user' })
+  @ApiResponse({ status: 200, description: 'Wallets retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getWallets(@Request() req: AuthRequest) {
     const wallets = await this.walletService.getUserWallets(req.user.id);
 
@@ -119,6 +136,10 @@ export class CircleController {
    * GET /circle/wallets/:id
    */
   @Get('wallets/:id')
+  @ApiOperation({ summary: 'Get wallet details', description: 'Retrieve details of a specific Circle wallet' })
+  @ApiParam({ name: 'id', description: 'Wallet ID' })
+  @ApiResponse({ status: 200, description: 'Wallet retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Wallet not found' })
   async getWallet(@Request() req: AuthRequest, @Param('id') id: string) {
     const wallet = await this.walletService.getWallet(id, req.user.id);
 
@@ -139,6 +160,10 @@ export class CircleController {
   )
   @Header('Pragma', 'no-cache')
   @Header('Expires', '0')
+  @ApiOperation({ summary: 'Get wallet balance', description: 'Retrieve all token balances for a wallet' })
+  @ApiParam({ name: 'id', description: 'Wallet ID' })
+  @ApiResponse({ status: 200, description: 'Balance retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Wallet not found' })
   async getWalletBalance(@Request() req: AuthRequest, @Param('id') id: string) {
     const wallet = await this.walletService.getWallet(id, req.user.id);
     const balances = await this.walletService.getWalletBalance(
@@ -179,6 +204,10 @@ export class CircleController {
   )
   @Header('Pragma', 'no-cache')
   @Header('Expires', '0')
+  @ApiOperation({ summary: 'Get USDC balance', description: 'Get USDC token balance for a specific wallet' })
+  @ApiParam({ name: 'id', description: 'Wallet ID' })
+  @ApiResponse({ status: 200, description: 'USDC balance retrieved' })
+  @ApiResponse({ status: 404, description: 'Wallet not found' })
   async getUsdcBalance(@Request() req: AuthRequest, @Param('id') id: string) {
     const wallet = await this.walletService.getWallet(id, req.user.id);
     const balance = await this.walletService.getUsdcBalance(
@@ -204,6 +233,9 @@ export class CircleController {
    * GET /circle/wallets/deposit-info
    */
   @Get('wallets/deposit-info')
+  @ApiOperation({ summary: 'Get deposit info', description: 'Get wallet address and deposit instructions for receiving USDC' })
+  @ApiQuery({ name: 'blockchain', required: false, description: 'Blockchain to get deposit info for' })
+  @ApiResponse({ status: 200, description: 'Deposit info retrieved' })
   async getDepositInfo(
     @Request() req: AuthRequest,
     @Query('blockchain') blockchain?: string,
@@ -224,6 +256,10 @@ export class CircleController {
    * PUT /circle/wallets/:id
    */
   @Put('wallets/:id')
+  @ApiOperation({ summary: 'Update wallet', description: 'Update wallet name or metadata' })
+  @ApiParam({ name: 'id', description: 'Wallet ID' })
+  @ApiResponse({ status: 200, description: 'Wallet updated successfully' })
+  @ApiResponse({ status: 404, description: 'Wallet not found' })
   async updateWallet(
     @Request() req: AuthRequest,
     @Param('id') id: string,
@@ -251,6 +287,11 @@ export class CircleController {
    * Note: Consider adding PIN verification for production
    */
   @Post('transactions/transfer')
+  @ApiOperation({ summary: 'Transfer USDC', description: 'Send USDC to another address on the same blockchain' })
+  @ApiResponse({ status: 200, description: 'Transfer initiated successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid input or insufficient balance' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Wallet not found' })
   async transferUsdc(
     @Request() req: AuthRequest,
     @Body() dto: TransferUsdcDto,
@@ -275,6 +316,12 @@ export class CircleController {
    * GET /circle/transactions
    */
   @Get('transactions')
+  @ApiOperation({ summary: 'Get transactions', description: 'Retrieve transaction history with optional filters' })
+  @ApiQuery({ name: 'type', required: false, description: 'Filter by transaction type' })
+  @ApiQuery({ name: 'state', required: false, description: 'Filter by transaction state' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Number of results' })
+  @ApiQuery({ name: 'offset', required: false, type: Number, description: 'Pagination offset' })
+  @ApiResponse({ status: 200, description: 'Transactions retrieved successfully' })
   async getTransactions(
     @Request() req: AuthRequest,
     @Query() query: TransactionQueryDto,
@@ -300,6 +347,10 @@ export class CircleController {
    * GET /circle/transactions/:id
    */
   @Get('transactions/:id')
+  @ApiOperation({ summary: 'Get transaction details', description: 'Retrieve details of a specific Circle transaction' })
+  @ApiParam({ name: 'id', description: 'Transaction ID' })
+  @ApiResponse({ status: 200, description: 'Transaction retrieved' })
+  @ApiResponse({ status: 404, description: 'Transaction not found' })
   async getTransaction(@Request() req: AuthRequest, @Param('id') id: string) {
     const transaction = await this.transactionService.getTransaction(
       id,
@@ -317,6 +368,9 @@ export class CircleController {
    * POST /circle/transactions/estimate-fee
    */
   @Post('transactions/estimate-fee')
+  @ApiOperation({ summary: 'Estimate transaction fee', description: 'Calculate estimated gas fee for a USDC transfer' })
+  @ApiResponse({ status: 200, description: 'Fee estimated successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid input' })
   async estimateFee(@Request() req: AuthRequest, @Body() dto: EstimateFeeDto) {
     // Verify wallet belongs to user
     await this.walletService.getWallet(dto.walletId, req.user.id);
@@ -340,6 +394,10 @@ export class CircleController {
    */
   @Post('transactions/:id/cancel')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cancel transaction', description: 'Cancel a pending Circle transaction' })
+  @ApiParam({ name: 'id', description: 'Transaction ID' })
+  @ApiResponse({ status: 200, description: 'Transaction cancelled' })
+  @ApiResponse({ status: 400, description: 'Transaction cannot be cancelled' })
   async cancelTransaction(
     @Request() req: AuthRequest,
     @Param('id') id: string,
@@ -358,6 +416,10 @@ export class CircleController {
    */
   @Post('transactions/:id/accelerate')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Accelerate transaction', description: 'Speed up a stuck transaction by increasing gas fee' })
+  @ApiParam({ name: 'id', description: 'Transaction ID' })
+  @ApiResponse({ status: 200, description: 'Transaction accelerated' })
+  @ApiResponse({ status: 400, description: 'Transaction cannot be accelerated' })
   async accelerateTransaction(
     @Request() req: AuthRequest,
     @Param('id') id: string,
@@ -375,6 +437,8 @@ export class CircleController {
    * POST /circle/transactions/validate-address
    */
   @Post('transactions/validate-address')
+  @ApiOperation({ summary: 'Validate blockchain address', description: 'Check if an address is valid for the specified blockchain' })
+  @ApiResponse({ status: 200, description: 'Address validated' })
   async validateAddress(@Body() dto: ValidateAddressDto) {
     const isValid = await this.transactionService.validateAddress(
       dto.address,
@@ -397,6 +461,11 @@ export class CircleController {
    * Note: Consider adding PIN verification for production
    */
   @Post('cctp/transfer')
+  @ApiOperation({ summary: 'CCTP cross-chain transfer', description: 'Transfer USDC across different blockchains using Circle CCTP protocol' })
+  @ApiResponse({ status: 200, description: 'CCTP transfer initiated successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid input or insufficient balance' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Wallet not found' })
   async initiateCCTPTransfer(
     @Request() req: AuthRequest,
     @Body() dto: CCTPTransferDto,
@@ -422,6 +491,11 @@ export class CircleController {
    * GET /circle/cctp/transfers
    */
   @Get('cctp/transfers')
+  @ApiOperation({ summary: 'Get CCTP transfers', description: 'Retrieve user CCTP cross-chain transfer history' })
+  @ApiQuery({ name: 'state', required: false, description: 'Filter by transfer state' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Number of results' })
+  @ApiQuery({ name: 'offset', required: false, type: Number, description: 'Pagination offset' })
+  @ApiResponse({ status: 200, description: 'CCTP transfers retrieved' })
   async getCCTPTransfers(
     @Request() req: AuthRequest,
     @Query() query: CCTPQueryDto,
@@ -443,6 +517,10 @@ export class CircleController {
    * GET /circle/cctp/transfers/:id
    */
   @Get('cctp/transfers/:id')
+  @ApiOperation({ summary: 'Get CCTP transfer details', description: 'Retrieve details of a specific CCTP transfer' })
+  @ApiParam({ name: 'id', description: 'CCTP transfer ID' })
+  @ApiResponse({ status: 200, description: 'CCTP transfer retrieved' })
+  @ApiResponse({ status: 404, description: 'Transfer not found' })
   async getCCTPTransfer(@Request() req: AuthRequest, @Param('id') id: string) {
     const transfer = await this.cctpService.getTransfer(id, req.user.id);
 
@@ -458,6 +536,10 @@ export class CircleController {
    */
   @Post('cctp/transfers/:id/cancel')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cancel CCTP transfer', description: 'Cancel a pending CCTP cross-chain transfer' })
+  @ApiParam({ name: 'id', description: 'CCTP transfer ID' })
+  @ApiResponse({ status: 200, description: 'CCTP transfer cancelled' })
+  @ApiResponse({ status: 400, description: 'Transfer cannot be cancelled' })
   async cancelCCTPTransfer(
     @Request() req: AuthRequest,
     @Param('id') id: string,
@@ -475,6 +557,8 @@ export class CircleController {
    * POST /circle/cctp/estimate-fee
    */
   @Post('cctp/estimate-fee')
+  @ApiOperation({ summary: 'Estimate CCTP fee', description: 'Calculate estimated fee for CCTP cross-chain transfer' })
+  @ApiResponse({ status: 200, description: 'Fee estimated' })
   estimateCCTPFee(@Body() dto: CCTPEstimateDto) {
     const estimate = this.cctpService.estimateFee({
       sourceChain: dto.sourceChain,
@@ -494,6 +578,8 @@ export class CircleController {
    * GET /circle/cctp/chains
    */
   @Get('cctp/chains')
+  @ApiOperation({ summary: 'Get supported CCTP chains', description: 'List all blockchains that support Circle CCTP protocol' })
+  @ApiResponse({ status: 200, description: 'Supported chains retrieved' })
   getSupportedCCTPChains() {
     const chains = this.cctpService.getSupportedChains();
 
@@ -512,6 +598,8 @@ export class CircleController {
    * GET /circle/paymaster/config
    */
   @Get('paymaster/config')
+  @ApiOperation({ summary: 'Get Paymaster config', description: 'Retrieve Paymaster configuration and supported blockchains' })
+  @ApiResponse({ status: 200, description: 'Configuration retrieved' })
   getPaymasterConfig() {
     return {
       success: true,
@@ -529,6 +617,10 @@ export class CircleController {
    * GET /circle/paymaster/compatible/:walletId
    */
   @Get('paymaster/compatible/:walletId')
+  @ApiOperation({ summary: 'Check Paymaster compatibility', description: 'Check if wallet supports paying gas fees in USDC' })
+  @ApiParam({ name: 'walletId', description: 'Wallet ID to check' })
+  @ApiResponse({ status: 200, description: 'Compatibility checked' })
+  @ApiResponse({ status: 404, description: 'Wallet not found' })
   async checkPaymasterCompatibility(
     @Request() req: AuthRequest,
     @Param('walletId') walletId: string,
@@ -556,6 +648,10 @@ export class CircleController {
    * POST /circle/paymaster/estimate-fee
    */
   @Post('paymaster/estimate-fee')
+  @ApiOperation({ summary: 'Estimate Paymaster fee', description: 'Calculate gas fee in USDC for Paymaster-sponsored transaction' })
+  @ApiResponse({ status: 200, description: 'Fee estimated in USDC' })
+  @ApiResponse({ status: 400, description: 'Invalid input or wallet not compatible' })
+  @ApiResponse({ status: 404, description: 'Wallet not found' })
   async estimatePaymasterFee(
     @Request() req: AuthRequest,
     @Body() dto: EstimateFeeDto,
@@ -582,6 +678,11 @@ export class CircleController {
    * Note: Consider adding PIN verification for production
    */
   @Post('paymaster/transfer')
+  @ApiOperation({ summary: 'Paymaster transfer', description: 'Transfer USDC with gas fees paid in USDC instead of native tokens (SCA wallets only)' })
+  @ApiResponse({ status: 200, description: 'Sponsored transfer created successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid input, insufficient balance, or wallet not compatible' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Wallet not found' })
   async createSponsoredTransfer(
     @Request() req: AuthRequest,
     @Body() dto: TransferUsdcDto,
@@ -614,6 +715,10 @@ export class CircleController {
    * GET /circle/paymaster/stats/:walletId
    */
   @Get('paymaster/stats/:walletId')
+  @ApiOperation({ summary: 'Get Paymaster stats', description: 'Retrieve Paymaster usage statistics for a wallet' })
+  @ApiParam({ name: 'walletId', description: 'Wallet ID' })
+  @ApiResponse({ status: 200, description: 'Stats retrieved' })
+  @ApiResponse({ status: 404, description: 'Wallet not found' })
   async getPaymasterStats(
     @Request() req: AuthRequest,
     @Param('walletId') walletId: string,
@@ -638,6 +743,8 @@ export class CircleController {
    * GET /circle/config
    */
   @Get('config')
+  @ApiOperation({ summary: 'Get Circle configuration', description: 'Retrieve Circle SDK configuration and supported features' })
+  @ApiResponse({ status: 200, description: 'Configuration retrieved' })
   getConfig() {
     return {
       success: true,
