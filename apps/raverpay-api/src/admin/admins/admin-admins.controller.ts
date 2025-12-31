@@ -10,6 +10,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import type { UserStatus } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -22,16 +23,20 @@ import {
   ResetPasswordDto,
 } from '../dto/admin.dto';
 
+@ApiTags('Admin - Admins')
+@ApiBearerAuth('JWT-auth')
 @Controller('admin/admins')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.SUPER_ADMIN) // Only SUPER_ADMIN can manage admins
 export class AdminAdminsController {
   constructor(private readonly adminAdminsService: AdminAdminsService) {}
 
-  /**
-   * GET /admin/admins
-   * Get paginated list of admin users
-   */
+  @ApiOperation({ summary: 'Get paginated list of admin users' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'role', required: false, enum: UserRole })
+  @ApiQuery({ name: 'status', required: false, type: String })
+  @ApiQuery({ name: 'search', required: false, type: String })
   @Get()
   async getAdmins(
     @Query('page') page?: number,
@@ -49,37 +54,27 @@ export class AdminAdminsController {
     );
   }
 
-  /**
-   * GET /admin/admins/stats
-   * Get admin statistics
-   */
+  @ApiOperation({ summary: 'Get admin statistics' })
   @Get('stats')
   async getStats() {
     return this.adminAdminsService.getStats();
   }
 
-  /**
-   * GET /admin/admins/:adminId
-   * Get single admin details
-   */
+  @ApiOperation({ summary: 'Get single admin details' })
+  @ApiParam({ name: 'adminId', description: 'Admin ID' })
   @Get(':adminId')
   async getAdminById(@Param('adminId') adminId: string) {
     return this.adminAdminsService.getAdminById(adminId);
   }
 
-  /**
-   * POST /admin/admins
-   * Create new admin user
-   */
+  @ApiOperation({ summary: 'Create new admin user' })
   @Post()
   async createAdmin(@Request() req, @Body() dto: CreateAdminDto) {
     return this.adminAdminsService.createAdmin(req.user.id, dto);
   }
 
-  /**
-   * PATCH /admin/admins/:adminId
-   * Update admin user
-   */
+  @ApiOperation({ summary: 'Update admin user' })
+  @ApiParam({ name: 'adminId', description: 'Admin ID' })
   @Patch(':adminId')
   async updateAdmin(
     @Request() req,
@@ -89,19 +84,15 @@ export class AdminAdminsController {
     return this.adminAdminsService.updateAdmin(req.user.id, adminId, dto);
   }
 
-  /**
-   * DELETE /admin/admins/:adminId
-   * Delete (deactivate) admin user
-   */
+  @ApiOperation({ summary: 'Delete (deactivate) admin user' })
+  @ApiParam({ name: 'adminId', description: 'Admin ID' })
   @Delete(':adminId')
   async deleteAdmin(@Request() req, @Param('adminId') adminId: string) {
     return this.adminAdminsService.deleteAdmin(req.user.id, adminId);
   }
 
-  /**
-   * POST /admin/admins/:adminId/reset-password
-   * Reset admin password
-   */
+  @ApiOperation({ summary: 'Reset admin password' })
+  @ApiParam({ name: 'adminId', description: 'Admin ID' })
   @Post(':adminId/reset-password')
   async resetPassword(
     @Request() req,

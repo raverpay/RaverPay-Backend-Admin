@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { AdminGiftCardsService } from './admin-giftcards.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -20,15 +21,22 @@ import {
   AdjustGiftCardAmountDto,
 } from '../dto';
 
+@ApiTags('Admin - Giftcards')
+@ApiBearerAuth('JWT-auth')
 @Controller('admin/giftcards')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AdminGiftCardsController {
   constructor(private readonly giftCardsService: AdminGiftCardsService) {}
 
-  /**
-   * GET /admin/giftcards/orders
-   * Get gift card orders with filters
-   */
+  @ApiOperation({ summary: 'Get gift card orders with filters' })
+  @ApiQuery({ name: 'page', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: String })
+  @ApiQuery({ name: 'type', required: false, enum: GiftCardType })
+  @ApiQuery({ name: 'status', required: false, enum: TransactionStatus })
+  @ApiQuery({ name: 'userId', required: false, type: String })
+  @ApiQuery({ name: 'brand', required: false, type: String })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
   @Get('orders')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SUPPORT)
   async getOrders(
@@ -53,20 +61,16 @@ export class AdminGiftCardsController {
     );
   }
 
-  /**
-   * GET /admin/giftcards/pending-review
-   * Get pending review orders (sell orders)
-   */
+  @ApiOperation({ summary: 'Get pending review orders (sell orders)' })
   @Get('pending-review')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SUPPORT)
   async getPendingReview() {
     return this.giftCardsService.getPendingReview();
   }
 
-  /**
-   * GET /admin/giftcards/stats
-   * Get gift card statistics
-   */
+  @ApiOperation({ summary: 'Get gift card statistics' })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
   @Get('stats')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SUPPORT)
   async getStats(
@@ -76,20 +80,16 @@ export class AdminGiftCardsController {
     return this.giftCardsService.getStats(startDate, endDate);
   }
 
-  /**
-   * GET /admin/giftcards/:orderId
-   * Get single gift card order details
-   */
+  @ApiOperation({ summary: 'Get single gift card order details' })
+  @ApiParam({ name: 'orderId', description: 'Order ID' })
   @Get(':orderId')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SUPPORT)
   async getOrderById(@Param('orderId') orderId: string) {
     return this.giftCardsService.getOrderById(orderId);
   }
 
-  /**
-   * POST /admin/giftcards/:orderId/approve
-   * Approve gift card sell order
-   */
+  @ApiOperation({ summary: 'Approve gift card sell order' })
+  @ApiParam({ name: 'orderId', description: 'Order ID' })
   @Post(':orderId/approve')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async approveOrder(
@@ -100,10 +100,8 @@ export class AdminGiftCardsController {
     return this.giftCardsService.approveOrder(adminUserId, orderId, dto);
   }
 
-  /**
-   * POST /admin/giftcards/:orderId/reject
-   * Reject gift card sell order
-   */
+  @ApiOperation({ summary: 'Reject gift card sell order' })
+  @ApiParam({ name: 'orderId', description: 'Order ID' })
   @Post(':orderId/reject')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async rejectOrder(
@@ -114,10 +112,8 @@ export class AdminGiftCardsController {
     return this.giftCardsService.rejectOrder(adminUserId, orderId, dto);
   }
 
-  /**
-   * PATCH /admin/giftcards/:orderId/adjust-amount
-   * Adjust gift card payout amount
-   */
+  @ApiOperation({ summary: 'Adjust gift card payout amount' })
+  @ApiParam({ name: 'orderId', description: 'Order ID' })
   @Patch(':orderId/adjust-amount')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async adjustAmount(

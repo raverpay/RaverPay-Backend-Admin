@@ -11,6 +11,7 @@ import {
   UseInterceptors,
   UploadedFiles,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiQuery, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { AdminEmailsService } from './admin-emails.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -22,12 +23,8 @@ import { ReplyEmailDto } from './dto/reply-email.dto';
 import { SendEmailDto } from './dto/send-email.dto';
 import { ResendWebhookService } from '../../webhooks/resend-webhook.service';
 
-/**
- * Admin Emails Controller
- *
- * Endpoints for managing inbound emails in admin dashboard
- * Base path: /api/admin/emails
- */
+@ApiTags('Admin - Emails')
+@ApiBearerAuth('JWT-auth')
 @Controller('admin/emails')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.SUPPORT, UserRole.ADMIN, UserRole.SUPER_ADMIN)
@@ -39,10 +36,13 @@ export class AdminEmailsController {
     private readonly webhookService: ResendWebhookService,
   ) {}
 
-  /**
-   * Get emails with role-based filtering
-   * GET /api/admin/emails
-   */
+  @ApiOperation({ summary: 'Get emails with role-based filtering' })
+  @ApiQuery({ name: 'page', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: String })
+  @ApiQuery({ name: 'targetEmail', required: false, type: String })
+  @ApiQuery({ name: 'targetRole', required: false, enum: UserRole })
+  @ApiQuery({ name: 'isProcessed', required: false, type: String })
+  @ApiQuery({ name: 'search', required: false, type: String })
   @Get()
   async getEmails(
     @GetUser('role') userRole: UserRole,
@@ -69,10 +69,7 @@ export class AdminEmailsController {
     });
   }
 
-  /**
-   * Get email statistics
-   * GET /api/admin/emails/stats
-   */
+  @ApiOperation({ summary: 'Get email statistics' })
   @Get('stats')
   async getEmailStats(
     @GetUser('role') userRole: UserRole,
@@ -81,10 +78,12 @@ export class AdminEmailsController {
     return this.emailsService.getEmailStats(userRole, userId);
   }
 
-  /**
-   * Get outbound emails (sent emails)
-   * GET /api/admin/emails/outbound
-   */
+  @ApiOperation({ summary: 'Get outbound emails (sent emails)' })
+  @ApiQuery({ name: 'page', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: String })
+  @ApiQuery({ name: 'fromEmail', required: false, type: String })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'status', required: false, type: String })
   @Get('outbound')
   async getOutboundEmails(
     @GetUser('role') userRole: UserRole,
@@ -104,10 +103,8 @@ export class AdminEmailsController {
     });
   }
 
-  /**
-   * Get outbound email by ID
-   * GET /api/admin/emails/outbound/:id
-   */
+  @ApiOperation({ summary: 'Get outbound email by ID' })
+  @ApiParam({ name: 'id', description: 'Email ID' })
   @Get('outbound/:id')
   async getOutboundEmailById(
     @Param('id') emailId: string,
@@ -117,16 +114,8 @@ export class AdminEmailsController {
     return this.emailsService.getOutboundEmailById(emailId, userRole, userId);
   }
 
-  /**
-   * Manually process an email from Resend by email ID
-   * POST /api/admin/emails/process-from-resend
-   *
-   * Use this to recover emails from missed webhook events
-   * Requires ADMIN or SUPER_ADMIN role
-   *
-   * NOTE: This route MUST be defined before the :id routes to prevent
-   * 'process-from-resend' from being matched as an ID parameter
-   */
+  @ApiOperation({ summary: 'Manually process an email from Resend by email ID' })
+  @ApiBody({ schema: { type: 'object', properties: { emailId: { type: 'string' } } } })
   @Post('process-from-resend')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async processEmailFromResend(
@@ -139,10 +128,8 @@ export class AdminEmailsController {
     return this.webhookService.manuallyProcessEmail(emailId);
   }
 
-  /**
-   * Get email by ID
-   * GET /api/admin/emails/:id
-   */
+  @ApiOperation({ summary: 'Get email by ID' })
+  @ApiParam({ name: 'id', description: 'Email ID' })
   @Get(':id')
   async getEmailById(
     @Param('id') emailId: string,
@@ -152,10 +139,8 @@ export class AdminEmailsController {
     return this.emailsService.getEmailById(emailId, userRole, userId);
   }
 
-  /**
-   * Mark email as processed
-   * PATCH /api/admin/emails/:id/process
-   */
+  @ApiOperation({ summary: 'Mark email as processed' })
+  @ApiParam({ name: 'id', description: 'Email ID' })
   @Patch(':id/process')
   async markAsProcessed(
     @Param('id') emailId: string,
@@ -165,15 +150,9 @@ export class AdminEmailsController {
     return this.emailsService.markAsProcessed(emailId, userRole, userId);
   }
 
-  /**
-   * Reply to an inbound email
-   * POST /api/admin/emails/:id/reply
-   *
-   * Supports file attachments (max 5 files, 10MB each)
-   * Content-Type: multipart/form-data
-   * Fields: content, subject (optional)
-   * Files: attachments[] (optional)
-   */
+  @ApiOperation({ summary: 'Reply to an inbound email' })
+  @ApiParam({ name: 'id', description: 'Email ID' })
+  @ApiConsumes('multipart/form-data')
   @Post(':id/reply')
   @UseInterceptors(
     FilesInterceptor('attachments', 5, {
@@ -198,10 +177,8 @@ export class AdminEmailsController {
     );
   }
 
-  /**
-   * Fetch email body content from Resend API (on-demand)
-   * GET /api/admin/emails/:id/content
-   */
+  @ApiOperation({ summary: 'Fetch email body content from Resend API' })
+  @ApiParam({ name: 'id', description: 'Email ID' })
   @Get(':id/content')
   async fetchEmailContent(
     @Param('id') emailId: string,
@@ -211,10 +188,9 @@ export class AdminEmailsController {
     return this.emailsService.fetchEmailContent(emailId, userRole, userId);
   }
 
-  /**
-   * Download an email attachment
-   * GET /api/admin/emails/:id/attachments/:attachmentId
-   */
+  @ApiOperation({ summary: 'Download an email attachment' })
+  @ApiParam({ name: 'id', description: 'Email ID' })
+  @ApiParam({ name: 'attachmentId', description: 'Attachment ID' })
   @Get(':id/attachments/:attachmentId')
   async downloadAttachment(
     @Param('id') emailId: string,
@@ -230,10 +206,9 @@ export class AdminEmailsController {
     );
   }
 
-  /**
-   * Forward an email to another address
-   * POST /api/admin/emails/:id/forward
-   */
+  @ApiOperation({ summary: 'Forward an email to another address' })
+  @ApiParam({ name: 'id', description: 'Email ID' })
+  @ApiBody({ schema: { type: 'object', properties: { toEmail: { type: 'string' } } } })
   @Post(':id/forward')
   async forwardEmail(
     @Param('id') emailId: string,
@@ -249,15 +224,8 @@ export class AdminEmailsController {
     );
   }
 
-  /**
-   * Send a fresh email (not a reply)
-   * POST /api/admin/emails/send
-   *
-   * Supports file attachments (max 5 files, 10MB each)
-   * Content-Type: multipart/form-data
-   * Fields: to, subject, content, fromEmail (optional), cc[] (optional), bcc[] (optional)
-   * Files: attachments[] (optional)
-   */
+  @ApiOperation({ summary: 'Send a fresh email (not a reply)' })
+  @ApiConsumes('multipart/form-data')
   @Post('send')
   @UseInterceptors(
     FilesInterceptor('attachments', 5, {

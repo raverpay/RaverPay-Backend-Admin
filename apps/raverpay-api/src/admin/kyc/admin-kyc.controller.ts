@@ -7,6 +7,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -14,52 +15,41 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminKYCService } from './admin-kyc.service';
 import { ApproveBVNDto, RejectBVNDto } from '../dto';
 
+@ApiTags('Admin - KYC')
+@ApiBearerAuth('JWT-auth')
 @Controller('admin/kyc')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SUPPORT)
 export class AdminKYCController {
   constructor(private readonly adminKYCService: AdminKYCService) {}
 
-  /**
-   * GET /admin/kyc/pending
-   * Get pending KYC verifications
-   */
+  @ApiOperation({ summary: 'Get pending KYC verifications' })
   @Get('pending')
   async getPendingKYC() {
     return this.adminKYCService.getPendingKYC();
   }
 
-  /**
-   * GET /admin/kyc/rejected
-   * Get rejected KYC applications
-   */
+  @ApiOperation({ summary: 'Get rejected KYC applications' })
   @Get('rejected')
   async getRejectedKYC() {
     return this.adminKYCService.getRejectedKYC();
   }
 
-  /**
-   * GET /admin/kyc/stats
-   * Get KYC statistics
-   */
+  @ApiOperation({ summary: 'Get KYC statistics' })
   @Get('stats')
   async getKYCStats() {
     return this.adminKYCService.getKYCStats();
   }
 
-  /**
-   * GET /admin/kyc/:userId
-   * Get user KYC details
-   */
+  @ApiOperation({ summary: 'Get user KYC details' })
+  @ApiParam({ name: 'userId', description: 'User ID' })
   @Get(':userId')
   async getUserKYC(@Param('userId') userId: string) {
     return this.adminKYCService.getUserKYC(userId);
   }
 
-  /**
-   * POST /admin/kyc/:userId/approve-bvn
-   * Approve BVN verification
-   */
+  @ApiOperation({ summary: 'Approve BVN verification' })
+  @ApiParam({ name: 'userId', description: 'User ID' })
   @Post(':userId/approve-bvn')
   async approveBVN(
     @Request() req,
@@ -69,10 +59,8 @@ export class AdminKYCController {
     return this.adminKYCService.approveBVN(req.user.id, userId, dto);
   }
 
-  /**
-   * POST /admin/kyc/:userId/reject-bvn
-   * Reject BVN verification
-   */
+  @ApiOperation({ summary: 'Reject BVN verification' })
+  @ApiParam({ name: 'userId', description: 'User ID' })
   @Post(':userId/reject-bvn')
   async rejectBVN(
     @Request() req,
@@ -82,10 +70,8 @@ export class AdminKYCController {
     return this.adminKYCService.rejectBVN(req.user.id, userId, dto);
   }
 
-  /**
-   * POST /admin/kyc/:userId/approve-nin
-   * Approve NIN verification
-   */
+  @ApiOperation({ summary: 'Approve NIN verification' })
+  @ApiParam({ name: 'userId', description: 'User ID' })
   @Post(':userId/approve-nin')
   async approveNIN(
     @Request() req,
@@ -95,10 +81,8 @@ export class AdminKYCController {
     return this.adminKYCService.approveNIN(req.user.id, userId, dto);
   }
 
-  /**
-   * POST /admin/kyc/:userId/reject-nin
-   * Reject NIN verification
-   */
+  @ApiOperation({ summary: 'Reject NIN verification' })
+  @ApiParam({ name: 'userId', description: 'User ID' })
   @Post(':userId/reject-nin')
   async rejectNIN(
     @Request() req,

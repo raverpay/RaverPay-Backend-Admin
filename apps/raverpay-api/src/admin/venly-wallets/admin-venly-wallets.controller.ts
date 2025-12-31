@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { AdminVenlyWalletsService } from './admin-venly-wallets.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -15,15 +16,20 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { GetUser } from '../../auth/decorators/get-user.decorator';
 import { UserRole, CryptoTransactionStatus } from '@prisma/client';
 
+@ApiTags('Admin - Venly Wallets')
+@ApiBearerAuth('JWT-auth')
 @Controller('admin/venly-wallets')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AdminVenlyWalletsController {
   constructor(private readonly venlyWalletsService: AdminVenlyWalletsService) {}
 
-  /**
-   * GET /admin/venly-wallets
-   * Get all crypto wallets with filters
-   */
+  @ApiOperation({ summary: 'Get all crypto wallets with filters' })
+  @ApiQuery({ name: 'page', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: String })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'minBalance', required: false, type: String })
+  @ApiQuery({ name: 'maxBalance', required: false, type: String })
+  @ApiQuery({ name: 'hasWallet', required: false, type: String })
   @Get()
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SUPPORT)
   async getCryptoWallets(
@@ -44,20 +50,16 @@ export class AdminVenlyWalletsController {
     );
   }
 
-  /**
-   * GET /admin/venly-wallets/stats
-   * Get crypto wallet statistics
-   */
+  @ApiOperation({ summary: 'Get crypto wallet statistics' })
   @Get('stats')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SUPPORT)
   async getWalletStats() {
     return this.venlyWalletsService.getWalletStats();
   }
 
-  /**
-   * GET /admin/venly-wallets/analytics
-   * Get analytics data
-   */
+  @ApiOperation({ summary: 'Get analytics data' })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
   @Get('analytics')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SUPPORT)
   async getAnalytics(
@@ -67,20 +69,22 @@ export class AdminVenlyWalletsController {
     return this.venlyWalletsService.getAnalytics(startDate, endDate);
   }
 
-  /**
-   * GET /admin/venly-wallets/user/:userId
-   * Get user's crypto wallet details
-   */
+  @ApiOperation({ summary: 'Get user\'s crypto wallet details' })
+  @ApiParam({ name: 'userId', description: 'User ID' })
   @Get('user/:userId')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SUPPORT)
   async getUserCryptoWallet(@Param('userId') userId: string) {
     return this.venlyWalletsService.getUserCryptoWallet(userId);
   }
 
-  /**
-   * GET /admin/venly-wallets/transactions
-   * Get crypto transactions with filters
-   */
+  @ApiOperation({ summary: 'Get crypto transactions with filters' })
+  @ApiQuery({ name: 'page', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: String })
+  @ApiQuery({ name: 'userId', required: false, type: String })
+  @ApiQuery({ name: 'status', required: false, enum: CryptoTransactionStatus })
+  @ApiQuery({ name: 'type', required: false, type: String })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
   @Get('transactions')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SUPPORT)
   async getCryptoTransactions(
@@ -103,20 +107,17 @@ export class AdminVenlyWalletsController {
     );
   }
 
-  /**
-   * GET /admin/venly-wallets/transactions/:id
-   * Get transaction by ID
-   */
+  @ApiOperation({ summary: 'Get transaction by ID' })
+  @ApiParam({ name: 'id', description: 'Transaction ID' })
   @Get('transactions/:id')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SUPPORT)
   async getTransactionById(@Param('id') id: string) {
     return this.venlyWalletsService.getTransactionById(id);
   }
 
-  /**
-   * POST /admin/venly-wallets/transactions/:id/flag
-   * Flag transaction as suspicious
-   */
+  @ApiOperation({ summary: 'Flag transaction as suspicious' })
+  @ApiParam({ name: 'id', description: 'Transaction ID' })
+  @ApiBody({ schema: { type: 'object', properties: { reason: { type: 'string' } } } })
   @Post('transactions/:id/flag')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async flagTransaction(
@@ -127,10 +128,13 @@ export class AdminVenlyWalletsController {
     return this.venlyWalletsService.flagTransaction(adminUserId, id, reason);
   }
 
-  /**
-   * GET /admin/venly-wallets/conversions
-   * Get crypto to Naira conversions
-   */
+  @ApiOperation({ summary: 'Get crypto to Naira conversions' })
+  @ApiQuery({ name: 'page', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: String })
+  @ApiQuery({ name: 'userId', required: false, type: String })
+  @ApiQuery({ name: 'status', required: false, enum: CryptoTransactionStatus })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
   @Get('conversions')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SUPPORT)
   async getCryptoConversions(
@@ -151,20 +155,15 @@ export class AdminVenlyWalletsController {
     );
   }
 
-  /**
-   * GET /admin/venly-wallets/exchange-rates
-   * Get exchange rates
-   */
+  @ApiOperation({ summary: 'Get exchange rates' })
   @Get('exchange-rates')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SUPPORT)
   async getExchangeRates() {
     return this.venlyWalletsService.getExchangeRates();
   }
 
-  /**
-   * PATCH /admin/venly-wallets/exchange-rates
-   * Update exchange rate
-   */
+  @ApiOperation({ summary: 'Update exchange rate' })
+  @ApiBody({ schema: { type: 'object', properties: { currency: { type: 'string' }, toNaira: { type: 'number' }, platformFeePercent: { type: 'number' } } } })
   @Patch('exchange-rates')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async updateExchangeRate(

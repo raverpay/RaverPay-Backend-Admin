@@ -10,12 +10,15 @@ import {
   Request,
   ParseBoolPipe,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminVirtualAccountsService } from './admin-virtual-accounts.service';
 
+@ApiTags('Admin - Virtual Accounts')
+@ApiBearerAuth('JWT-auth')
 @Controller('admin/virtual-accounts')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
@@ -24,10 +27,16 @@ export class AdminVirtualAccountsController {
     private readonly adminVirtualAccountsService: AdminVirtualAccountsService,
   ) {}
 
-  /**
-   * GET /admin/virtual-accounts
-   * Get all virtual accounts
-   */
+  @ApiOperation({ summary: 'Get all virtual accounts' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'provider', required: false, type: String })
+  @ApiQuery({ name: 'status', required: false, type: String })
+  @ApiQuery({ name: 'isActive', required: false, type: Boolean })
+  @ApiQuery({ name: 'userId', required: false, type: String })
+  @ApiQuery({ name: 'sortBy', required: false, type: String })
+  @ApiQuery({ name: 'sortOrder', required: false, enum: ['asc', 'desc'] })
   @Get()
   async getVirtualAccounts(
     @Query('page') page?: number,
@@ -58,28 +67,22 @@ export class AdminVirtualAccountsController {
     );
   }
 
-  /**
-   * GET /admin/virtual-accounts/stats
-   * Get virtual account statistics
-   */
+  @ApiOperation({ summary: 'Get virtual account statistics' })
   @Get('stats')
   async getStats() {
     return this.adminVirtualAccountsService.getStats();
   }
 
-  /**
-   * GET /admin/virtual-accounts/unassigned
-   * Get users without virtual accounts
-   */
+  @ApiOperation({ summary: 'Get users without virtual accounts' })
   @Get('unassigned')
   async getUnassignedUsers() {
     return this.adminVirtualAccountsService.getUnassignedUsers();
   }
 
-  /**
-   * GET /admin/virtual-accounts/failed
-   * Get users with failed DVA creation (have customer code + BVN but no active DVA)
-   */
+  @ApiOperation({ summary: 'Get users with failed DVA creation' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'search', required: false, type: String })
   @Get('failed')
   async getFailedDVACreations(
     @Query('page') page?: number,
@@ -93,19 +96,16 @@ export class AdminVirtualAccountsController {
     );
   }
 
-  /**
-   * GET /admin/virtual-accounts/:userId/status
-   * Get DVA creation status for a user
-   */
+  @ApiOperation({ summary: 'Get DVA creation status for a user' })
+  @ApiParam({ name: 'userId', description: 'User ID' })
   @Get(':userId/status')
   async getDVACreationStatus(@Param('userId') userId: string) {
     return this.adminVirtualAccountsService.getDVACreationStatus(userId);
   }
 
-  /**
-   * POST /admin/virtual-accounts/:userId/create
-   * Manually create DVA for a user
-   */
+  @ApiOperation({ summary: 'Manually create DVA for a user' })
+  @ApiParam({ name: 'userId', description: 'User ID' })
+  @ApiBody({ schema: { type: 'object', properties: { preferred_bank: { type: 'string' } } } })
   @Post(':userId/create')
   async createDVAForUser(
     @Request() req,
@@ -119,19 +119,16 @@ export class AdminVirtualAccountsController {
     );
   }
 
-  /**
-   * GET /admin/virtual-accounts/:userId
-   * Get virtual account by user ID
-   */
+  @ApiOperation({ summary: 'Get virtual account by user ID' })
+  @ApiParam({ name: 'userId', description: 'User ID' })
   @Get(':userId')
   async getByUserId(@Param('userId') userId: string) {
     return this.adminVirtualAccountsService.getByUserId(userId);
   }
 
-  /**
-   * PATCH /admin/virtual-accounts/:accountId/deactivate
-   * Deactivate virtual account
-   */
+  @ApiOperation({ summary: 'Deactivate virtual account' })
+  @ApiParam({ name: 'accountId', description: 'Account ID' })
+  @ApiBody({ schema: { type: 'object', properties: { reason: { type: 'string' } } } })
   @Patch(':accountId/deactivate')
   async deactivate(
     @Request() req,
@@ -145,10 +142,8 @@ export class AdminVirtualAccountsController {
     );
   }
 
-  /**
-   * PATCH /admin/virtual-accounts/:accountId/reactivate
-   * Reactivate virtual account
-   */
+  @ApiOperation({ summary: 'Reactivate virtual account' })
+  @ApiParam({ name: 'accountId', description: 'Account ID' })
   @Patch(':accountId/reactivate')
   async reactivate(@Request() req, @Param('accountId') accountId: string) {
     return this.adminVirtualAccountsService.reactivate(req.user.id, accountId);

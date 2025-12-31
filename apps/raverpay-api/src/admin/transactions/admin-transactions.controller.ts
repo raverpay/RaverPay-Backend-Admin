@@ -10,6 +10,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -21,6 +22,8 @@ import {
   UpdateWithdrawalConfigDto,
 } from '../../transactions/dto';
 
+@ApiTags('Admin - Transactions')
+@ApiBearerAuth('JWT-auth')
 @Controller('admin/transactions')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
@@ -29,19 +32,15 @@ export class AdminTransactionsController {
     private readonly adminTransactionsService: AdminTransactionsService,
   ) {}
 
-  /**
-   * GET /admin/transactions
-   * Get paginated list of transactions with filters
-   */
+  @ApiOperation({ summary: 'Get paginated list of transactions with filters' })
   @Get()
   async getTransactions(@Query() query: QueryTransactionsDto) {
     return this.adminTransactionsService.getTransactions(query);
   }
 
-  /**
-   * GET /admin/transactions/stats
-   * Get transaction statistics
-   */
+  @ApiOperation({ summary: 'Get transaction statistics' })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
   @Get('stats')
   async getTransactionStats(
     @Query('startDate') startDate?: string,
@@ -53,10 +52,9 @@ export class AdminTransactionsController {
     );
   }
 
-  /**
-   * GET /admin/transactions/pending
-   * Get pending transactions
-   */
+  @ApiOperation({ summary: 'Get pending transactions' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
   @Get('pending')
   async getPendingTransactions(
     @Query('page') page?: number,
@@ -65,10 +63,11 @@ export class AdminTransactionsController {
     return this.adminTransactionsService.getPendingTransactions(page, limit);
   }
 
-  /**
-   * GET /admin/transactions/failed
-   * Get failed transactions
-   */
+  @ApiOperation({ summary: 'Get failed transactions' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
   @Get('failed')
   async getFailedTransactions(
     @Query('page') page?: number,
@@ -84,46 +83,34 @@ export class AdminTransactionsController {
     );
   }
 
-  /**
-   * GET /admin/transactions/reference/:reference
-   * Get transaction by reference
-   */
+  @ApiOperation({ summary: 'Get transaction by reference' })
+  @ApiParam({ name: 'reference', description: 'Transaction Reference' })
   @Get('reference/:reference')
   async getTransactionByReference(@Param('reference') reference: string) {
     return this.adminTransactionsService.getTransactionByReference(reference);
   }
 
-  /**
-   * GET /admin/transactions/withdrawal-configs
-   * Get all withdrawal configurations
-   */
+  @ApiOperation({ summary: 'Get all withdrawal configurations' })
   @Get('withdrawal-configs')
   async getAllWithdrawalConfigs() {
     return this.adminTransactionsService.getAllWithdrawalConfigs();
   }
 
-  /**
-   * GET /admin/transactions/withdrawal-configs/:id
-   * Get withdrawal configuration by ID
-   */
+  @ApiOperation({ summary: 'Get withdrawal configuration by ID' })
+  @ApiParam({ name: 'id', description: 'Config ID' })
   @Get('withdrawal-configs/:id')
   async getWithdrawalConfigById(@Param('id') id: string) {
     return this.adminTransactionsService.getWithdrawalConfigById(id);
   }
 
-  /**
-   * POST /admin/transactions/withdrawal-configs
-   * Create withdrawal configuration
-   */
+  @ApiOperation({ summary: 'Create withdrawal configuration' })
   @Post('withdrawal-configs')
   async createWithdrawalConfig(@Body() dto: CreateWithdrawalConfigDto) {
     return this.adminTransactionsService.createWithdrawalConfig(dto);
   }
 
-  /**
-   * PUT /admin/transactions/withdrawal-configs/:id
-   * Update withdrawal configuration
-   */
+  @ApiOperation({ summary: 'Update withdrawal configuration' })
+  @ApiParam({ name: 'id', description: 'Config ID' })
   @Put('withdrawal-configs/:id')
   async updateWithdrawalConfig(
     @Param('id') id: string,
@@ -132,28 +119,22 @@ export class AdminTransactionsController {
     return this.adminTransactionsService.updateWithdrawalConfig(id, dto);
   }
 
-  /**
-   * DELETE /admin/transactions/withdrawal-configs/:id
-   * Delete withdrawal configuration
-   */
+  @ApiOperation({ summary: 'Delete withdrawal configuration' })
+  @ApiParam({ name: 'id', description: 'Config ID' })
   @Delete('withdrawal-configs/:id')
   async deleteWithdrawalConfig(@Param('id') id: string) {
     return this.adminTransactionsService.deleteWithdrawalConfig(id);
   }
 
-  /**
-   * GET /admin/transactions/:transactionId
-   * Get single transaction details
-   */
+  @ApiOperation({ summary: 'Get single transaction details' })
+  @ApiParam({ name: 'transactionId', description: 'Transaction ID' })
   @Get(':transactionId')
   async getTransactionById(@Param('transactionId') transactionId: string) {
     return this.adminTransactionsService.getTransactionById(transactionId);
   }
 
-  /**
-   * POST /admin/transactions/:transactionId/reverse
-   * Reverse a transaction
-   */
+  @ApiOperation({ summary: 'Reverse a transaction' })
+  @ApiParam({ name: 'transactionId', description: 'Transaction ID' })
   @Post(':transactionId/reverse')
   async reverseTransaction(
     @Request() req,

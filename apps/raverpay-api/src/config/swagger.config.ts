@@ -10,14 +10,38 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
  * - Environment-based servers
  * - Custom branding
  */
-export function setupSwagger(app: INestApplication): void {
+import { AdminModule } from '../admin/admin.module';
+import { AuthModule } from '../auth/auth.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { PaymentsModule } from '../payments/payments.module';
+import { TransactionsModule } from '../transactions/transactions.module';
+import { UsersModule } from '../users/users.module';
+import { VirtualAccountsModule } from '../virtual-accounts/virtual-accounts.module';
+import { VTUModule } from '../vtu/vtu.module';
+import { WalletModule } from '../wallet/wallet.module';
+
+import { SupportModule } from '../support/support.module';
+import { CashbackModule } from '../cashback/cashback.module';
+import { CryptoModule } from '../crypto/crypto.module';
+import { CircleModule } from '../circle/circle.module';
+import { DeviceModule } from '../device/device.module';
+import { LimitsModule } from '../limits/limits.module';
+import { AppConfigModule } from '../app-config/app-config.module';
+import { DiagnosticModule } from '../diagnostic/diagnostic.module';
+import { WebhooksModule } from '../webhooks/webhooks.module'; // Corrected import
+
+/**
+ * Configure Public API Swagger Documentation
+ * Excludes AdminModule
+ */
+export function setupPublicSwagger(app: INestApplication): void {
   const config = new DocumentBuilder()
     .setTitle('Raverpay API')   
     .setDescription(
       `
 # Raverpay Fintech Platform API
 
-Welcome to the Raverpay API documentation. This API powers a comprehensive fintech platform with:
+Welcome to the Raverpay API documentation. This API powers a comprehensive fintech platform.
 
 ## Core Features
 - **Wallet Management** - Multi-currency wallets with real-time balance tracking
@@ -27,56 +51,20 @@ Welcome to the Raverpay API documentation. This API powers a comprehensive finte
 - **VTU Services** - Airtime and data purchases
 - **Giftcards** - Buy and sell giftcards
 - **Crypto** - Cryptocurrency trading via Venly
-- **Admin Dashboard** - Comprehensive admin controls and analytics
 - **Notifications** - Multi-channel notifications (Email, Push, In-App)
 - **Cashback** - Rewards and cashback system
 
 ## Authentication
-Most endpoints require JWT authentication. To authenticate:
-1. Login via \`POST /api/auth/login\` to get an access token
-2. Include the token in the \`Authorization\` header: \`Bearer <token>\`
-3. Admin endpoints require admin role
-
-## Rate Limiting
-All endpoints are rate-limited to prevent abuse:
-- Default: 200 requests/minute per user/IP
-- Burst protection: 20 requests/10 seconds
-- Specific limits apply to sensitive operations (login, register, payments)
-
-## Webhooks
-The API receives webhooks from:
-- Paystack (payment notifications)
-- Circle (wallet and transaction events)
-- Resend (email delivery status)
-- VTU providers (service fulfillment)
-
-## Support
-For API support, contact: support@raverpay.com
+Most endpoints require JWT authentication.
       `.trim(),
     )
     .setVersion('1.0.0')
-    .setContact(
-      'Raverpay Support',
-      'https://app.raverpay.com',
-      'support@raverpay.com',
-    )
+    .setContact('Raverpay Support', 'https://app.raverpay.com', 'support@raverpay.com')
     .setLicense('Proprietary', 'https://app.raverpay.com/terms')
-    // Add servers based on environment
     .addServer('http://localhost:3001', 'Local Development')
     .addServer('https://api-staging.raverpay.com', 'Staging')
     .addServer('https://api.raverpay.com', 'Production')
-    // JWT Authentication
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Enter JWT token',
-        in: 'header',
-      },
-      'JWT-auth', // This name will be used in @ApiBearerAuth()
-    )
+    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT', name: 'JWT', description: 'Enter JWT token', in: 'header' }, 'JWT-auth')
     // Organize endpoints by tags
     .addTag('Authentication', 'User authentication and authorization')
     .addTag('Users', 'User profile and account management')
@@ -97,7 +85,71 @@ For API support, contact: support@raverpay.com
     .addTag('Limits', 'Transaction limits')
     .addTag('App Config', 'Application configuration')
     .addTag('Diagnostic', 'System health and diagnostics')
-    // Admin tags
+    .addTag('Webhooks - Paystack', 'Paystack webhook handlers')
+    .addTag('Webhooks - Circle', 'Circle webhook handlers')
+    .addTag('Webhooks - Resend', 'Resend webhook handlers')
+    .addTag('Webhooks - VTU', 'VTU webhook handlers')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config, {
+    operationIdFactory: (controllerKey: string, methodKey: string) => `${controllerKey}_${methodKey}`,
+    include: [
+      AuthModule,
+      UsersModule,
+      WalletModule,
+      PaymentsModule,
+      TransactionsModule,
+      CircleModule,
+      VTUModule,
+      CryptoModule,
+      VirtualAccountsModule,
+      CashbackModule,
+      NotificationsModule,
+      SupportModule,
+      DeviceModule,
+      LimitsModule,
+      AppConfigModule,
+      DiagnosticModule,
+      WebhooksModule,
+    ],
+  });
+
+  SwaggerModule.setup('api/docs', app, document, {
+    customSiteTitle: 'Raverpay API Documentation',
+    customfavIcon: 'https://app.raverpay.com/favicon.ico',
+    customCss: `
+      .swagger-ui .topbar { display: none }
+      .swagger-ui .info .title { color: #6366f1; }
+      .swagger-ui .scheme-container { background: #f8f9fa; padding: 20px; border-radius: 8px; }
+    `,
+    swaggerOptions: {
+      persistAuthorization: true,
+      filter: true,
+      displayRequestDuration: true,
+      docExpansion: 'none',
+      defaultModelsExpandDepth: 3,
+      defaultModelExpandDepth: 3,
+      tagsSorter: 'alpha',
+      operationsSorter: 'alpha',
+    },
+  });
+
+  console.log('📚 Public Swagger documentation available at /api/docs');
+}
+
+/**
+ * Configure Admin API Swagger Documentation
+ * Includes ONLY AdminModule
+ */
+export function setupAdminSwagger(app: INestApplication): void {
+  const config = new DocumentBuilder()
+    .setTitle('Raverpay Admin API')
+    .setDescription('Restricted access for internal administration tools.')
+    .setVersion('1.0.0')
+    .addServer('http://localhost:3001', 'Local Development')
+    .addServer('https://api-staging.raverpay.com', 'Staging')
+    .addServer('https://api.raverpay.com', 'Production')
+    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT', name: 'JWT', description: 'Enter JWT token', in: 'header' }, 'JWT-auth')
     .addTag('Admin - Users', 'Admin user management')
     .addTag('Admin - Wallets', 'Admin wallet operations')
     .addTag('Admin - Transactions', 'Admin transaction management')
@@ -117,40 +169,31 @@ For API support, contact: support@raverpay.com
     .addTag('Admin - Audit Logs', 'Admin audit log viewing')
     .addTag('Admin - Rate Limits', 'Admin rate limit management')
     .addTag('Admin - Deletions', 'Admin data deletion operations')
-    // Webhook tags
-    .addTag('Webhooks - Paystack', 'Paystack webhook handlers')
-    .addTag('Webhooks - Circle', 'Circle webhook handlers')
-    .addTag('Webhooks - Resend', 'Resend webhook handlers')
-    .addTag('Webhooks - VTU', 'VTU webhook handlers')
     .build();
 
   const document = SwaggerModule.createDocument(app, config, {
-    operationIdFactory: (controllerKey: string, methodKey: string) =>
-      `${controllerKey}_${methodKey}`,
+    operationIdFactory: (controllerKey: string, methodKey: string) => `${controllerKey}_${methodKey}`,
+    include: [AdminModule, AuthModule],
   });
 
-  // Setup Swagger UI with custom options
-  SwaggerModule.setup('api/docs', app, document, {
-    customSiteTitle: 'Raverpay API Documentation',
-    customfavIcon: 'https://app.raverpay.com/favicon.ico',
+  SwaggerModule.setup('api/admin/docs', app, document, {
+    customSiteTitle: 'Raverpay Admin API',
     customCss: `
       .swagger-ui .topbar { display: none }
-      .swagger-ui .info .title { color: #6366f1; }
-      .swagger-ui .scheme-container { background: #f8f9fa; padding: 20px; border-radius: 8px; }
+      .swagger-ui .info .title { color: #ef4444; } /* Red title for Admin */
+      .swagger-ui .scheme-container { background: #fee2e2; padding: 20px; border-radius: 8px; } /* Reddish bg for Admin */
     `,
     swaggerOptions: {
-      persistAuthorization: true, // Keep auth token between page refreshes
-      filter: true, // Enable search/filter
-      displayRequestDuration: true, // Show request duration
-      docExpansion: 'none', // Collapse all by default
-      defaultModelsExpandDepth: 3,
-      defaultModelExpandDepth: 3,
-      tagsSorter: 'alpha', // Sort tags alphabetically
-      operationsSorter: 'alpha', // Sort operations alphabetically
+      persistAuthorization: true,
+      filter: true,
+      displayRequestDuration: true,
+      docExpansion: 'none',
+      tagsSorter: 'alpha',
+      operationsSorter: 'alpha',
     },
   });
 
-  console.log('📚 Swagger documentation available at /api/docs');
+  console.log('🔒 Admin Swagger documentation available at /api/admin/docs');
 }
 
 /**

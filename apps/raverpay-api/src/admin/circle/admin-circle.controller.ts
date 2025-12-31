@@ -1,4 +1,5 @@
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -12,16 +13,15 @@ import {
   CircleAnalyticsDto,
 } from './admin-circle.dto';
 
+@ApiTags('Admin - Circle')
+@ApiBearerAuth('JWT-auth')
 @Controller('admin/circle')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
 export class AdminCircleController {
   constructor(private readonly adminCircleService: AdminCircleService) {}
 
-  /**
-   * GET /admin/circle/config
-   * Get Circle configuration
-   */
+  @ApiOperation({ summary: 'Get Circle configuration' })
   @Get('config')
   async getConfig() {
     const config = await this.adminCircleService.getConfig();
@@ -31,10 +31,7 @@ export class AdminCircleController {
     };
   }
 
-  /**
-   * GET /admin/circle/stats
-   * Get Circle statistics
-   */
+  @ApiOperation({ summary: 'Get Circle statistics' })
   @Get('stats')
   async getStats() {
     const stats = await this.adminCircleService.getStats();
@@ -44,19 +41,14 @@ export class AdminCircleController {
     };
   }
 
-  /**
-   * GET /admin/circle/wallets
-   * Get paginated wallets with filters
-   */
+  @ApiOperation({ summary: 'Get paginated wallets with filters' })
   @Get('wallets')
   async getWallets(@Query() query: QueryCircleWalletsDto) {
     return this.adminCircleService.getWallets(query);
   }
 
-  /**
-   * GET /admin/circle/wallets/user/:userId
-   * Get wallets by user ID
-   */
+  @ApiOperation({ summary: 'Get wallets by user ID' })
+  @ApiParam({ name: 'userId', description: 'User ID' })
   @Get('wallets/user/:userId')
   async getWalletsByUser(@Param('userId') userId: string) {
     const wallets = await this.adminCircleService.getWalletsByUser(userId);
@@ -66,10 +58,8 @@ export class AdminCircleController {
     };
   }
 
-  /**
-   * GET /admin/circle/wallets/:id
-   * Get wallet by ID
-   */
+  @ApiOperation({ summary: 'Get wallet by ID' })
+  @ApiParam({ name: 'id', description: 'Wallet ID' })
   @Get('wallets/:id')
   async getWalletById(@Param('id') id: string) {
     const wallet = await this.adminCircleService.getWalletById(id);
@@ -79,10 +69,9 @@ export class AdminCircleController {
     };
   }
 
-  /**
-   * GET /admin/circle/wallet-sets
-   * Get paginated wallet sets
-   */
+  @ApiOperation({ summary: 'Get paginated wallet sets' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
   @Get('wallet-sets')
   async getWalletSets(
     @Query('page') page?: number,
@@ -91,10 +80,8 @@ export class AdminCircleController {
     return this.adminCircleService.getWalletSets({ page, limit });
   }
 
-  /**
-   * GET /admin/circle/wallet-sets/:id
-   * Get wallet set by ID
-   */
+  @ApiOperation({ summary: 'Get wallet set by ID' })
+  @ApiParam({ name: 'id', description: 'Wallet Set ID' })
   @Get('wallet-sets/:id')
   async getWalletSetById(@Param('id') id: string) {
     const walletSet = await this.adminCircleService.getWalletSetById(id);
@@ -104,19 +91,14 @@ export class AdminCircleController {
     };
   }
 
-  /**
-   * GET /admin/circle/transactions
-   * Get paginated transactions with filters
-   */
+  @ApiOperation({ summary: 'Get paginated transactions with filters' })
   @Get('transactions')
   async getTransactions(@Query() query: QueryCircleTransactionsDto) {
     return this.adminCircleService.getTransactions(query);
   }
 
-  /**
-   * GET /admin/circle/transactions/:id
-   * Get transaction by ID
-   */
+  @ApiOperation({ summary: 'Get transaction by ID' })
+  @ApiParam({ name: 'id', description: 'Transaction ID' })
   @Get('transactions/:id')
   async getTransactionById(@Param('id') id: string) {
     const transaction = await this.adminCircleService.getTransactionById(id);
@@ -126,19 +108,14 @@ export class AdminCircleController {
     };
   }
 
-  /**
-   * GET /admin/circle/cctp-transfers
-   * Get paginated CCTP transfers with filters
-   */
+  @ApiOperation({ summary: 'Get paginated CCTP transfers with filters' })
   @Get('cctp-transfers')
   async getCCTPTransfers(@Query() query: QueryCCTPTransfersDto) {
     return this.adminCircleService.getCCTPTransfers(query);
   }
 
-  /**
-   * GET /admin/circle/cctp-transfers/:id
-   * Get CCTP transfer by ID
-   */
+  @ApiOperation({ summary: 'Get CCTP transfer by ID' })
+  @ApiParam({ name: 'id', description: 'Transfer ID' })
   @Get('cctp-transfers/:id')
   async getCCTPTransferById(@Param('id') id: string) {
     const transfer = await this.adminCircleService.getCCTPTransferById(id);
@@ -148,19 +125,13 @@ export class AdminCircleController {
     };
   }
 
-  /**
-   * GET /admin/circle/webhook-logs
-   * Get paginated webhook logs
-   */
+  @ApiOperation({ summary: 'Get paginated webhook logs' })
   @Get('webhook-logs')
   async getWebhookLogs(@Query() query: QueryWebhookLogsDto) {
     return this.adminCircleService.getWebhookLogs(query);
   }
 
-  /**
-   * GET /admin/circle/analytics
-   * Get analytics data
-   */
+  @ApiOperation({ summary: 'Get analytics data' })
   @Get('analytics')
   async getAnalytics(@Query() params: CircleAnalyticsDto) {
     const analytics = await this.adminCircleService.getAnalytics(params);
@@ -170,10 +141,12 @@ export class AdminCircleController {
     };
   }
 
-  /**
-   * GET /admin/circle/users
-   * Get paginated Circle users
-   */
+  @ApiOperation({ summary: 'Get paginated Circle users' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'authMethod', required: false, type: String })
+  @ApiQuery({ name: 'status', required: false, type: String })
   @Get('users')
   async getCircleUsers(
     @Query('page') page?: number,
@@ -191,10 +164,7 @@ export class AdminCircleController {
     });
   }
 
-  /**
-   * GET /admin/circle/users/stats
-   * Get Circle users statistics
-   */
+  @ApiOperation({ summary: 'Get Circle users statistics' })
   @Get('users/stats')
   async getCircleUsersStats() {
     const stats = await this.adminCircleService.getCircleUsersStats();
@@ -204,10 +174,8 @@ export class AdminCircleController {
     };
   }
 
-  /**
-   * GET /admin/circle/users/:id
-   * Get Circle user by ID
-   */
+  @ApiOperation({ summary: 'Get Circle user by ID' })
+  @ApiParam({ name: 'id', description: 'User ID' })
   @Get('users/:id')
   async getCircleUserById(@Param('id') id: string) {
     const user = await this.adminCircleService.getCircleUserById(id);

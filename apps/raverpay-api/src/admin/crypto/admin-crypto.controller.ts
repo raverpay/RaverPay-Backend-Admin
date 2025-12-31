@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { AdminCryptoService } from './admin-crypto.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -20,15 +21,22 @@ import {
   AdjustCryptoAmountDto,
 } from '../dto';
 
+@ApiTags('Admin - Crypto')
+@ApiBearerAuth('JWT-auth')
 @Controller('admin/crypto')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AdminCryptoController {
   constructor(private readonly cryptoService: AdminCryptoService) {}
 
-  /**
-   * GET /admin/crypto/orders
-   * Get crypto orders with filters
-   */
+  @ApiOperation({ summary: 'Get crypto orders with filters' })
+  @ApiQuery({ name: 'page', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: String })
+  @ApiQuery({ name: 'type', required: false, enum: CryptoOrderType })
+  @ApiQuery({ name: 'status', required: false, enum: TransactionStatus })
+  @ApiQuery({ name: 'userId', required: false, type: String })
+  @ApiQuery({ name: 'asset', required: false, type: String })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
   @Get('orders')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SUPPORT)
   async getOrders(
@@ -53,20 +61,16 @@ export class AdminCryptoController {
     );
   }
 
-  /**
-   * GET /admin/crypto/pending-review
-   * Get pending review orders (sell orders)
-   */
+  @ApiOperation({ summary: 'Get pending review orders (sell orders)' })
   @Get('pending-review')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SUPPORT)
   async getPendingReview() {
     return this.cryptoService.getPendingReview();
   }
 
-  /**
-   * GET /admin/crypto/stats
-   * Get crypto statistics
-   */
+  @ApiOperation({ summary: 'Get crypto statistics' })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
   @Get('stats')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SUPPORT)
   async getStats(
@@ -76,20 +80,16 @@ export class AdminCryptoController {
     return this.cryptoService.getStats(startDate, endDate);
   }
 
-  /**
-   * GET /admin/crypto/:orderId
-   * Get single crypto order details
-   */
+  @ApiOperation({ summary: 'Get single crypto order details' })
+  @ApiParam({ name: 'orderId', description: 'Order ID' })
   @Get(':orderId')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SUPPORT)
   async getOrderById(@Param('orderId') orderId: string) {
     return this.cryptoService.getOrderById(orderId);
   }
 
-  /**
-   * POST /admin/crypto/:orderId/approve
-   * Approve crypto sell order
-   */
+  @ApiOperation({ summary: 'Approve crypto sell order' })
+  @ApiParam({ name: 'orderId', description: 'Order ID' })
   @Post(':orderId/approve')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async approveOrder(
@@ -100,10 +100,8 @@ export class AdminCryptoController {
     return this.cryptoService.approveOrder(adminUserId, orderId, dto);
   }
 
-  /**
-   * POST /admin/crypto/:orderId/reject
-   * Reject crypto sell order
-   */
+  @ApiOperation({ summary: 'Reject crypto sell order' })
+  @ApiParam({ name: 'orderId', description: 'Order ID' })
   @Post(':orderId/reject')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async rejectOrder(
@@ -114,10 +112,8 @@ export class AdminCryptoController {
     return this.cryptoService.rejectOrder(adminUserId, orderId, dto);
   }
 
-  /**
-   * PATCH /admin/crypto/:orderId/adjust-amount
-   * Adjust crypto payout amount
-   */
+  @ApiOperation({ summary: 'Adjust crypto payout amount' })
+  @ApiParam({ name: 'orderId', description: 'Order ID' })
   @Patch(':orderId/adjust-amount')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async adjustAmount(
