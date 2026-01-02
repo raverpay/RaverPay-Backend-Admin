@@ -37,7 +37,7 @@ import { SupportGateway } from './support.gateway';
       }),
     }),
   ],
-  controllers: [SupportController, SupportAdminController, HelpController],
+  controllers: [SupportController, HelpController],
   providers: [
     SupportService,
     HelpService,
@@ -49,6 +49,7 @@ import { SupportGateway } from './support.gateway';
   exports: [
     SupportService,
     HelpService,
+    CannedResponseService,
     BotService,
     SupportGateway,
     SupportNotificationService,

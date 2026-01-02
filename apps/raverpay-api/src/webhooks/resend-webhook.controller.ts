@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import type { RawBodyRequest } from '@nestjs/common';
 import { Request } from 'express';
 import { ResendWebhookService } from './resend-webhook.service';
@@ -23,6 +24,7 @@ import { Public } from '../auth/decorators/public.decorator';
  * Required webhook events to enable on Resend Dashboard:
  * - email.received: Email received at configured addresses
  */
+@ApiTags('Webhooks - Resend')
 @Controller('webhooks/resend')
 export class ResendWebhookController {
   private readonly logger = new Logger(ResendWebhookController.name);

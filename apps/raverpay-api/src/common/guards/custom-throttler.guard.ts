@@ -35,7 +35,7 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
   protected async getTracker(req: Record<string, any>): Promise<string> {
     // 1. Try to get user from request (if AuthGuard ran already)
     if (req.user?.id) {
-      console.log(`[Throttler] Tracking by req.user: ${req.user.id}`);
+      // console.log(`[Throttler] Tracking by req.user: ${req.user.id}`);
       return `user:${req.user.id}`;
     }
 
@@ -50,17 +50,17 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
       try {
         const decoded = this.jwtService.decode(token);
         if (decoded?.sub) {
-          console.log(`[Throttler] Tracking by decoded JWT: ${decoded.sub}`);
+          // console.log(`[Throttler] Tracking by decoded JWT: ${decoded.sub}`);
           return `user:${decoded.sub}`;
         }
       } catch (e) {
-        console.log(`[Throttler] JWT Decode Error: ${e.message}`);
+        // console.log(`[Throttler] JWT Decode Error: ${e.message}`);
       }
     }
 
     // 3. Fallback: Track by IP
     const tracker = req.ip || req.socket?.remoteAddress || 'unknown';
-    console.log(`[Throttler] Tracking by IP: ${tracker}`);
+    // console.log(`[Throttler] Tracking by IP: ${tracker}`);
     return tracker;
   }
 

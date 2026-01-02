@@ -8,6 +8,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { VTPassService } from './services/vtpass.service';
 import { VTUService } from './vtu.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -24,6 +25,7 @@ interface VTPassWebhookPayload {
   };
 }
 
+@ApiTags('Webhooks - VTU')
 @Controller('vtu/webhooks')
 export class VTUWebhooksController {
   private readonly logger = new Logger(VTUWebhooksController.name);

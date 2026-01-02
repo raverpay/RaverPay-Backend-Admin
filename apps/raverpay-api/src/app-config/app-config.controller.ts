@@ -4,8 +4,10 @@ import { UpdateRatingConfigDto } from './dto/update-rating-config.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 
+@ApiTags('App Config')
 @Controller('app-config')
 export class AppConfigController {
   constructor(private readonly appConfigService: AppConfigService) {}
@@ -15,6 +17,10 @@ export class AppConfigController {
    * GET /app-config/rating-prompt
    */
   @Get('rating-prompt')
+  @ApiOperation({
+    summary: 'Get Rating Config',
+    description: 'Get rating prompt configuration (public)',
+  })
   async getRatingConfig() {
     return this.appConfigService.getRatingConfig();
   }
@@ -26,6 +32,12 @@ export class AppConfigController {
   @Patch('admin/rating-prompt')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Update Rating Config',
+    description: 'Update rating configuration (Admin only)',
+  })
+  @ApiBody({ type: UpdateRatingConfigDto })
   async updateRatingConfig(@Body() updateDto: UpdateRatingConfigDto) {
     return this.appConfigService.updateRatingConfig(updateDto);
   }

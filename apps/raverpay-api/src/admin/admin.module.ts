@@ -49,6 +49,7 @@ import { PaymentsModule } from '../payments/payments.module';
 import { WebhooksModule } from '../webhooks/webhooks.module';
 import { WalletModule } from '../wallet/wallet.module';
 import { CircleModule } from '../circle/circle.module';
+import { SupportAdminController } from '../support/support-admin.controller';
 
 @Module({
   imports: [
@@ -82,6 +83,7 @@ import { CircleModule } from '../circle/circle.module';
     AdminCircleController,
     AdminEmailsController,
     RateLimitsController,
+    SupportAdminController,
   ],
   providers: [
     AdminUsersService,

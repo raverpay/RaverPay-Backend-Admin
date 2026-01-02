@@ -88,7 +88,7 @@ Most endpoints require JWT authentication.
     .addTag('Circle', 'Circle USDC wallets and operations')
     .addTag('Circle - User Controlled', 'User-controlled Circle wallets')
     .addTag('Circle - Paymaster', 'Paymaster pre-approval and operations')
-    .addTag('Circle - Webhooks', 'Circle webhook handlers')
+
     .addTag('VTU', 'Airtime and data top-up services')
     .addTag('Crypto', 'Cryptocurrency trading via Venly')
     .addTag('Virtual Accounts', 'Virtual account management')

@@ -23,6 +23,7 @@ import { HelpService } from './help.service';
 import { CannedResponseService } from './canned-response.service';
 import { SupportGateway } from './support.gateway';
 import { SupportNotificationService } from './support-notification.service';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import {
   FindTicketsDto,
   FindConversationsDto,
@@ -38,6 +39,8 @@ import {
   UpdateCannedResponseDto,
 } from './dto';
 
+@ApiTags('Admin - Support')
+@ApiBearerAuth('JWT-auth')
 @Controller('admin/support')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.SUPPORT, UserRole.ADMIN, UserRole.SUPER_ADMIN)

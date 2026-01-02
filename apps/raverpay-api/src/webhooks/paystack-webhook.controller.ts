@@ -6,7 +6,10 @@ import {
   Logger,
   BadRequestException,
   Req,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import type { RawBodyRequest } from '@nestjs/common';
 import { Request } from 'express';
 import { PaystackWebhookService } from './paystack-webhook.service';
@@ -25,6 +28,7 @@ import { PaystackService } from '../payments/paystack.service';
  * - dedicatedaccount.assign.success: DVA created successfully
  * - dedicatedaccount.assign.failed: DVA creation failed
  */
+@ApiTags('Webhooks - Paystack')
 @Controller('webhooks/paystack')
 export class PaystackWebhookController {
   private readonly logger = new Logger(PaystackWebhookController.name);
