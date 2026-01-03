@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { parseUnits, createPublicClient } from 'viem';
 import { polygonAmoy } from 'viem/chains';
@@ -26,6 +26,25 @@ interface WalletData {
 }
 
 export default function CircleModularPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto"></div>
+              <p className="text-gray-600 mt-4">Loading...</p>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <CircleModularPageContent />
+    </Suspense>
+  );
+}
+
+function CircleModularPageContent() {
   const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>('loading');
   const [error, setError] = useState<string>('');
