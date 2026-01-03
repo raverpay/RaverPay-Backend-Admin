@@ -324,7 +324,43 @@ export class AdminWalletsService {
     await this.walletService.invalidateWalletCache(userId);
     await this.walletService.invalidateTransactionCache(userId);
 
-    // TODO: Send notification to user
+    // Send notification to user about wallet adjustment
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, email: true, firstName: true },
+      });
+
+      if (user) {
+        const isCredit = dto.type === 'credit';
+        const formattedAmount = `₦${amount.toLocaleString()}`;
+
+        await this.notificationDispatcher.sendNotification({
+          userId: user.id,
+          eventType: isCredit ? 'wallet_credited' : 'wallet_debited',
+          category: 'TRANSACTION',
+          channels: ['EMAIL', 'IN_APP'],
+          title: isCredit ? 'Wallet Credited' : 'Wallet Debited',
+          message: isCredit
+            ? `Your wallet has been credited with ${formattedAmount}. Reason: ${dto.reason}. New balance: ₦${result.wallet.balance.toLocaleString()}.`
+            : `Your wallet has been debited with ${formattedAmount}. Reason: ${dto.reason}. New balance: ₦${result.wallet.balance.toLocaleString()}.`,
+          data: {
+            amount: amount.toString(),
+            type: dto.type,
+            reason: dto.reason,
+            reference: result.transaction.reference,
+            balanceBefore: result.transaction.balanceBefore.toString(),
+            balanceAfter: result.wallet.balance.toString(),
+          },
+        });
+      }
+    } catch (notifError) {
+      // Don't fail the adjustment if notification fails
+      console.error(
+        'Failed to send wallet adjustment notification:',
+        notifError,
+      );
+    }
 
     return {
       wallet: result.wallet,
