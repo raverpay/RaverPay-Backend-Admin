@@ -31,36 +31,6 @@ import {
 import { formatDate, formatRelativeTime, getApiErrorMessage } from '@/lib/utils';
 import { TicketStatus, TicketPriority } from '@/types/support';
 
-function getStatusBadgeVariant(status: TicketStatus) {
-  switch (status) {
-    case TicketStatus.OPEN:
-      return 'info';
-    case TicketStatus.IN_PROGRESS:
-      return 'warning';
-    case TicketStatus.RESOLVED:
-      return 'success';
-    case TicketStatus.CLOSED:
-      return 'secondary';
-    default:
-      return 'secondary';
-  }
-}
-
-function getPriorityBadgeVariant(priority: TicketPriority) {
-  switch (priority) {
-    case TicketPriority.URGENT:
-      return 'destructive';
-    case TicketPriority.HIGH:
-      return 'warning';
-    case TicketPriority.MEDIUM:
-      return 'info';
-    case TicketPriority.LOW:
-      return 'secondary';
-    default:
-      return 'secondary';
-  }
-}
-
 export default function TicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const router = useRouter();

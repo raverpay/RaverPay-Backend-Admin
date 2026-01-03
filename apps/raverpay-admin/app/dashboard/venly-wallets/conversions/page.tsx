@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { Search, TrendingUp, DollarSign, Calendar } from 'lucide-react';
+import { Search, TrendingUp, DollarSign } from 'lucide-react';
 
 import { venlyWalletsApi } from '@/lib/api/venly-wallets';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

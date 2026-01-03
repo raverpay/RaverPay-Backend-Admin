@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import Link from 'next/link';
-import { Plus, Pencil, Trash2, BookOpen, FolderOpen, Eye, FileText, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, FolderOpen, FileText, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { helpApi } from '@/lib/api/help';

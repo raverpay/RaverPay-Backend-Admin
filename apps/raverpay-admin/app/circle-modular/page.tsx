@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { parseUnits, createPublicClient, type Hex } from 'viem';
+import { parseUnits, createPublicClient } from 'viem';
 import { polygonAmoy } from 'viem/chains';
 import { createBundlerClient, toWebAuthnAccount } from 'viem/account-abstraction';
 import {
@@ -22,6 +22,7 @@ interface WalletData {
   address: string;
   credentialId: string;
   publicKey: string;
+  [key: string]: string; // Add index signature for compatibility
 }
 
 export default function CircleModularPage() {
@@ -36,7 +37,6 @@ export default function CircleModularPage() {
   const userToken = searchParams.get('token');
   const userId = searchParams.get('userId');
   const username = searchParams.get('username');
-  const blockchain = searchParams.get('blockchain') || 'MATIC-AMOY';
 
   // Circle SDK config
   const clientUrl = process.env.NEXT_PUBLIC_CIRCLE_API_URL || 'https://api.circle.com/v1/w3s';
@@ -67,10 +67,10 @@ export default function CircleModularPage() {
     } else if (action === 'send') {
       setStep('send');
     }
-  }, [action, userToken, userId, clientUrl, clientKey]);
+  }, [action, userToken, userId, clientUrl, clientKey, username]);
 
   // Send message to React Native WebView
-  const sendToApp = (type: string, data: any) => {
+  const sendToApp = (type: string, data: Record<string, unknown> | WalletData) => {
     if (window.ReactNativeWebView) {
       window.ReactNativeWebView.postMessage(JSON.stringify({ type, data }));
     }
@@ -124,27 +124,33 @@ export default function CircleModularPage() {
       });
 
       setStep('create-wallet');
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as Error & {
+        code?: string;
+        details?: unknown;
+        meta?: unknown;
+        cause?: unknown;
+      };
       console.error(
         'Registration Error Full Object:',
-        JSON.stringify(err, Object.getOwnPropertyNames(err)),
+        JSON.stringify(error, Object.getOwnPropertyNames(error)),
       );
       console.error('Registration Error Details:', {
-        message: err.message,
-        stack: err.stack,
-        code: err.code,
-        details: err.details,
-        name: err.name,
-        meta: err.meta, // Viem often puts details here
-        cause: err.cause,
+        message: error.message,
+        stack: error.stack,
+        code: error.code,
+        details: error.details,
+        name: error.name,
+        meta: error.meta, // Viem often puts details here
+        cause: error.cause,
       });
 
       // Special handling for common WebAuthn errors
-      let errorMessage = err.message || 'Failed to register passkey';
+      let errorMessage = error.message || 'Failed to register passkey';
 
-      if (err.name === 'NotAllowedError') {
+      if (error.name === 'NotAllowedError') {
         errorMessage = 'Passkey creation was cancelled or timed out.';
-      } else if (err.name === 'SecurityError') {
+      } else if (error.name === 'SecurityError') {
         errorMessage =
           'Security Error: WebAuthn requires HTTPS or localhost. ' + window.location.origin;
       }
@@ -153,7 +159,7 @@ export default function CircleModularPage() {
       setStep('error');
       sendToApp('error', {
         message: errorMessage,
-        raw: JSON.stringify(err, Object.getOwnPropertyNames(err)),
+        raw: JSON.stringify(error, Object.getOwnPropertyNames(error)),
       });
     } finally {
       setLoading(false);
@@ -196,10 +202,11 @@ export default function CircleModularPage() {
       });
 
       setStep('success');
-    } catch (err: any) {
-      setError(err.message || 'Failed to login with passkey');
+    } catch (err: unknown) {
+      const error = err as Error;
+      setError(error.message || 'Failed to login with passkey');
       setStep('error');
-      sendToApp('error', { message: err.message });
+      sendToApp('error', { message: error.message });
     } finally {
       setLoading(false);
     }
@@ -228,8 +235,8 @@ export default function CircleModularPage() {
         transport: modularTransport,
       });
 
-      // Create bundler client
-      const bundlerClient = createBundlerClient({
+      // Create bundler client (reserved for future use)
+      createBundlerClient({
         chain: polygonAmoy,
         transport: modularTransport,
       });
@@ -275,10 +282,11 @@ export default function CircleModularPage() {
       sendToApp('wallet_created', walletInfo);
 
       setStep('success');
-    } catch (err: any) {
-      setError(err.message || 'Failed to create wallet');
+    } catch (err: unknown) {
+      const error = err as Error;
+      setError(error.message || 'Failed to create wallet');
       setStep('error');
-      sendToApp('error', { message: err.message });
+      sendToApp('error', { message: error.message });
     } finally {
       setLoading(false);
     }
@@ -351,10 +359,11 @@ export default function CircleModularPage() {
       });
 
       setStep('success');
-    } catch (err: any) {
-      setError(err.message || 'Failed to send transaction');
+    } catch (err: unknown) {
+      const error = err as Error;
+      setError(error.message || 'Failed to send transaction');
       setStep('error');
-      sendToApp('error', { message: err.message });
+      sendToApp('error', { message: error.message });
     } finally {
       setLoading(false);
     }
@@ -397,8 +406,8 @@ export default function CircleModularPage() {
           <div className="space-y-4">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-800">
-                You'll be prompted to create a passkey using your device's biometric authentication
-                (Face ID, Touch ID, or fingerprint).
+                You&apos;ll be prompted to create a passkey using your device&apos;s biometric
+                authentication (Face ID, Touch ID, or fingerprint).
               </p>
             </div>
             <button
@@ -434,7 +443,7 @@ export default function CircleModularPage() {
           <div className="space-y-4">
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <p className="text-sm text-green-800">
-                ✓ Passkey registered successfully! Now let's create your smart wallet.
+                ✓ Passkey registered successfully! Now let&apos;s create your smart wallet.
               </p>
             </div>
             <button

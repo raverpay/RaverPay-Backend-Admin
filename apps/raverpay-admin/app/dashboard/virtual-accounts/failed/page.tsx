@@ -4,18 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import Link from 'next/link';
-import {
-  Search,
-  AlertCircle,
-  User,
-  Phone,
-  Mail,
-  CreditCard,
-  Plus,
-  Loader2,
-  CheckCircle2,
-  XCircle,
-} from 'lucide-react';
+import { Search, AlertCircle, User, Phone, Mail, Plus, Loader2, CheckCircle2 } from 'lucide-react';
 
 import { virtualAccountsApi, FailedDVAUser } from '@/lib/api/virtual-accounts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

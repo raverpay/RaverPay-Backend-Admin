@@ -3,15 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import {
-  Search,
-  Eye,
-  Flag,
-  ExternalLink,
-  TrendingUp,
-  ArrowDownRight,
-  ArrowUpRight,
-} from 'lucide-react';
+import { Search, Flag, ExternalLink, TrendingUp, ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { venlyWalletsApi } from '@/lib/api/venly-wallets';
@@ -46,7 +38,7 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { formatDate, formatCurrency } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 
 export default function TransactionsPage() {
   const queryClient = useQueryClient();

@@ -31,10 +31,8 @@ export default function CircleSettingsPage() {
   const [showEntitySecret, setShowEntitySecret] = useState(false);
 
   // Masked credentials (for display only)
-  const [maskedApiKey, setMaskedApiKey] = useState('TEST_API_KEY:****...****');
-  const [maskedEntitySecret, setMaskedEntitySecret] = useState(
-    '************************************',
-  );
+  const [maskedApiKey] = useState('TEST_API_KEY:****...****');
+  const [maskedEntitySecret] = useState('************************************');
 
   useEffect(() => {
     loadConfig();
@@ -45,7 +43,7 @@ export default function CircleSettingsPage() {
       setLoading(true);
       const response = await circleApi.getConfig();
       setConfig(response);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load Circle configuration');
     } finally {
       setLoading(false);
@@ -64,7 +62,7 @@ export default function CircleSettingsPage() {
       await circleApi.getConfig();
 
       toast.success('Circle API connection is working correctly');
-    } catch (error) {
+    } catch {
       toast.error('Unable to connect to Circle API');
     }
   };

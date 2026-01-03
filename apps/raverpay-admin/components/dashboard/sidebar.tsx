@@ -26,11 +26,9 @@ import {
   LucideIcon,
   Percent,
   Banknote,
-  Coins,
   ChevronLeft,
   ChevronRight,
   CircleDollarSign,
-  DollarSign,
 } from 'lucide-react';
 
 interface NavItem {

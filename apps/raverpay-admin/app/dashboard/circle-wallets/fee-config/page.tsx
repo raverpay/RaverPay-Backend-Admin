@@ -29,21 +29,35 @@ export default function FeeConfigPage() {
   });
 
   // Calculate example fee
-  const { data: exampleFee, refetch: recalculateExample } = useQuery({
+  const { data: exampleFee } = useQuery({
     queryKey: ['fee-calculation', exampleAmount],
     queryFn: () => feesApi.calculateFee(parseFloat(exampleAmount)),
     enabled: !!exampleAmount && !isNaN(parseFloat(exampleAmount)),
   });
 
+  // Derive initial values from server data
+  const serverEnabled = configData?.data?.enabled;
+  const serverPercentage = configData?.data?.percentage;
+  const serverMinFee = configData?.data?.minFeeUsdc;
+
   // Initialize state from server data only once
   useEffect(() => {
-    if (configData?.data && !isInitialized.current) {
-      setEnabled(configData.data.enabled);
-      setPercentage(configData.data.percentage.toString());
-      setMinFee(configData.data.minFeeUsdc.toString());
-      isInitialized.current = true;
+    if (
+      serverEnabled !== undefined &&
+      serverPercentage !== undefined &&
+      serverMinFee !== undefined &&
+      !isInitialized.current
+    ) {
+      // Use setTimeout to avoid synchronous setState in effect
+      const timeoutId = setTimeout(() => {
+        setEnabled(serverEnabled);
+        setPercentage(serverPercentage.toString());
+        setMinFee(serverMinFee.toString());
+        isInitialized.current = true;
+      }, 0);
+      return () => clearTimeout(timeoutId);
     }
-  }, [configData]);
+  }, [serverEnabled, serverPercentage, serverMinFee]);
 
   // Update config mutation
   const updateMutation = useMutation({
@@ -53,7 +67,7 @@ export default function FeeConfigPage() {
       setHasChanges(false);
       toast.success('Fee configuration updated successfully');
     },
-    onError: (error: any) => {
+    onError: (error: Error & { response?: { data?: { message?: string } } }) => {
       toast.error(error.response?.data?.message || 'Failed to update configuration');
     },
   });

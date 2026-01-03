@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -37,11 +37,7 @@ export default function ViolationsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => {
-    fetchViolations();
-  }, [page, filterEndpoint, filterCountry]);
-
-  const fetchViolations = async () => {
+  const fetchViolationsCallback = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -59,16 +55,19 @@ export default function ViolationsPage() {
         setViolations(data.violations);
         setTotalPages(data.totalPages);
       }
-    } catch (error) {
-      console.error('Failed to fetch violations:', error);
+    } catch {
+      // Handle error silently
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, filterEndpoint, filterCountry, searchTerm]);
+
+  useEffect(() => {
+    fetchViolationsCallback();
+  }, [fetchViolationsCallback]);
 
   const handleSearch = () => {
     setPage(1);
-    fetchViolations();
   };
 
   const exportToCSV = () => {

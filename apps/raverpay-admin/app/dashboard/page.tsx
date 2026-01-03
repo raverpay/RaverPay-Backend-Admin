@@ -16,7 +16,6 @@ import {
   Trash2,
   Zap,
   Bell,
-  Mail,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';

@@ -334,14 +334,14 @@ export default function CircleWalletsPage() {
                               <Badge
                                 variant="outline"
                                 className={
-                                  (wallet as any).type === 'MODULAR'
+                                  (wallet as { type?: string }).type === 'MODULAR'
                                     ? 'bg-purple-50 text-purple-700 border-purple-200'
                                     : wallet.custodyType === 'USER'
                                       ? 'bg-blue-50 text-blue-700 border-blue-200'
                                       : 'bg-green-50 text-green-700 border-green-200'
                                 }
                               >
-                                {(wallet as any).type === 'MODULAR'
+                                {(wallet as { type?: string }).type === 'MODULAR'
                                   ? '⚡ Gasless'
                                   : wallet.custodyType === 'USER'
                                     ? '🔑 Non-Custodial'

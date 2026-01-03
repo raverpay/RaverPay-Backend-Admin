@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Copy, Wallet, TrendingUp, ExternalLink, AlertCircle } from 'lucide-react';
 import { feesApi } from '@/lib/api/fees';
-import { circleApi } from '@/lib/api/circle';
 import { toast } from 'sonner';
 import Link from 'next/link';
 

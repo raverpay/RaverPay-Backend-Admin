@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, RefreshCw, AlertCircle, CheckCircle2, ExternalLink, Clock } from 'lucide-react';
-import { feesApi, type FailedFee } from '@/lib/api/fees';
+import { feesApi } from '@/lib/api/fees';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -44,7 +44,7 @@ export default function FeeRetriesPage() {
       toast.success('Fee retry initiated successfully');
       setRetryingId(null);
     },
-    onError: (error: any) => {
+    onError: (error: Error & { response?: { data?: { message?: string } } }) => {
       toast.error(error.response?.data?.message || 'Failed to retry fee collection');
       setRetryingId(null);
     },
@@ -241,7 +241,7 @@ export default function FeeRetriesPage() {
             <li>After 3 failed attempts, manual intervention may be required</li>
           </ul>
           <p className="text-xs mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
-            <strong>Note:</strong> Failed fees don't prevent the main transfer from succeeding.
+            <strong>Note:</strong> Failed fees don&apos;t prevent the main transfer from succeeding.
             Users will receive their funds even if fee collection fails.
           </p>
         </CardContent>

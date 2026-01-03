@@ -29,8 +29,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 // Separator component - using hr instead if not available
-import { formatDate, getApiErrorMessage } from '@/lib/utils';
-import { UserRole, Message } from '@/types/support';
+import { getApiErrorMessage } from '@/lib/utils';
+import { UserRole } from '@/types/support';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,

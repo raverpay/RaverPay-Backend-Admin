@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, TrendingUp, Calendar, Download } from 'lucide-react';
+import { BarChart3, TrendingUp, Download } from 'lucide-react';
 
 import { venlyWalletsApi } from '@/lib/api/venly-wallets';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

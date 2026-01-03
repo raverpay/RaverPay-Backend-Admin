@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -15,14 +15,13 @@ import {
   User,
   Wallet,
 } from 'lucide-react';
-import { useState } from 'react';
 
 import { circleApi, CircleTransactionState } from '@/lib/api/circle';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatDate, truncateAddress } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
 
 const STATE_COLORS: Record<CircleTransactionState, string> = {
@@ -60,7 +59,6 @@ const BLOCKCHAIN_EXPLORERS: Record<string, string> = {
 
 export default function TransactionDetailsPage() {
   const params = useParams();
-  const router = useRouter();
   const transactionId = params.id as string;
 
   const { data: transaction, isLoading } = useQuery({
