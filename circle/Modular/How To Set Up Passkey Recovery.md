@@ -30,10 +30,10 @@ The recovery process includes two phases:
 Before you implement passkey backup and recovery, make sure you have the
 following:
 
-* An initialized **bundler client**
-* An existing **Circle Smart Account** already configured with a passkey as the
+- An initialized **bundler client**
+- An existing **Circle Smart Account** already configured with a passkey as the
   primary signer
-* Required dependencies from a supported **wallet library** and the **modular
+- Required dependencies from a supported **wallet library** and the **modular
   wallets SDK**
 
 <Note>
@@ -48,11 +48,11 @@ following:
 To set up passkey backup and recovery, use the following functions from the
 modular wallets SDK:
 
-* `registerRecoveryAddress`: Registers an EOA as a recovery key.
-* `executeRecovery`: Adds a new WebAuthn credential using the recovery key.
-* `estimateRegisterRecoveryAddressGas`: Estimates gas for registering a recovery
+- `registerRecoveryAddress`: Registers an EOA as a recovery key.
+- `executeRecovery`: Adds a new WebAuthn credential using the recovery key.
+- `estimateRegisterRecoveryAddressGas`: Estimates gas for registering a recovery
   key.
-* `estimateExecuteRecoveryGas`: Estimates gas for executing the recovery
+- `estimateExecuteRecoveryGas`: Estimates gas for executing the recovery
   process.
 
 <Note>
@@ -73,9 +73,9 @@ then be used later to recover their passkey and associated smart account.
   the only credential for recovery if the passkey is lost.
 </Note>
 
-```ts  theme={null}
-import { english, generateMnemonic, mnemonicToAccount } from "viem/accounts";
-import { recoveryActions } from "@circle-fin/modular-wallets-core";
+```ts theme={null}
+import { english, generateMnemonic, mnemonicToAccount } from 'viem/accounts';
+import { recoveryActions } from '@circle-fin/modular-wallets-core';
 
 // Extend bundler client with recovery actions
 const recoveryClient = bundlerClient.extend(recoveryActions);
@@ -99,7 +99,7 @@ This creates a mapping between the smart account and the recovery address.
 If a user loses their passkey, they can use the mnemonic from the recovery
 address to start the recovery flow.
 
-```ts  theme={null}
+```ts theme={null}
 // Recreate the recovery account from the saved mnemonic
 const localAccount = mnemonicToAccount(savedMnemonic);
 
@@ -113,7 +113,7 @@ const newAccount = await toCircleSmartAccount({
 const newCredential = await toWebAuthnCredential({
   transport: passkeyTransport,
   mode: WebAuthnMode.Register,
-  username: "<RECOVERY_PASSKEY_USERNAME>",
+  username: '<RECOVERY_PASSKEY_USERNAME>',
 });
 ```
 
@@ -125,7 +125,7 @@ passkey to replace the lost one.
 After registering the new passkey, call `executeRecovery` to complete the
 recovery and restore access to the smart account.
 
-```ts  theme={null}
+```ts theme={null}
 await recoveryClient.executeRecovery({
   account: newAccount, // Temporary account used for signing
   credential: newCredential, // New WebAuthn credential
@@ -140,7 +140,7 @@ This associates the new `WebAuthn` credential with the smart account.
 After a successful recovery, the user can access the smart account using their
 new passkey.
 
-```ts  theme={null}
+```ts theme={null}
 const recoveredAccount = await toCircleSmartAccount({
   client,
   owner: toWebAuthnAccount({ credential: newCredential }) as WebAuthnAccount,
@@ -166,16 +166,13 @@ as it creates a smoother experience.
 1. **Sponsor gas fees** using Circle Gas Station.
 2. **Estimate gas fees** and display them to users:
 
-```ts  theme={null}
-const registerGasEstimate =
-  await recoveryClient.estimateRegisterRecoveryAddressGas({
-    account,
-    recoveryAddress: recoveryEoa.address,
-  });
+```ts theme={null}
+const registerGasEstimate = await recoveryClient.estimateRegisterRecoveryAddressGas({
+  account,
+  recoveryAddress: recoveryEoa.address,
+});
 
-const costInEth = formatEther(
-  registerGasEstimate.totalGas * registerGasEstimate.maxFeePerGas,
-);
+const costInEth = formatEther(registerGasEstimate.totalGas * registerGasEstimate.maxFeePerGas);
 
 // Display cost to user
 console.log(`Estimated cost: ${costInEth} ETH`);
@@ -186,9 +183,9 @@ console.log(`Estimated cost: ${costInEth} ETH`);
 The recovery implementation includes built-in validation and error handling for
 common edge cases:
 
-* Detects existing address mappings to support idempotent operations
-* Validates that a smart account object is provided for signing
-* Handles registration or credential issues gracefully
+- Detects existing address mappings to support idempotent operations
+- Validates that a smart account object is provided for signing
+- Handles registration or credential issues gracefully
 
 Each recovery function uses a user operation that requires a valid smart account
 to sign the transaction. Validation occurs automatically, whether the account is
@@ -207,29 +204,29 @@ when implementing passkey backup and recovery.
 
 ### 1. Educate users
 
-* Clearly explain that losing both the **passkey** and **recovery key** results
+- Clearly explain that losing both the **passkey** and **recovery key** results
   in permanent loss of access.
-* Use onboarding tips or modals to reinforce the importance of recovery setup.
-* Encourage users to store their **recovery mnemonic** securely—preferably in a
+- Use onboarding tips or modals to reinforce the importance of recovery setup.
+- Encourage users to store their **recovery mnemonic** securely—preferably in a
   password manager, secure notes app, or hardware vault.
-* For a conceptual walkthrough, refer to the
+- For a conceptual walkthrough, refer to the
   [User flow examples](#user-flow-examples), which outlines how users might
   register a recovery key and recover their wallet.
 
 ### 2. Offer redundancy
 
-* Allow users to register multiple recovery keys (EOAs) to improve account
+- Allow users to register multiple recovery keys (EOAs) to improve account
   resilience.
-* Encourage users to store each recovery key in a separate, secure location to
+- Encourage users to store each recovery key in a separate, secure location to
   avoid single points of failure.
 
 ### 3. Test thoroughly
 
-* Test the recovery flow across supported devices and browsers before deploying
+- Test the recovery flow across supported devices and browsers before deploying
   to production.
-* Simulate common edge cases (e.g., loss of passkey, malformed mnemonic) to
+- Simulate common edge cases (e.g., loss of passkey, malformed mnemonic) to
   verify that fallback logic and error handling behave as expected.
-* Consider including recovery flow testing in your CI/CD process if you're using
+- Consider including recovery flow testing in your CI/CD process if you're using
   automated test wallets.
 
 ## User flow examples
@@ -237,8 +234,8 @@ when implementing passkey backup and recovery.
 The following user flows describe a possible implementation of the passkey
 backup and recovery process in your app. The flows are divided into two parts:
 
-* **Generate your recovery key**
-* **Recover your smart account**
+- **Generate your recovery key**
+- **Recover your smart account**
 
 ### Generate your recovery key
 
@@ -288,7 +285,6 @@ This approach reduces the risk of permanent account loss and maintains the core
 principle of user control. Circle recommends pairing recovery setup with strong
 user education, redundant recovery methods, and thorough testing to ensure a
 seamless experience in production.
-
 
 ---
 

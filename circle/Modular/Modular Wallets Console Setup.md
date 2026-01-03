@@ -31,27 +31,27 @@ Each client key is bound to your application for identification and
 authorization. Therefore, depending on your application setup, you may be able
 to customize the following fields:
 
-* Web **Allowed Domain**; for example, `your.website.com`, `localhost`, or
+- Web **Allowed Domain**; for example, `your.website.com`, `localhost`, or
   `chrome-extension://<extension-id>`
-* iOS **Bundle ID**; for example, `com.yourcompany.yourapp`
-* Android
-  * Package Name; for example, `com.yourcompany.yourapp`
-  * Signature (SHA256); for example, `XX:XX:…:XX` (where `X`: `[0-9A-F]`)
+- iOS **Bundle ID**; for example, `com.yourcompany.yourapp`
+- Android
+  - Package Name; for example, `com.yourcompany.yourapp`
+  - Signature (SHA256); for example, `XX:XX:…:XX` (where `X`: `[0-9A-F]`)
 
 <Note>
   **Platform Settings**
 
-  1. If you run your web application locally, you can use `localhost` for the
-     **Allowed Domain**. If you host your web application under a domain server,
-     say `your.website.com`, you can use that domain server URL. For Chrome
-     extensions, use the extension's URL in the format
-     `chrome-extension://<extension-id>` as the **Allowed Domain**. You can find
-     the extension ID on the Chrome Extensions page (`chrome://extensions`).
+1. If you run your web application locally, you can use `localhost` for the
+   **Allowed Domain**. If you host your web application under a domain server,
+   say `your.website.com`, you can use that domain server URL. For Chrome
+   extensions, use the extension's URL in the format
+   `chrome-extension://<extension-id>` as the **Allowed Domain**. You can find
+   the extension ID on the Chrome Extensions page (`chrome://extensions`).
 
-  2. If your application runs on multiple platforms, you can either configure the
-     settings for each platform under such **Client Key**, or create a new
-     **Client Key** for enhanced security; the latter approach is recommended.
-</Note>
+2. If your application runs on multiple platforms, you can either configure the
+   settings for each platform under such **Client Key**, or create a new
+   **Client Key** for enhanced security; the latter approach is recommended.
+   </Note>
 
 <Frame>
   <img src="https://mintcdn.com/circle-167b8d39/ZkyJVjZm1cqURNjM/w3s/images/mw-setup-createclientkey01.png?fit=max&auto=format&n=ZkyJVjZm1cqURNjM&q=85&s=e5238b997d558936b98c5dd4fb0b064b" data-og-width="1520" width="1520" data-og-height="1600" height="1600" data-path="w3s/images/mw-setup-createclientkey01.png" data-optimize="true" data-opv="3" srcset="https://mintcdn.com/circle-167b8d39/ZkyJVjZm1cqURNjM/w3s/images/mw-setup-createclientkey01.png?w=280&fit=max&auto=format&n=ZkyJVjZm1cqURNjM&q=85&s=031bd76dd523b45c9b444e774516a4ee 280w, https://mintcdn.com/circle-167b8d39/ZkyJVjZm1cqURNjM/w3s/images/mw-setup-createclientkey01.png?w=560&fit=max&auto=format&n=ZkyJVjZm1cqURNjM&q=85&s=a2d78ba711043a32a840d6d0ca68699d 560w, https://mintcdn.com/circle-167b8d39/ZkyJVjZm1cqURNjM/w3s/images/mw-setup-createclientkey01.png?w=840&fit=max&auto=format&n=ZkyJVjZm1cqURNjM&q=85&s=b6e41c99930ad544b4178604fa9b742c 840w, https://mintcdn.com/circle-167b8d39/ZkyJVjZm1cqURNjM/w3s/images/mw-setup-createclientkey01.png?w=1100&fit=max&auto=format&n=ZkyJVjZm1cqURNjM&q=85&s=1ff1fd1b71ab33cb58947351b28eb1a8 1100w, https://mintcdn.com/circle-167b8d39/ZkyJVjZm1cqURNjM/w3s/images/mw-setup-createclientkey01.png?w=1650&fit=max&auto=format&n=ZkyJVjZm1cqURNjM&q=85&s=f0e3bf056400ac3125195c02e26b58ba 1650w, https://mintcdn.com/circle-167b8d39/ZkyJVjZm1cqURNjM/w3s/images/mw-setup-createclientkey01.png?w=2500&fit=max&auto=format&n=ZkyJVjZm1cqURNjM&q=85&s=276d3cc974478909baf11976778882c0 2500w" />
@@ -86,19 +86,19 @@ passkey created will be associated with this domain.
 <Note>
   **Passkey for Mobile Apps**
 
-  To enable passkey support for your iOS or Android application, you'll have to
-  configure a web domain to associate your app with a website that your app owns,
-  as passkeys on mobile-native apps are also domain-bound, similar to web
-  applications.
+To enable passkey support for your iOS or Android application, you'll have to
+configure a web domain to associate your app with a website that your app owns,
+as passkeys on mobile-native apps are also domain-bound, similar to web
+applications.
 </Note>
 
 Configuration is required to enable Passkeys on mobile-native applications:
 
-* **iOS**: A JSON file is required at the domain root:\
+- **iOS**: A JSON file is required at the domain root:\
   `/.well-known /apple-app-site-association`. Refer to
   [this resource](https://developer.apple.com/documentation/xcode/configuring-an-associated-domain)
   for more details.
-* **Android**: A JSON file is required at the domain root:\
+- **Android**: A JSON file is required at the domain root:\
   `/.well-known/assetlinks.json`. Refer to
   [this resource](https://developer.android.com/identity/sign-in/credential-manager#add-support-dal)
   for more details.
@@ -113,15 +113,14 @@ Visit the Configurator page to retrieve the **Client URL**, or copy from here:
 `https://modular-sdk.circle.com/v1/rpc/w3s/buidl`. This URL is required for the
 following **modular wallets SDK** methods:
 
-* `toPasskeyTransport()`
-* `toModularTransport()`: When using this method, you must specify the
+- `toPasskeyTransport()`
+- `toModularTransport()`: When using this method, you must specify the
   blockchain network. For more details, refer to the
   [Modular Wallets Quickstart](/wallets/modular/create-a-wallet-and-send-gasless-txn).
 
 <Frame>
   <img src="https://mintcdn.com/circle-167b8d39/ZkyJVjZm1cqURNjM/w3s/images/mw-setup-clienturl01.png?fit=max&auto=format&n=ZkyJVjZm1cqURNjM&q=85&s=ffe1d90cc25043607045a35ef9f3e182" data-og-width="1440" width="1440" data-og-height="1267" height="1267" data-path="w3s/images/mw-setup-clienturl01.png" data-optimize="true" data-opv="3" srcset="https://mintcdn.com/circle-167b8d39/ZkyJVjZm1cqURNjM/w3s/images/mw-setup-clienturl01.png?w=280&fit=max&auto=format&n=ZkyJVjZm1cqURNjM&q=85&s=11378b5268d64392f6b319f7c14b215a 280w, https://mintcdn.com/circle-167b8d39/ZkyJVjZm1cqURNjM/w3s/images/mw-setup-clienturl01.png?w=560&fit=max&auto=format&n=ZkyJVjZm1cqURNjM&q=85&s=906728ad5cf3a0e54c88c89fa8689a12 560w, https://mintcdn.com/circle-167b8d39/ZkyJVjZm1cqURNjM/w3s/images/mw-setup-clienturl01.png?w=840&fit=max&auto=format&n=ZkyJVjZm1cqURNjM&q=85&s=3b676909de009b1fbc69faca5023f201 840w, https://mintcdn.com/circle-167b8d39/ZkyJVjZm1cqURNjM/w3s/images/mw-setup-clienturl01.png?w=1100&fit=max&auto=format&n=ZkyJVjZm1cqURNjM&q=85&s=e4981f1620c9867f7e9eaf2be9e66cc7 1100w, https://mintcdn.com/circle-167b8d39/ZkyJVjZm1cqURNjM/w3s/images/mw-setup-clienturl01.png?w=1650&fit=max&auto=format&n=ZkyJVjZm1cqURNjM&q=85&s=5e3ab104098892170a58bf54824f5b27 1650w, https://mintcdn.com/circle-167b8d39/ZkyJVjZm1cqURNjM/w3s/images/mw-setup-clienturl01.png?w=2500&fit=max&auto=format&n=ZkyJVjZm1cqURNjM&q=85&s=8435fc13eb969716336fa832da43c6bb 2500w" />
 </Frame>
-
 
 ---
 

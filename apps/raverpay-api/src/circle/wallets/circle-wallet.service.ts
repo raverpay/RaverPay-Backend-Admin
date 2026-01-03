@@ -51,7 +51,7 @@ export class CircleWalletService {
       params.blockchain,
     ) as CircleBlockchain;
     const accountType = params.accountType || this.config.defaultAccountType;
-    
+
     // Validate blockchain support
     const supportedChains = this.config.getSupportedBlockchains();
     if (!supportedChains.includes(blockchain)) {

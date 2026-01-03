@@ -23,7 +23,14 @@ import { HelpService } from './help.service';
 import { CannedResponseService } from './canned-response.service';
 import { SupportGateway } from './support.gateway';
 import { SupportNotificationService } from './support-notification.service';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+} from '@nestjs/swagger';
 import {
   FindTicketsDto,
   FindConversationsDto,

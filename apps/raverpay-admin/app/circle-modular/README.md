@@ -31,17 +31,17 @@ const url = `https://your-admin-url.com/circle-modular?action=register&token=${u
   source={{ uri: url }}
   onMessage={(event) => {
     const { type, data } = JSON.parse(event.nativeEvent.data);
-    
+
     if (type === 'passkey_registered') {
       console.log('Passkey registered:', data.credentialId);
       // Proceed to wallet creation or close WebView
     }
-    
+
     if (type === 'wallet_created') {
       console.log('Wallet created:', data.address);
       // Save wallet info and close WebView
     }
-    
+
     if (type === 'error') {
       console.error('Error:', data.message);
     }
@@ -58,7 +58,7 @@ const url = `https://your-admin-url.com/circle-modular?action=login&token=${user
   source={{ uri: url }}
   onMessage={(event) => {
     const { type, data } = JSON.parse(event.nativeEvent.data);
-    
+
     if (type === 'passkey_login_success') {
       console.log('Login successful');
       // Close WebView
@@ -76,7 +76,7 @@ const url = `https://your-admin-url.com/circle-modular?action=send&token=${userT
   source={{ uri: url }}
   onMessage={(event) => {
     const { type, data } = JSON.parse(event.nativeEvent.data);
-    
+
     if (type === 'transaction_success') {
       console.log('Transaction hash:', data.transactionHash);
       console.log('UserOp hash:', data.userOpHash);
@@ -88,15 +88,15 @@ const url = `https://your-admin-url.com/circle-modular?action=send&token=${userT
 
 ## URL Parameters
 
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `action` | Yes | Action to perform: `register`, `login`, or `send` |
-| `token` | Yes | User's JWT token for API authentication |
-| `userId` | Yes | User ID |
-| `username` | No | Username for passkey registration (defaults to `user_{userId}`) |
-| `blockchain` | No | Blockchain to use (defaults to `MATIC-AMOY`) |
-| `to` | Yes (for send) | Recipient address |
-| `amount` | Yes (for send) | Amount to send in USDC |
+| Parameter    | Required       | Description                                                     |
+| ------------ | -------------- | --------------------------------------------------------------- |
+| `action`     | Yes            | Action to perform: `register`, `login`, or `send`               |
+| `token`      | Yes            | User's JWT token for API authentication                         |
+| `userId`     | Yes            | User ID                                                         |
+| `username`   | No             | Username for passkey registration (defaults to `user_{userId}`) |
+| `blockchain` | No             | Blockchain to use (defaults to `MATIC-AMOY`)                    |
+| `to`         | Yes (for send) | Recipient address                                               |
+| `amount`     | Yes (for send) | Amount to send in USDC                                          |
 
 ## Message Types
 
@@ -192,12 +192,14 @@ Mobile app closes WebView
 ### Local Development
 
 1. Start the admin app:
+
    ```bash
    cd apps/raverpay-admin
    pnpm dev
    ```
 
 2. Open in browser:
+
    ```
    http://localhost:3000/circle-modular?action=register&token=test&userId=123&username=testuser
    ```
@@ -211,16 +213,19 @@ Deploy admin app and update mobile app with production URL.
 ## Troubleshooting
 
 ### Passkey not working
+
 - Ensure HTTPS is enabled
 - Check browser/WebView supports WebAuthn
 - Verify Circle API credentials
 
 ### Transaction failing
+
 - Check wallet has USDC balance
 - Verify paymaster is enabled for blockchain
 - Check network connectivity
 
 ### WebView communication issues
+
 - Ensure `ReactNativeWebView` is injected
 - Check `postMessage` is working
 - Verify message parsing in mobile app

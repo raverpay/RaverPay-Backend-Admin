@@ -78,6 +78,8 @@ async function bootstrap() {
     (process.env.NODE_ENV === 'production' ? 'warn' : 'log');
 
   const app = await NestFactory.create(AppModule, {
+    // Enable raw body for webhook signature verification
+    rawBody: true,
     logger:
       logLevel === 'error'
         ? ['error']

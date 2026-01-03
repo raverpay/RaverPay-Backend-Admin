@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 /**
  * Modular Wallet Service
  * Handles Circle Modular Wallets (Smart Accounts with Passkey authentication)
- * 
+ *
  * Note: This service provides backend support for modular wallets.
  * The actual passkey registration/login and transaction signing happens
  * client-side using the Circle SDK in the mobile/web app.

@@ -75,9 +75,7 @@ export default function ModularWalletsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {stats?.totalWallets?.toLocaleString() || '0'}
-            </div>
+            <div className="text-2xl font-bold">{stats?.totalWallets?.toLocaleString() || '0'}</div>
           </CardContent>
         </Card>
 
@@ -171,7 +169,10 @@ export default function ModularWalletsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                        <Badge
+                          variant="outline"
+                          className="bg-blue-50 text-blue-700 border-blue-200"
+                        >
                           <Key className="h-3 w-3 mr-1" />
                           Active
                         </Badge>
@@ -211,17 +212,21 @@ export default function ModularWalletsPage() {
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-purple-800 dark:text-purple-200">
           <p>
-            <strong>Modular Wallets</strong> are ERC-4337 compliant smart contract wallets that offer:
+            <strong>Modular Wallets</strong> are ERC-4337 compliant smart contract wallets that
+            offer:
           </p>
           <ul className="list-disc list-inside space-y-1 ml-4">
             <li>
-              <strong>Gasless Transactions:</strong> Users pay gas fees in USDC instead of native tokens
+              <strong>Gasless Transactions:</strong> Users pay gas fees in USDC instead of native
+              tokens
             </li>
             <li>
-              <strong>Passkey Authentication:</strong> Secure biometric authentication (Face ID/Touch ID)
+              <strong>Passkey Authentication:</strong> Secure biometric authentication (Face
+              ID/Touch ID)
             </li>
             <li>
-              <strong>Smart Contract Wallets:</strong> Advanced features like account recovery and batched transactions
+              <strong>Smart Contract Wallets:</strong> Advanced features like account recovery and
+              batched transactions
             </li>
             <li>
               <strong>No Seed Phrases:</strong> Easier onboarding for non-crypto users

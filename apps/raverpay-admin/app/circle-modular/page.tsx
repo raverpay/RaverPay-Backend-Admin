@@ -4,10 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { parseUnits, createPublicClient, type Hex } from 'viem';
 import { polygonAmoy } from 'viem/chains';
-import {
-  createBundlerClient,
-  toWebAuthnAccount,
-} from 'viem/account-abstraction';
+import { createBundlerClient, toWebAuthnAccount } from 'viem/account-abstraction';
 import {
   toCircleSmartAccount,
   toWebAuthnCredential,
@@ -33,27 +30,27 @@ export default function CircleModularPage() {
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [walletData, setWalletData] = useState<WalletData | null>(null);
-  
+
   // Get params from URL
   const action = searchParams.get('action'); // 'register' | 'login' | 'send'
   const userToken = searchParams.get('token');
   const userId = searchParams.get('userId');
   const username = searchParams.get('username');
   const blockchain = searchParams.get('blockchain') || 'MATIC-AMOY';
-  
+
   // Circle SDK config
   const clientUrl = process.env.NEXT_PUBLIC_CIRCLE_API_URL || 'https://api.circle.com/v1/w3s';
   const clientKey = process.env.NEXT_PUBLIC_CIRCLE_API_KEY || '';
 
   useEffect(() => {
-    console.log('CircleModularPage Params:', { 
-      action, 
-      userId, 
-      username, 
+    console.log('CircleModularPage Params:', {
+      action,
+      userId,
+      username,
       hasToken: !!userToken,
       clientUrl,
-      hasClientKey: !!clientKey, 
-      origin: typeof window !== 'undefined' ? window.location.origin : 'server'
+      hasClientKey: !!clientKey,
+      origin: typeof window !== 'undefined' ? window.location.origin : 'server',
     });
 
     if (!action || !userToken || !userId) {
@@ -96,19 +93,22 @@ export default function CircleModularPage() {
       });
 
       // Save credential to backend
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/circle/modular/passkey/save`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userToken}`,
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/circle/modular/passkey/save`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${userToken}`,
+          },
+          body: JSON.stringify({
+            credentialId: credential.id,
+            publicKey: credential.publicKey,
+            rpId: credential.rpId,
+            username: username || `user_${userId}`,
+          }),
         },
-        body: JSON.stringify({
-          credentialId: credential.id,
-          publicKey: credential.publicKey,
-          rpId: credential.rpId,
-          username: username || `user_${userId}`,
-        }),
-      });
+      );
 
       if (!response.ok) {
         throw new Error('Failed to save passkey');
@@ -125,7 +125,10 @@ export default function CircleModularPage() {
 
       setStep('create-wallet');
     } catch (err: any) {
-      console.error('Registration Error Full Object:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
+      console.error(
+        'Registration Error Full Object:',
+        JSON.stringify(err, Object.getOwnPropertyNames(err)),
+      );
       console.error('Registration Error Details:', {
         message: err.message,
         stack: err.stack,
@@ -138,18 +141,19 @@ export default function CircleModularPage() {
 
       // Special handling for common WebAuthn errors
       let errorMessage = err.message || 'Failed to register passkey';
-      
+
       if (err.name === 'NotAllowedError') {
         errorMessage = 'Passkey creation was cancelled or timed out.';
       } else if (err.name === 'SecurityError') {
-        errorMessage = 'Security Error: WebAuthn requires HTTPS or localhost. ' + window.location.origin;
+        errorMessage =
+          'Security Error: WebAuthn requires HTTPS or localhost. ' + window.location.origin;
       }
 
       setError(errorMessage);
       setStep('error');
-      sendToApp('error', { 
+      sendToApp('error', {
         message: errorMessage,
-        raw: JSON.stringify(err, Object.getOwnPropertyNames(err))
+        raw: JSON.stringify(err, Object.getOwnPropertyNames(err)),
       });
     } finally {
       setLoading(false);
@@ -176,7 +180,7 @@ export default function CircleModularPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userToken}`,
+          Authorization: `Bearer ${userToken}`,
         },
         body: JSON.stringify({
           credentialId: credential.id,
@@ -238,19 +242,22 @@ export default function CircleModularPage() {
       });
 
       // Save wallet to backend
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/circle/modular/wallets/save`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userToken}`,
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/circle/modular/wallets/save`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${userToken}`,
+          },
+          body: JSON.stringify({
+            circleWalletId: smartAccount.address, // Using address as wallet ID
+            address: smartAccount.address,
+            blockchain: 'MATIC-AMOY',
+            name: username || `Wallet_${userId}`,
+          }),
         },
-        body: JSON.stringify({
-          circleWalletId: smartAccount.address, // Using address as wallet ID
-          address: smartAccount.address,
-          blockchain: 'MATIC-AMOY',
-          name: username || `Wallet_${userId}`,
-        }),
-      });
+      );
 
       if (!response.ok) {
         throw new Error('Failed to save wallet');
@@ -359,8 +366,18 @@ export default function CircleModularPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            <svg
+              className="w-8 h-8 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Circle Modular Wallet</h1>
@@ -380,7 +397,8 @@ export default function CircleModularPage() {
           <div className="space-y-4">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-800">
-                You'll be prompted to create a passkey using your device's biometric authentication (Face ID, Touch ID, or fingerprint).
+                You'll be prompted to create a passkey using your device's biometric authentication
+                (Face ID, Touch ID, or fingerprint).
               </p>
             </div>
             <button
@@ -455,8 +473,18 @@ export default function CircleModularPage() {
         {step === 'success' && (
           <div className="text-center space-y-4">
             <div className="w-16 h-16 bg-green-100 rounded-full mx-auto flex items-center justify-center">
-              <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              <svg
+                className="w-8 h-8 text-green-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
             </div>
             <h2 className="text-xl font-bold text-gray-900">Success!</h2>
@@ -474,8 +502,18 @@ export default function CircleModularPage() {
         {step === 'error' && (
           <div className="text-center space-y-4">
             <div className="w-16 h-16 bg-red-100 rounded-full mx-auto flex items-center justify-center">
-              <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-8 h-8 text-red-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </div>
             <h2 className="text-xl font-bold text-gray-900">Error</h2>

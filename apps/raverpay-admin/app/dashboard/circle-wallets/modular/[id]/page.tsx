@@ -13,11 +13,7 @@ import { formatDate, truncateAddress } from '@/lib/utils';
 import { toast } from 'sonner';
 import { circleApi } from '@/lib/api/circle';
 
-export default function ModularWalletDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default function ModularWalletDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
 
   const { data: wallet, isLoading } = useQuery({
@@ -227,14 +223,19 @@ export default function ModularWalletDetailPage({
                           </Button>
                         </div>
                       </div>
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                      <Badge
+                        variant="outline"
+                        className="bg-green-50 text-green-700 border-green-200"
+                      >
                         Active
                       </Badge>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-sm font-medium text-muted-foreground">Username</label>
+                        <label className="text-sm font-medium text-muted-foreground">
+                          Username
+                        </label>
                         <p className="text-sm mt-1">{passkey.username || 'N/A'}</p>
                       </div>
 

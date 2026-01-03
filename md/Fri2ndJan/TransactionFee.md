@@ -1,17 +1,20 @@
 # Task: Implement USDC Transaction Fees with Two-Transfer Model
 
 ## Overview
+
 Implement a configurable transaction fee system where users pay a service fee (default 0.5%, min 0.0625 USDC) on top of their send amount. Fees are collected via a second transfer to a company wallet.
 
 ## Business Requirements
 
 ### Fee Structure
+
 - **Default fee**: 0.5% of transaction amount
 - **Minimum fee**: 0.0625 USDC (approximately ₦100 at ₦1,600/$)
 - **Fee is added on top** of send amount
 - **Fee collection**: Two separate Circle transfers
 
 ### Transaction Flow
+
 ```
 User wants to send: 100 USDC
 Calculated fee (0.5%): 0.5 USDC
@@ -25,6 +28,7 @@ Transfer 2: User → Company Wallet (0.5 USDC)
 ## Step 1: Analyze Current Codebase
 
 Confirm the following exist in your codebase:
+
 1. ✅ `CircleTransactionService` with `createTransfer` method
 2. ✅ `Transaction` table with `fee` column
 3. ✅ `SystemConfig` table for storing settings
@@ -42,12 +46,14 @@ Confirm the following exist in your codebase:
 **Purpose**: Manage fee configuration stored in SystemConfig table
 
 **Methods to implement**:
+
 - `getFeeConfig()` - Returns current fee settings
 - `updateFeeConfig(config)` - Updates fee settings (admin only)
 - `calculateFee(amount)` - Calculates fee for given amount
 - `isEnabled()` - Checks if fees are enabled
 
 **Configuration structure**:
+
 ```typescript
 {
   enabled: true,
@@ -64,18 +70,20 @@ Confirm the following exist in your codebase:
 ```
 
 **Store in SystemConfig table**:
+
 - Key: `CIRCLE_FEE_CONFIG`
 - Value: JSON string of config object
 
 **Fee calculation logic**:
+
 ```typescript
 calculateFee(amount: number): number {
   if (!this.isEnabled()) return 0;
-  
+
   const config = this.getFeeConfig();
   const calculatedFee = amount * (config.percentage / 100);
   const finalFee = Math.max(calculatedFee, config.minFeeUsdc);
-  
+
   return Number(finalFee.toFixed(6)); // Round to 6 decimals for USDC
 }
 ```
@@ -89,22 +97,25 @@ calculateFee(amount: number): number {
 **Step-by-step logic**:
 
 1. **Calculate fee**:
+
 ```typescript
 const fee = await this.feeConfigService.calculateFee(amount);
 const totalRequired = amount + fee;
 ```
 
 2. **Validate user balance**:
+
 ```typescript
 const balance = await this.getWalletBalance(walletId);
 if (balance < totalRequired) {
   throw new Error(
-    `Insufficient balance. Required: ${totalRequired} USDC, Available: ${balance} USDC`
+    `Insufficient balance. Required: ${totalRequired} USDC, Available: ${balance} USDC`,
   );
 }
 ```
 
 3. **Get collection wallet for chain**:
+
 ```typescript
 const wallet = await this.getWallet(walletId);
 const blockchain = wallet.blockchain;
@@ -117,6 +128,7 @@ if (!collectionWallet) {
 ```
 
 4. **Execute main transfer (User → Recipient)**:
+
 ```typescript
 let mainTransfer;
 try {
@@ -124,7 +136,7 @@ try {
     walletId,
     destinationAddress,
     amount,
-    feeLevel: 'MEDIUM'
+    feeLevel: 'MEDIUM',
   });
 } catch (error) {
   // Main transfer failed - throw error, nothing executed
@@ -133,6 +145,7 @@ try {
 ```
 
 5. **Execute fee transfer (User → Company) with retry logic**:
+
 ```typescript
 let feeCollected = false;
 let feeTransfer = null;
@@ -142,7 +155,7 @@ try {
     walletId,
     destinationAddress: collectionWallet,
     amount: fee,
-    feeLevel: 'MEDIUM'
+    feeLevel: 'MEDIUM',
   });
   feeCollected = true;
 } catch (feeError) {
@@ -151,20 +164,21 @@ try {
     walletId,
     mainTransferId: mainTransfer.id,
     fee,
-    error: feeError.message
+    error: feeError.message,
   });
-  
+
   // Queue for retry
   await this.queueFeeRetry({
     walletId,
     collectionWallet,
     fee,
-    mainTransferId: mainTransfer.id
+    mainTransferId: mainTransfer.id,
   });
 }
 ```
 
 6. **Save transaction record**:
+
 ```typescript
 await this.saveTransaction({
   walletId,
@@ -176,7 +190,7 @@ await this.saveTransaction({
   mainTransferId: mainTransfer.id,
   feeTransferId: feeTransfer?.id,
   blockchain,
-  status: 'completed'
+  status: 'completed',
 });
 ```
 
@@ -187,6 +201,7 @@ await this.saveTransaction({
 **Purpose**: Retry failed fee collections in background
 
 **Implementation**:
+
 - Create `fee_retry_queue` table with columns:
   - `id`, `walletId`, `collectionWallet`, `fee`, `mainTransferId`, `retryCount`, `status`, `createdAt`
 - Background job runs every 5 minutes
@@ -194,17 +209,18 @@ await this.saveTransaction({
 - Mark as `failed` after 3 attempts and alert admin
 
 **Retry logic**:
+
 ```typescript
 async retryFailedFees() {
   const pendingRetries = await this.getPendingRetries();
-  
+
   for (const retry of pendingRetries) {
     if (retry.retryCount >= 3) {
       await this.markAsFailed(retry.id);
       await this.notifyAdmin(retry);
       continue;
     }
-    
+
     try {
       const transfer = await this.circleApi.createTransfer({
         walletId: retry.walletId,
@@ -212,11 +228,11 @@ async retryFailedFees() {
         amount: retry.fee,
         feeLevel: 'MEDIUM'
       });
-      
+
       // Success - update transaction record
       await this.markFeeCollected(retry.mainTransferId, transfer.id);
       await this.deleteRetry(retry.id);
-      
+
     } catch (error) {
       await this.incrementRetryCount(retry.id);
     }
@@ -248,6 +264,7 @@ async retryFailedFees() {
 #### E. Update Transaction Schema
 
 **Modify Transaction table**:
+
 ```typescript
 {
   // Existing fields...
@@ -264,6 +281,7 @@ async retryFailedFees() {
 #### A. Update send.tsx Screen
 
 **Add state variables**:
+
 ```typescript
 const [feeConfig, setFeeConfig] = useState(null);
 const [calculatedFee, setCalculatedFee] = useState(0);
@@ -271,6 +289,7 @@ const [totalAmount, setTotalAmount] = useState(0);
 ```
 
 **Fetch fee config on mount**:
+
 ```typescript
 useEffect(() => {
   async function loadFeeConfig() {
@@ -282,27 +301,29 @@ useEffect(() => {
 ```
 
 **Calculate fee as user types**:
+
 ```typescript
 useEffect(() => {
   if (!amount || !feeConfig) return;
-  
+
   const amountNum = parseFloat(amount);
   const calculatedFee = amountNum * (feeConfig.percentage / 100);
   const finalFee = Math.max(calculatedFee, feeConfig.minFeeUsdc);
-  
+
   setCalculatedFee(finalFee);
   setTotalAmount(amountNum + finalFee);
 }, [amount, feeConfig]);
 ```
 
 **Update balance validation**:
+
 ```typescript
 const hasInsufficientBalance = parseFloat(balance) < totalAmount;
 
 // Error message
 {hasInsufficientBalance && (
   <ErrorText>
-    Insufficient balance. Need {totalAmount.toFixed(6)} USDC, 
+    Insufficient balance. Need {totalAmount.toFixed(6)} USDC,
     Available: {balance} USDC
   </ErrorText>
 )}
@@ -318,36 +339,36 @@ Add to your transaction review/confirmation modal or screen:
     <Label>To:</Label>
     <Value>{recipientAddress}</Value>
   </Row>
-  
+
   <Divider />
-  
+
   <Row>
     <Label>Amount:</Label>
     <Value>{amount} USDC</Value>
     <SubValue>≈ ₦{(amount * 1600).toLocaleString()}</SubValue>
   </Row>
-  
+
   {/* NEW: Service Fee */}
   <Row>
     <Label>Service Fee:</Label>
     <Value>{calculatedFee.toFixed(6)} USDC</Value>
     <SubValue>≈ ₦{(calculatedFee * 1600).toLocaleString()}</SubValue>
   </Row>
-  
+
   <Row>
     <Label>Network Fee:</Label>
     <Value>Free ✓</Value>
   </Row>
-  
+
   <Divider />
-  
+
   {/* NEW: Total */}
   <Row bold>
     <Label>Total:</Label>
     <Value>{totalAmount.toFixed(6)} USDC</Value>
     <SubValue>≈ ₦{(totalAmount * 1600).toLocaleString()}</SubValue>
   </Row>
-  
+
   <ConfirmButton onPress={handleSend}>
     Confirm Send
   </ConfirmButton>
@@ -355,27 +376,28 @@ Add to your transaction review/confirmation modal or screen:
 ```
 
 **Success Screen Update**:
+
 ```typescript
 <SuccessScreen>
   <Icon>✓</Icon>
   <Title>Sent Successfully</Title>
-  
+
   <DetailRow>
     <Label>Sent:</Label>
     <Value>{amount} USDC</Value>
   </DetailRow>
-  
+
   {/* NEW: Show fee paid */}
   <DetailRow>
     <Label>Fee Paid:</Label>
     <Value>{calculatedFee.toFixed(6)} USDC</Value>
   </DetailRow>
-  
+
   <DetailRow>
     <Label>Total Deducted:</Label>
     <Value>{totalAmount.toFixed(6)} USDC</Value>
   </DetailRow>
-  
+
   <Button onPress={navigateToHome}>Done</Button>
 </SuccessScreen>
 ```
@@ -383,6 +405,7 @@ Add to your transaction review/confirmation modal or screen:
 #### B. Update Transaction History
 
 **In transaction list items**, show fee if present:
+
 ```typescript
 <TransactionItem>
   <Amount>{transaction.amount} USDC</Amount>
@@ -394,28 +417,29 @@ Add to your transaction review/confirmation modal or screen:
 ```
 
 **In transaction details screen**, show breakdown:
+
 ```typescript
 <TransactionDetails>
   <Row>
     <Label>Amount Sent:</Label>
     <Value>{transaction.amount} USDC</Value>
   </Row>
-  
+
   <Row>
     <Label>Service Fee:</Label>
     <Value>{transaction.fee} USDC</Value>
   </Row>
-  
+
   <Row>
     <Label>Total:</Label>
     <Value>{transaction.totalAmount} USDC</Value>
   </Row>
-  
+
   <Row>
     <Label>Network:</Label>
     <Value>{transaction.blockchain}</Value>
   </Row>
-  
+
   <Row>
     <Label>Status:</Label>
     <Value>{transaction.feeCollected ? '✓ Complete' : '⚠ Processing'}</Value>
@@ -430,15 +454,16 @@ Add to your transaction review/confirmation modal or screen:
 **Location**: Update `CircleSettingsPage` or create new `FeeSettingsPage`
 
 **UI Layout**:
+
 ```typescript
 <FeeSettingsPage>
   <Section title="Fee Configuration">
-    
+
     <FormGroup>
       <Label>Fee Percentage</Label>
-      <Input 
-        type="number" 
-        value={percentage} 
+      <Input
+        type="number"
+        value={percentage}
         onChange={setPercentage}
         suffix="%"
         min="0"
@@ -447,12 +472,12 @@ Add to your transaction review/confirmation modal or screen:
       />
       <HelpText>Default: 0.5%</HelpText>
     </FormGroup>
-    
+
     <FormGroup>
       <Label>Minimum Fee</Label>
-      <Input 
-        type="number" 
-        value={minFee} 
+      <Input
+        type="number"
+        value={minFee}
         onChange={setMinFee}
         suffix="USDC"
         min="0"
@@ -460,26 +485,26 @@ Add to your transaction review/confirmation modal or screen:
       />
       <HelpText>Approximately ₦100 at current rates</HelpText>
     </FormGroup>
-    
+
     <FormGroup>
       <Label>Fee Collection Status</Label>
-      <Toggle 
-        checked={enabled} 
+      <Toggle
+        checked={enabled}
         onChange={setEnabled}
       />
       <HelpText>
         {enabled ? 'Fees are being collected' : 'Fees are disabled'}
       </HelpText>
     </FormGroup>
-    
+
     <Divider />
-    
+
     <FormGroup>
       <Label>Collection Wallet Addresses</Label>
       {Object.keys(collectionWallets).map(chain => (
         <ChainWalletInput key={chain}>
           <ChainLabel>{chain}</ChainLabel>
-          <Input 
+          <Input
             value={collectionWallets[chain]}
             onChange={(val) => updateWallet(chain, val)}
             placeholder="0x..."
@@ -490,31 +515,31 @@ Add to your transaction review/confirmation modal or screen:
         You can use the same wallet address for all EVM chains
       </HelpText>
     </FormGroup>
-    
+
     <SaveButton onClick={handleSave}>
       Save Configuration
     </SaveButton>
   </Section>
-  
+
   <Section title="Fee Statistics">
     <StatCard>
       <StatLabel>Today</StatLabel>
       <StatValue>{stats.today} USDC</StatValue>
       <StatSubtext>≈ ₦{stats.todayNaira}</StatSubtext>
     </StatCard>
-    
+
     <StatCard>
       <StatLabel>This Week</StatLabel>
       <StatValue>{stats.week} USDC</StatValue>
       <StatSubtext>≈ ₦{stats.weekNaira}</StatSubtext>
     </StatCard>
-    
+
     <StatCard>
       <StatLabel>This Month</StatLabel>
       <StatValue>{stats.month} USDC</StatValue>
       <StatSubtext>≈ ₦{stats.monthNaira}</StatSubtext>
     </StatCard>
-    
+
     <StatCard warning={stats.failed > 0}>
       <StatLabel>Failed Collections</StatLabel>
       <StatValue>{stats.failed}</StatValue>
@@ -523,7 +548,7 @@ Add to your transaction review/confirmation modal or screen:
       )}
     </StatCard>
   </Section>
-  
+
   <Section title="Recent Changes">
     <AuditLog entries={auditLog} />
   </Section>
@@ -537,6 +562,7 @@ Add to your transaction review/confirmation modal or screen:
 **Purpose**: Show and retry failed fee collections
 
 **UI**: Table showing:
+
 - Transaction ID
 - User
 - Amount
@@ -548,6 +574,7 @@ Add to your transaction review/confirmation modal or screen:
 ## Step 3: Implementation Checklist
 
 ### Phase 1: Backend - Fee Configuration (Day 1)
+
 - [ ] Create `FeeConfigurationService`
 - [ ] Add fee config to `SystemConfig` table
 - [ ] Implement `calculateFee` method with minimum fee logic
@@ -557,6 +584,7 @@ Add to your transaction review/confirmation modal or screen:
 - [ ] Seed initial config: 0.5%, min 0.0625 USDC
 
 ### Phase 2: Backend - Transaction Updates (Day 2-3)
+
 - [ ] Add `feeCollected`, `totalAmount`, `feeTransferId` columns to Transaction table
 - [ ] Update `CircleTransactionService.createTransfer`:
   - [ ] Calculate fee
@@ -571,6 +599,7 @@ Add to your transaction review/confirmation modal or screen:
 - [ ] Write integration tests
 
 ### Phase 3: Mobile App - UI Updates (Day 4)
+
 - [ ] Update `send.tsx`:
   - [ ] Fetch fee config on mount
   - [ ] Calculate fee as user types
@@ -586,6 +615,7 @@ Add to your transaction review/confirmation modal or screen:
 - [ ] Test complete flow
 
 ### Phase 4: Admin Dashboard (Day 5)
+
 - [ ] Create/update fee settings page:
   - [ ] Fee percentage input
   - [ ] Minimum fee input
@@ -598,6 +628,7 @@ Add to your transaction review/confirmation modal or screen:
 - [ ] Test admin workflows
 
 ### Phase 5: Testing & Validation (Day 6-7)
+
 - [ ] Unit tests for all fee calculations
 - [ ] Integration tests for two-transfer flow
 - [ ] Test fee retry logic
@@ -613,6 +644,7 @@ Add to your transaction review/confirmation modal or screen:
 - [ ] Load testing (if high volume expected)
 
 ### Phase 6: Deployment Preparation
+
 - [ ] Set up collection wallets on all 4 mainnet chains
 - [ ] Configure initial fee settings in production
 - [ ] Set up monitoring/alerts for:
@@ -633,26 +665,30 @@ Add to your transaction review/confirmation modal or screen:
 ✅ Admin can configure fees from dashboard  
 ✅ Transaction history shows fee details  
 ✅ Works on all 4 supported chains  
-✅ Fee collection rate > 95% (after retries)  
+✅ Fee collection rate > 95% (after retries)
 
 ## Important Notes
 
 **Wallet Setup**:
+
 - You can use the **same wallet address** for Base, Optimism, Arbitrum, and Polygon (all EVM compatible)
 - Example: `0xYourCompanyWallet123...` works on all 4 chains
 - Just ensure you can access it on each network
 
 **Fee Retry Strategy**:
+
 - Retry 3 times over 15 minutes (5min intervals)
 - After 3 failures, mark as failed and alert admin
 - Keep retry queue small (<100 items)
 
 **Monitoring**:
+
 - Track fee collection success rate
 - Alert if rate drops below 95%
 - Alert if retry queue grows >50 items
 
 **Future Enhancements**:
+
 - Different fees per chain
 - Volume-based discounts
 - Promotional free transaction periods

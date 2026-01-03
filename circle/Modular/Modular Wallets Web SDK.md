@@ -30,21 +30,21 @@ ensuring secure and efficient interactions.
 
 #### Function: toModularTransport
 
-* Description: Creates a custom transport instance with the given clientUrl and
+- Description: Creates a custom transport instance with the given clientUrl and
   clientKey.
-* Parameters:
-  * clientUrl: string - The Client URL to use.
-  * clientKey: string - The Client key to use.
-* Returns: CustomTransport - The custom transport instance.
+- Parameters:
+  - clientUrl: string - The Client URL to use.
+  - clientKey: string - The Client key to use.
+- Returns: CustomTransport - The custom transport instance.
 
 #### Function: toPasskeyTransport
 
-* Description: Creates a custom transport instance with the given clientUrl and
+- Description: Creates a custom transport instance with the given clientUrl and
   clientKey.
-* Parameters:
-  * clientUrl: string - The Client URL to use.
-  * clientKey: string - The Client key to use.
-* Returns: CustomTransport - The custom transport instance.
+- Parameters:
+  - clientUrl: string - The Client URL to use.
+  - clientKey: string - The Client key to use.
+- Returns: CustomTransport - The custom transport instance.
 
 #### Understanding toModularTransport and toPasskeyTransport
 
@@ -60,37 +60,37 @@ ensuring secure and efficient interactions.
 
 ##### How They Work Together
 
-* **User Authentication**:
-  * Use toPasskeyTransport for registering a wallet or logging in with a
+- **User Authentication**:
+  - Use toPasskeyTransport for registering a wallet or logging in with a
     passkey.
-  * This verifies the WebAuthn credential with Circle's RP API.
-* **Blockchain Operations**:
-  * After authentication, use toModularTransport to interact with the wallet
+  - This verifies the WebAuthn credential with Circle's RP API.
+- **Blockchain Operations**:
+  - After authentication, use toModularTransport to interact with the wallet
     onchain (for example, sending transactions or fetching balances).
 
 ### Clients
 
 #### Function: createBundlerClient (viem)
 
-* Description: Creates a Bundler Client for interacting with ERC-4337 Bundlers,
+- Description: Creates a Bundler Client for interacting with ERC-4337 Bundlers,
   enabling the sending and retrieval of User Operations through Bundler Actions.
-* Parameters:
-  * config: BundlerClientConfig - The configuration object containing the
+- Parameters:
+  - config: BundlerClientConfig - The configuration object containing the
     following properties:
-    * transport: Transport - The transport mechanism used for making RPC
+    - transport: Transport - The transport mechanism used for making RPC
       requests.
-    * chain?: Chain - Specifies the blockchain chain to interact with.
-    * Other optional properties can be found in the
+    - chain?: Chain - Specifies the blockchain chain to interact with.
+    - Other optional properties can be found in the
       [Viem Bundler Client Documentation](https://viem.sh/account-abstraction/clients/bundler#parameters).
-* Returns: BundlerClient - A Bundler Client.
+- Returns: BundlerClient - A Bundler Client.
 
 ##### **Bundler Actions**
 
 The Bundler Client supports the following key actions:
 
-* estimateUserOperationGas - Calculates the gas required for a User Operation.
-* sendUserOperation - Submits a User Operation to the bundler for processing.
-* getUserOperationReceipt - Retrieves the receipt for a User Operation.
+- estimateUserOperationGas - Calculates the gas required for a User Operation.
+- sendUserOperation - Submits a User Operation to the bundler for processing.
+- getUserOperationReceipt - Retrieves the receipt for a User Operation.
 
 For the full list of actions and detailed documentation, see the
 [Viem Bundler Actions Documentation](https://viem.sh/account-abstraction/actions/bundler/estimateUserOperationGas).
@@ -98,47 +98,47 @@ For the full list of actions and detailed documentation, see the
 <Note>
   **Limitations**
 
-  The `eth_getUserOperationReceipt` and `eth_getUserOperationByHash` methods scan
-  logs from recently mined blocks and are not designed for historical data.
-  Requests for user operations outside the supported range may be rejected due to
-  block range limitations.
+The `eth_getUserOperationReceipt` and `eth_getUserOperationByHash` methods scan
+logs from recently mined blocks and are not designed for historical data.
+Requests for user operations outside the supported range may be rejected due to
+block range limitations.
 
-  **Default range:** 150 blocks
+**Default range:** 150 blocks
 
-  **Networks with unlimited range:** Arbitrum, Base, Polygon, and Optimism
+**Networks with unlimited range:** Arbitrum, Base, Polygon, and Optimism
 
-  **Best practice:** Use this method soon after submitting the user operation to
-  confirm inclusion, not for historical analysis.
+**Best practice:** Use this method soon after submitting the user operation to
+confirm inclusion, not for historical analysis.
 </Note>
 
 #### Function: createPublicClient (viem)
 
-* Description: Creates a public client for interacting with blockchain nodes.
+- Description: Creates a public client for interacting with blockchain nodes.
   This client is used for tasks such as querying blockchain data and sending
   transactions.
-* Parameters:
-  * config: PublicClientConfig - The configuration object containing the
+- Parameters:
+  - config: PublicClientConfig - The configuration object containing the
     following properties:
-    * transport: Transport - The transport mechanism used for making RPC
+    - transport: Transport - The transport mechanism used for making RPC
       requests.
-    * chain?: Chain - Specifies the blockchain chain to interact with.
-    * Other optional properties can be found in the
+    - chain?: Chain - Specifies the blockchain chain to interact with.
+    - Other optional properties can be found in the
       [Viem Public Client Documentation](https://viem.sh/docs/clients/public#parameters).
-* Returns: PublicClient - A Public Client.
+- Returns: PublicClient - A Public Client.
 
 ##### **Public Client Actions**
 
 The Public Client supports the following key actions:
 
-* getBlock - Retrieves information about a block using its number, hash, or a
+- getBlock - Retrieves information about a block using its number, hash, or a
   specific tag
-* getTransaction - Fetches details of a transaction using its hash.
-* getBalance - Returns the balance of the specified address.
-* call - Executes a "call" to a contract function and retrieves the result
+- getTransaction - Fetches details of a transaction using its hash.
+- getBalance - Returns the balance of the specified address.
+- call - Executes a "call" to a contract function and retrieves the result
   without modifying the blockchain state.
-* sendTransaction - Submits a signed transaction to the blockchain network for
+- sendTransaction - Submits a signed transaction to the blockchain network for
   processing.
-* verifyMessage - Confirms whether a given message was signed by the specified
+- verifyMessage - Confirms whether a given message was signed by the specified
   address.
 
 For the full list of actions and detailed documentation, see the
@@ -146,598 +146,598 @@ For the full list of actions and detailed documentation, see the
 
 #### Function: createRpClient
 
-* Description: Creates an RP Client for interacting with the RP API
-* Parameters:
-  * config: RpClientConfig - The configuration object containing the following
+- Description: Creates an RP Client for interacting with the RP API
+- Parameters:
+  - config: RpClientConfig - The configuration object containing the following
     properties:
-    * transport: Transport - The transport mechanism used for making RPC
+    - transport: Transport - The transport mechanism used for making RPC
       requests. (required)
-    * cacheTime?: number (default: 4\_000) - Time (in milliseconds) that cached
+    - cacheTime?: number (default: 4_000) - Time (in milliseconds) that cached
       data will remain in memory.
-    * key?: string - A key for the client.
-    * name?: string - A name for the client.
-    * pollingInterval?: number (default: 4\_000) - Frequency (in milliseconds)
+    - key?: string - A key for the client.
+    - name?: string - A name for the client.
+    - pollingInterval?: number (default: 4_000) - Frequency (in milliseconds)
       for polling enabled actions & events.
-    * rpcSchema?: rpcSchema - Typed JSON-RPC schema for the client.
-* Returns: RpClient\<transport, rpcSchema> - An RP Client.
+    - rpcSchema?: rpcSchema - Typed JSON-RPC schema for the client.
+- Returns: RpClient\<transport, rpcSchema> - An RP Client.
 
 ### Accounts
 
 #### Function: toCircleSmartAccount
 
-* Description: Creates a Circle smart account.
-* Parameters:
-  * client: Client - The client instance.
-  * owner: WebAuthnAccount | LocalAccount - The owner account associated with
+- Description: Creates a Circle smart account.
+- Parameters:
+  - client: Client - The client instance.
+  - owner: WebAuthnAccount | LocalAccount - The owner account associated with
     the Circle smart account.
-  * address?: Address - The address.
-  * name?: string (default: "passkey-\{timestamp}", e.g.
+  - address?: Address - The address.
+  - name?: string (default: "passkey-\{timestamp}", e.g.
     2025-01-01T00:00:00.000Z) - The wallet name assigned to the newly registered
     account.
-  * nonce?: bigint - The Nonce.
-* Returns: Promise\<ToCircleSmartAccountReturnType>
+  - nonce?: bigint - The Nonce.
+- Returns: Promise\<ToCircleSmartAccountReturnType>
 
 #### Function: toWebAuthnCredential
 
-* Description: Logs in or registers a user and returns a WebAuthnCredential.
-* Parameters:
-  * mode: WebAuthnMode - The mode of the WebAuthn credential (Login or
+- Description: Logs in or registers a user and returns a WebAuthnCredential.
+- Parameters:
+  - mode: WebAuthnMode - The mode of the WebAuthn credential (Login or
     Register).
-  * transport: Transport - The transport used to communicate with the RP API.
-  * credentialId?: string - The existing credential ID for passkey login.
-  * username?: string - The username for passkey registration.
-* Returns: Promise\<WebAuthnCredential>
+  - transport: Transport - The transport used to communicate with the RP API.
+  - credentialId?: string - The existing credential ID for passkey login.
+  - username?: string - The username for passkey registration.
+- Returns: Promise\<WebAuthnCredential>
 
 ### Providers
 
 #### Class: ModularWalletsProvider
 
-* Description: Provider for connecting to the modular wallets API and executing
+- Description: Provider for connecting to the modular wallets API and executing
   Web3 API requests.
-* Parameters:
-  * clientUrl: string - The Client URL to use.
-  * clientKey: string - The Client key to use.
+- Parameters:
+  - clientUrl: string - The Client URL to use.
+  - clientKey: string - The Client key to use.
 
 ##### Methods
 
 ###### request
 
-* Description: Sends a Web3 API request to the modular wallets API using the
+- Description: Sends a Web3 API request to the modular wallets API using the
   specified method and payload, with optional request configuration.
-* Parameters:
-  * payload: Web3APIPayload\<API, Method> - The payload for the Web3 API
+- Parameters:
+  - payload: Web3APIPayload\<API, Method> - The payload for the Web3 API
     request, including the method name and its parameters.
-  * requestOptions?: RequestInit - Optional configuration for the HTTP request,
+  - requestOptions?: RequestInit - Optional configuration for the HTTP request,
     such as headers or request mode.
-* Returns: Promise\<ResultType> - A promise resolving to the result of the API
+- Returns: Promise\<ResultType> - A promise resolving to the result of the API
   call.
 
 #### Class: PaymasterProvider
 
-* Description: Provider for connecting to the Paymaster API, enabling
+- Description: Provider for connecting to the Paymaster API, enabling
   interaction with
   [ERC-7677 compliant Paymasters](https://eips.ethereum.org/EIPS/eip-7677) to
   sponsor User Operation gas fees.
-* Parameters:
-  * clientUrl: string - The Client URL to use.
-  * clientKey: string - The Client key to use.
+- Parameters:
+  - clientUrl: string - The Client URL to use.
+  - clientKey: string - The Client key to use.
 
 ##### Methods
 
 ###### request
 
-* Description: Sends a request to the Paymaster API using the specified method
+- Description: Sends a request to the Paymaster API using the specified method
   and payload, with optional request configuration.
-* Parameters:
-  * payload: Web3APIPayload\<API, Method> - The payload for the API request,
+- Parameters:
+  - payload: Web3APIPayload\<API, Method> - The payload for the API request,
     including the method name and its parameters.
-  * requestOptions?: RequestInit - Optional configuration for the HTTP request,
+  - requestOptions?: RequestInit - Optional configuration for the HTTP request,
     such as headers or request mode.
-* Returns: Promise\<ResultType> - A promise resolving to the result of the API
+- Returns: Promise\<ResultType> - A promise resolving to the result of the API
   call.
 
 #### Class: RpProvider
 
-* Description: Provider for connecting to the RP API and executing Web3 API
+- Description: Provider for connecting to the RP API and executing Web3 API
   requests.
-* Parameters:
-  * clientUrl: string - The Client URL to use.
-  * clientKey: string - The Client key to use.
+- Parameters:
+  - clientUrl: string - The Client URL to use.
+  - clientKey: string - The Client key to use.
 
 ##### Methods
 
 ###### request
 
-* Description: Sends a request to the RP API using the specified method and
+- Description: Sends a request to the RP API using the specified method and
   payload, with optional request configuration.
-* Parameters:
-  * payload: Web3APIPayload\<API, Method> - The payload for the API request,
+- Parameters:
+  - payload: Web3APIPayload\<API, Method> - The payload for the API request,
     including the method name and its parameters.
-  * requestOptions?: RequestInit - Optional configuration for the HTTP request,
+  - requestOptions?: RequestInit - Optional configuration for the HTTP request,
     such as headers or request mode.
-* Returns: Promise\<ResultType> - A promise resolving to the result of the API
+- Returns: Promise\<ResultType> - A promise resolving to the result of the API
   call.
 
 #### Class: EIP1193Provider
 
-* Description: An EIP-1193 wrapper provider for connecting to the Modular
+- Description: An EIP-1193 wrapper provider for connecting to the Modular
   Wallets API and the public RPC endpoint and executing Web3 API requests via
   the passed-in bundler client instance.
-* Parameters:
-  * bundlerClient: BundlerClient - The bundler client instance.
-  * publicClient: PublicClient - The public client instance.
+- Parameters:
+  - bundlerClient: BundlerClient - The bundler client instance.
+  - publicClient: PublicClient - The public client instance.
 
 ##### Methods
 
 ###### request
 
-* Description: Sends a request to the modular wallets API using the specified
+- Description: Sends a request to the modular wallets API using the specified
   method and payload, with optional request configuration.
-* Parameters:
-  * payload: Web3APIPayload\<API, Method> - The payload for the API request,
+- Parameters:
+  - payload: Web3APIPayload\<API, Method> - The payload for the API request,
     including the method name and its parameters.
-  * requestOptions?: RequestInit - Optional configuration for the HTTP request,
+  - requestOptions?: RequestInit - Optional configuration for the HTTP request,
     such as headers or request mode.
-* Returns: Promise\<ResultType> - A promise resolving to the result of the API
+- Returns: Promise\<ResultType> - A promise resolving to the result of the API
   call.
 
 ### Utilities
 
 #### Function: createAddressMapping
 
-* Description: Creates an address mapping for recovery.
-* Parameters:
-  * client: Client\<Transport> - The Client to use.
-  * params: CreateAddressMappingParameters - Parameters to use.
-* Returns: Promise\<CreateAddressMappingReturnType> - The mapping result.
+- Description: Creates an address mapping for recovery.
+- Parameters:
+  - client: Client\<Transport> - The Client to use.
+  - params: CreateAddressMappingParameters - Parameters to use.
+- Returns: Promise\<CreateAddressMappingReturnType> - The mapping result.
 
 #### Function: encodeTransfer
 
-* Description: Encodes the ERC20 transfer for user operations.
-* Parameters:
-  * to: `0x${string}` - The recipient address.
-  * token: `0x${string}` - The token contract address. Supported tokens and
+- Description: Encodes the ERC20 transfer for user operations.
+- Parameters:
+  - to: `0x${string}` - The recipient address.
+  - token: `0x${string}` - The token contract address. Supported tokens and
     their information are listed below.
-  * amount: bigInt - The amount to transfer.
-* Returns: EncodeTransferReturnType - The encoded transfer.
-* Supported Tokens:
+  - amount: bigInt - The amount to transfer.
+- Returns: EncodeTransferReturnType - The encoded transfer.
+- Supported Tokens:
 
 ##### Mainnet USDC
 
-| Blockchain Network | Enum                            | Contract Address                                                                                                                    |
-| ------------------ | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Arbitrum           | ContractAddress.Arbitrum\_USDC  | [`0xaf88d065e77c8cC2239327C5EDb3A432268e5831`](https://arbiscan.io/token/0xaf88d065e77c8cc2239327c5edb3a432268e5831)                |
-| Avalanche          | ContractAddress.Avalanche\_USDC | [`0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E`](https://snowtrace.io/token/0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E?chainid=43114) |
-| Base               | ContractAddress.Base\_USDC      | [`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`](https://basescan.org/token/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913)               |
-| Monad              | ContractAddress.Monad\_USDC     | [`0x754704Bc059F8C67012fEd69BC8A327a5aafb603`](https://monadvision.com/token/0x754704Bc059F8C67012fEd69BC8A327a5aafb603)            |
-| Optimism           | ContractAddress.Optimism\_USDC  | [`0x0b2c639c533813f4aa9d7837caf62653d097ff85`](https://optimism.blockscout.com/address/0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85)  |
-| Polygon            | ContractAddress.Polygon\_USDC   | [`0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359`](https://polygonscan.com/token/0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359)            |
-| Unichain           | ContractAddress.Unichain\_USDC  | [`0x078D782b760474a361dDA0AF3839290b0EF57AD6`](https://unichain.blockscout.com/address/0x078D782b760474a361dDA0AF3839290b0EF57AD6)  |
+| Blockchain Network | Enum                           | Contract Address                                                                                                                    |
+| ------------------ | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Arbitrum           | ContractAddress.Arbitrum_USDC  | [`0xaf88d065e77c8cC2239327C5EDb3A432268e5831`](https://arbiscan.io/token/0xaf88d065e77c8cc2239327c5edb3a432268e5831)                |
+| Avalanche          | ContractAddress.Avalanche_USDC | [`0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E`](https://snowtrace.io/token/0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E?chainid=43114) |
+| Base               | ContractAddress.Base_USDC      | [`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`](https://basescan.org/token/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913)               |
+| Monad              | ContractAddress.Monad_USDC     | [`0x754704Bc059F8C67012fEd69BC8A327a5aafb603`](https://monadvision.com/token/0x754704Bc059F8C67012fEd69BC8A327a5aafb603)            |
+| Optimism           | ContractAddress.Optimism_USDC  | [`0x0b2c639c533813f4aa9d7837caf62653d097ff85`](https://optimism.blockscout.com/address/0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85)  |
+| Polygon            | ContractAddress.Polygon_USDC   | [`0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359`](https://polygonscan.com/token/0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359)            |
+| Unichain           | ContractAddress.Unichain_USDC  | [`0x078D782b760474a361dDA0AF3839290b0EF57AD6`](https://unichain.blockscout.com/address/0x078D782b760474a361dDA0AF3839290b0EF57AD6)  |
 
 ##### Mainnet Native Tokens
 
-| Blockchain Network | Token Name (Symbol) | Enum                          | Contract Address                                                                                                                 |
-| ------------------ | ------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Arbitrum           | Arbitrum (ARB)      | ContractAddress.Arbitrum\_ARB | [`0x912CE59144191C1204E64559FE8253a0e49E6548`](https://arbiscan.io/token/0x912ce59144191c1204e64559fe8253a0e49e6548)             |
-| Optimism           | Optimism (OP)       | ContractAddress.Optimism\_OP  | [`0x4200000000000000000000000000000000000042`](https://optimistic.etherscan.io/token/0x4200000000000000000000000000000000000042) |
+| Blockchain Network | Token Name (Symbol) | Enum                         | Contract Address                                                                                                                 |
+| ------------------ | ------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Arbitrum           | Arbitrum (ARB)      | ContractAddress.Arbitrum_ARB | [`0x912CE59144191C1204E64559FE8253a0e49E6548`](https://arbiscan.io/token/0x912ce59144191c1204e64559fe8253a0e49e6548)             |
+| Optimism           | Optimism (OP)       | ContractAddress.Optimism_OP  | [`0x4200000000000000000000000000000000000042`](https://optimistic.etherscan.io/token/0x4200000000000000000000000000000000000042) |
 
 ##### Testnet USDC
 
-| Blockchain Network | Enum                                  | Contract Address                                                                                                                            |
-| ------------------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Arbitrum Sepolia   | ContractAddress.ArbitrumSepolia\_USDC | [`0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d`](https://sepolia.arbiscan.io/token/0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d)                |
-| Arc Testnet        | ContractAddress.ArcTestnet\_USDC      | [`0x3600000000000000000000000000000000000000`](https://testnet.arcscan.app/address/0x3600000000000000000000000000000000000000)              |
-| Avalanche Fuji     | ContractAddress.AvalancheFuji\_USDC   | [`0x5425890298aed601595a70AB815c96711a31Bc65`](https://testnet.snowtrace.io/token/0x5425890298aed601595a70AB815c96711a31Bc65?chainid=43113) |
-| Base Sepolia       | ContractAddress.BaseSepolia\_USDC     | [`0x036CbD53842c5426634e7929541eC2318f3dCF7e`](https://sepolia.basescan.org/token/0x036CbD53842c5426634e7929541eC2318f3dCF7e)               |
-| Monad Testnet      | ContractAddress.MonadTestnet\_USDC    | [`0x534b2f3A21130d7a60830c2Df862319e593943A3`](https://testnet.monadexplorer.com/token/0x534b2f3A21130d7a60830c2Df862319e593943A3)          |
-| Optimism Sepolia   | ContractAddress.OptimismSepolia\_USDC | [`0x5fd84259d66Cd46123540766Be93DFE6D43130D7`](https://optimism-sepolia.blockscout.com/address/0x5fd84259d66Cd46123540766Be93DFE6D43130D7)  |
-| Polygon Amoy       | ContractAddress.PolygonAmoy\_USDC     | [`0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582`](https://amoy.polygonscan.com/token/0x41e94eb019c0762f9bfcf9fb1e58725bfb0e7582)               |
-| Unichain Sepolia   | ContractAddress.UnichainSepolia\_USDC | [`0x31d0220469e10c4E71834a79b1f276d740d3768F`](https://unichain-sepolia.blockscout.com/address/0x31d0220469e10c4E71834a79b1f276d740d3768F)  |
+| Blockchain Network | Enum                                 | Contract Address                                                                                                                            |
+| ------------------ | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Arbitrum Sepolia   | ContractAddress.ArbitrumSepolia_USDC | [`0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d`](https://sepolia.arbiscan.io/token/0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d)                |
+| Arc Testnet        | ContractAddress.ArcTestnet_USDC      | [`0x3600000000000000000000000000000000000000`](https://testnet.arcscan.app/address/0x3600000000000000000000000000000000000000)              |
+| Avalanche Fuji     | ContractAddress.AvalancheFuji_USDC   | [`0x5425890298aed601595a70AB815c96711a31Bc65`](https://testnet.snowtrace.io/token/0x5425890298aed601595a70AB815c96711a31Bc65?chainid=43113) |
+| Base Sepolia       | ContractAddress.BaseSepolia_USDC     | [`0x036CbD53842c5426634e7929541eC2318f3dCF7e`](https://sepolia.basescan.org/token/0x036CbD53842c5426634e7929541eC2318f3dCF7e)               |
+| Monad Testnet      | ContractAddress.MonadTestnet_USDC    | [`0x534b2f3A21130d7a60830c2Df862319e593943A3`](https://testnet.monadexplorer.com/token/0x534b2f3A21130d7a60830c2Df862319e593943A3)          |
+| Optimism Sepolia   | ContractAddress.OptimismSepolia_USDC | [`0x5fd84259d66Cd46123540766Be93DFE6D43130D7`](https://optimism-sepolia.blockscout.com/address/0x5fd84259d66Cd46123540766Be93DFE6D43130D7)  |
+| Polygon Amoy       | ContractAddress.PolygonAmoy_USDC     | [`0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582`](https://amoy.polygonscan.com/token/0x41e94eb019c0762f9bfcf9fb1e58725bfb0e7582)               |
+| Unichain Sepolia   | ContractAddress.UnichainSepolia_USDC | [`0x31d0220469e10c4E71834a79b1f276d740d3768F`](https://unichain-sepolia.blockscout.com/address/0x31d0220469e10c4E71834a79b1f276d740d3768F)  |
 
 #### Function: estimateExecuteRecoveryGas
 
-* Description: Estimates the gas required to execute and finalize the recovery
+- Description: Estimates the gas required to execute and finalize the recovery
   process.
-* Parameters:
-  * client: Client\<Transport, Chain | undefined, SmartAccount | undefined> -
+- Parameters:
+  - client: Client\<Transport, Chain | undefined, SmartAccount | undefined> -
     The Client to use.
-  * params: EstimateExecuteRecoveryGasParameters - Parameters to use.
-* Returns: Promise\<EstimateUserOperationGasReturnType> - The mapping result.
+  - params: EstimateExecuteRecoveryGasParameters - Parameters to use.
+- Returns: Promise\<EstimateUserOperationGasReturnType> - The mapping result.
 
 #### Function: estimateRegisterRecoveryAddressGas
 
-* Description: Estimates the gas required to register a recovery address during
+- Description: Estimates the gas required to register a recovery address during
   the recovery process.
-* Parameters:
-  * client: Client\<Transport, Chain | undefined, SmartAccount | undefined> -
+- Parameters:
+  - client: Client\<Transport, Chain | undefined, SmartAccount | undefined> -
     The Client to use.
-  * params: EstimateRegisterRecoveryAddressGasParameters - Parameters to use.
-* Returns: Promise\<EstimateUserOperationGasReturnType> - An estimate of gas
+  - params: EstimateRegisterRecoveryAddressGasParameters - Parameters to use.
+- Returns: Promise\<EstimateUserOperationGasReturnType> - An estimate of gas
   values necessary to register a recovery address.
 
 #### Function: executeRecovery
 
-* Description: Executes and finalizes the recovery process.
-* Parameters:
-  * client: Client\<Transport, Chain | undefined, SmartAccount | undefined> -
+- Description: Executes and finalizes the recovery process.
+- Parameters:
+  - client: Client\<Transport, Chain | undefined, SmartAccount | undefined> -
     The Client to use.
-  * params: ExecuteRecoveryParameters - Parameters to use.
-* Returns: Promise\<`0x${string}`> - The user operation hash from executing
+  - params: ExecuteRecoveryParameters - Parameters to use.
+- Returns: Promise\<`0x${string}`> - The user operation hash from executing
   recovery onchain.
 
 #### Function: getAddress
 
-* Description: Gets the Circle smart wallet address for the user.
-* Parameters:
-  * client: Client\<Transport> - The Client to use.
-  * params: GetAddressParameters - Parameters to use.
-* Returns: Promise\<ModularWallet> - Circle smart wallet creation response.
+- Description: Gets the Circle smart wallet address for the user.
+- Parameters:
+  - client: Client\<Transport> - The Client to use.
+  - params: GetAddressParameters - Parameters to use.
+- Returns: Promise\<ModularWallet> - Circle smart wallet creation response.
 
 #### Function: getAddressMapping
 
-* Description: Gets the address mapping for a given owner.
-* Parameters:
-  * client: Client\<Transport> - The Client to use.
-  * params: GetAddressMappingParameters - Parameters to use.
-* Returns: Promise\<GetAddressMappingReturnType> - The mapping result.
+- Description: Gets the address mapping for a given owner.
+- Parameters:
+  - client: Client\<Transport> - The Client to use.
+  - params: GetAddressMappingParameters - Parameters to use.
+- Returns: Promise\<GetAddressMappingReturnType> - The mapping result.
 
 #### Function: getLoginOptions
 
-* Description: Returns the login options, including a challenge for
+- Description: Returns the login options, including a challenge for
   verification.
-* Parameters:
-  * client: Client\<Transport> - The Client to use.
-  * params: GetLoginOptionsParameters - Parameters to use.
-* Returns: Promise\<CustomPublicKeyCredentialRequestOptions> - Credential
+- Parameters:
+  - client: Client\<Transport> - The Client to use.
+  - params: GetLoginOptionsParameters - Parameters to use.
+- Returns: Promise\<CustomPublicKeyCredentialRequestOptions> - Credential
   Request Options.
 
 #### Function: getLoginVerification
 
-* Description: Returns the login verification response to indicate if it's
+- Description: Returns the login verification response to indicate if it's
   verified or not.
-* Parameters:
-  * client: Client\<Transport> - The Client to use.
-  * params: GetLoginVerificationParameters - Parameters to use.
-* Returns: Promise\<GetLoginVerificationReturnType> - WebAuthn Verification
+- Parameters:
+  - client: Client\<Transport> - The Client to use.
+  - params: GetLoginVerificationParameters - Parameters to use.
+- Returns: Promise\<GetLoginVerificationReturnType> - WebAuthn Verification
   Response.
 
 #### Function: getModularWalletAddress
 
-* Description: Gets the Circle modular wallet address.
-* Parameters:
-  * parameters: GetCircleSmartAccountAddressParameters - The configuration
+- Description: Gets the Circle modular wallet address.
+- Parameters:
+  - parameters: GetCircleSmartAccountAddressParameters - The configuration
     object containing the following properties:
-    * client: CircleModularWalletClient - The Circle modular wallet client
+    - client: CircleModularWalletClient - The Circle modular wallet client
       instance.
-    * owner: WebAuthnAccount - The owner.
-    * name?: string - The Circle Smart Account wallet name.
-* Returns: Promise\<GetAddressReturnType> - The Circle modular wallet address.
+    - owner: WebAuthnAccount - The owner.
+    - name?: string - The Circle Smart Account wallet name.
+- Returns: Promise\<GetAddressReturnType> - The Circle modular wallet address.
 
 #### Function: getRegistrationOptions
 
-* Description: Returns the registration options, including a challenge for
+- Description: Returns the registration options, including a challenge for
   verification.
-* Parameters:
-  * client: Client\<Transport> - The Client to use.
-  * params: GetRegistrationOptionsParameters - Parameters to use.
-* Returns: Promise\<CustomPublicKeyCredentialCreationOptions> - Credential
+- Parameters:
+  - client: Client\<Transport> - The Client to use.
+  - params: GetRegistrationOptionsParameters - Parameters to use.
+- Returns: Promise\<CustomPublicKeyCredentialCreationOptions> - Credential
   Creation Options.
 
 #### Function: getRegistrationVerification
 
-* Description: Returns the registration verification response to indicate if
+- Description: Returns the registration verification response to indicate if
   it's verified or not.
-* Parameters:
-  * client: Client\<Transport> - The Client to use.
-  * params: GetRegistrationVerificationParameters - Parameters to use.
-* Returns: Promise\<GetRegistrationVerificationReturnType> - WebAuthn
+- Parameters:
+  - client: Client\<Transport> - The Client to use.
+  - params: GetRegistrationVerificationParameters - Parameters to use.
+- Returns: Promise\<GetRegistrationVerificationReturnType> - WebAuthn
   Verification Response.
 
 ### Function: getUserOperationGasPrice
 
-* Description: Gets the user operation gas price.
-* Parameters:
-  * client: Client\<Transport> - The Client to use..
-* Returns: Promise\<GetUserOperationGasPriceResponse> - The user operation gas
+- Description: Gets the user operation gas price.
+- Parameters:
+  - client: Client\<Transport> - The Client to use..
+- Returns: Promise\<GetUserOperationGasPriceResponse> - The user operation gas
   price.
 
 #### Function: modularWalletActions
 
-* Description: Returns the modular wallets actions.
-* Parameters:
-  * client: Client\<Transport> - The Client to use.
-* Returns: ModularWalletActions - modular wallets actions.
+- Description: Returns the modular wallets actions.
+- Parameters:
+  - client: Client\<Transport> - The Client to use.
+- Returns: ModularWalletActions - modular wallets actions.
 
 #### Function: parseEther (viem)
 
-* Description: Converts a string representation of ether to numerical wei.
-* Properties:
-  * value: string - The string representation of ether.
-* Returns: bigint - The numerical value in wei. For more information, see the
+- Description: Converts a string representation of ether to numerical wei.
+- Properties:
+  - value: string - The string representation of ether.
+- Returns: bigint - The numerical value in wei. For more information, see the
   [Viem documentation](https://viem.sh/docs/utilities/parseEther).
 
 #### Function: parseGwei (viem)
 
-* Description: Converts a string representation of gwei to numerical wei.
-* Properties:
-  * value: string - The string representation of gwei..
-* Returns: bigint - The numerical value in wei. For more information, see the
+- Description: Converts a string representation of gwei to numerical wei.
+- Properties:
+  - value: string - The string representation of gwei..
+- Returns: bigint - The numerical value in wei. For more information, see the
   [Viem documentation](https://viem.sh/docs/utilities/parseGwei).
 
 #### Function: recoveryActions
 
-* Description: Returns the Recovery actions.
-* Parameters:
-  * client: Client\<Transport> - The Client to use.
-* Returns: RecoveryActions - Recovery Actions.
+- Description: Returns the Recovery actions.
+- Parameters:
+  - client: Client\<Transport> - The Client to use.
+- Returns: RecoveryActions - Recovery Actions.
 
 #### Function: registerRecoveryAddress
 
-* Description: Registers a recovery address during the recovery process.
-* Parameters:
-  * client: Client\<Transport, Chain | undefined, SmartAccount | undefined> -
+- Description: Registers a recovery address during the recovery process.
+- Parameters:
+  - client: Client\<Transport, Chain | undefined, SmartAccount | undefined> -
     The Client to use.
-  * params: RegisterRecoveryAddressParameters - Parameters to use.
-* Returns: Promise\<`0x${string}`> - The user operation hash from registering
+  - params: RegisterRecoveryAddressParameters - Parameters to use.
+- Returns: Promise\<`0x${string}`> - The user operation hash from registering
   the recovery address onchain.
 
 #### Function: rpActions
 
-* Description: Returns the RP actions.
-* Parameters:
-  * client: Client\<Transport> - The Client to use.
-* Returns: RpActions - Rp Actions.
+- Description: Returns the RP actions.
+- Parameters:
+  - client: Client\<Transport> - The Client to use.
+- Returns: RpActions - Rp Actions.
 
 #### Function: toCircleModularWalletClient
 
-* Description: Transforms a client into a Circle modular wallet client using
+- Description: Transforms a client into a Circle modular wallet client using
   decorators.
-* Parameters:
-  * client: Client - The client instance.
-* Returns: CircleModularWalletClient - A decorated Circle modular wallet client.
+- Parameters:
+  - client: Client - The client instance.
+- Returns: CircleModularWalletClient - A decorated Circle modular wallet client.
 
 #### Function: walletClientToLocalAccount
 
-* Description: Creates a Local Account from a Wallet Client.
-* Parameters:
-  * walletClient: WalletClient - The Wallet Client to use.
-* Returns: LocalAccount - A Local Account.
+- Description: Creates a Local Account from a Wallet Client.
+- Parameters:
+  - walletClient: WalletClient - The Wallet Client to use.
+- Returns: LocalAccount - A Local Account.
 
 #### Function: webAuthnSign
 
-* Description: Signs a hash and parses it to a ABI-encoded webauthn signature.
+- Description: Signs a hash and parses it to a ABI-encoded webauthn signature.
   The dynamic part of the secp256r1 signature.
-* Parameters:
-  * parameters: WebAuthnSignParameters - The configuration object containing the
+- Parameters:
+  - parameters: WebAuthnSignParameters - The configuration object containing the
     following properties:
-    * hash: Hash - The hash to sign.
-    * owner: WebAuthnAccount - The owner of the account.
-* Returns: Promise\<`0x${string}`> - The ABI-encoded webauthn signature.
+    - hash: Hash - The hash to sign.
+    - owner: WebAuthnAccount - The owner of the account.
+- Returns: Promise\<`0x${string}`> - The ABI-encoded webauthn signature.
 
 ### Enums
 
 #### AccountType
 
-* Description: Enum class representing the different types of accounts.
-* Members:
-  * Local - An account that is stored locally and supports private key-based
+- Description: Enum class representing the different types of accounts.
+- Members:
+  - Local - An account that is stored locally and supports private key-based
     signing.
-  * WebAuthn - An account that relies on WebAuthn for authentication and
+  - WebAuthn - An account that relies on WebAuthn for authentication and
     signing.
 
 #### ContractAddress
 
-* Description: Enum class representing the supported token contract addresses.
-* Members:
-  * Arbitrum\_ARB - The Arbitrum governance token contract address.
-  * Arbitrum\_USDC - The USDC token contract address on Arbitrum.
-  * ArbitrumSepolia\_USDC - The USDC token contract address on Arbitrum testnet.
-  * ArcTestnet\_USDC - The USDC token contract address on Arc testnet.
-  * AvalancheFuji\_USDC - The USDC token contract address on Avalanche testnet.
-  * Base\_USDC - The USDC token contract address on Base.
-  * BaseSepolia\_USDC - The USDC token contract address on Base testnet.
-  * Monad\_USDC - The USDC token contract address on Monad mainnet.
-  * MonadTestnet\_USDC - The USDC token contract address on Monad testnet.
-  * Optimism\_OP - The Optimism governance token contract address.
-  * Optimism\_USDC - The USDC token contract address on Optimism.
-  * OptimismSepolia\_USDC - The USDC token contract address on Optimism testnet.
-  * Polygon\_USDC - The USDC token contract address on Polygon.
-  * PolygonAmoy\_USDC - The USDC token contract address on Polygon testnet.
-  * Unichain\_USDC - The USDC token contract address on Unichain.
-  * UnichainSepolia\_USDC - The USDC token contract address on Unichain testnet.
+- Description: Enum class representing the supported token contract addresses.
+- Members:
+  - Arbitrum_ARB - The Arbitrum governance token contract address.
+  - Arbitrum_USDC - The USDC token contract address on Arbitrum.
+  - ArbitrumSepolia_USDC - The USDC token contract address on Arbitrum testnet.
+  - ArcTestnet_USDC - The USDC token contract address on Arc testnet.
+  - AvalancheFuji_USDC - The USDC token contract address on Avalanche testnet.
+  - Base_USDC - The USDC token contract address on Base.
+  - BaseSepolia_USDC - The USDC token contract address on Base testnet.
+  - Monad_USDC - The USDC token contract address on Monad mainnet.
+  - MonadTestnet_USDC - The USDC token contract address on Monad testnet.
+  - Optimism_OP - The Optimism governance token contract address.
+  - Optimism_USDC - The USDC token contract address on Optimism.
+  - OptimismSepolia_USDC - The USDC token contract address on Optimism testnet.
+  - Polygon_USDC - The USDC token contract address on Polygon.
+  - PolygonAmoy_USDC - The USDC token contract address on Polygon testnet.
+  - Unichain_USDC - The USDC token contract address on Unichain.
+  - UnichainSepolia_USDC - The USDC token contract address on Unichain testnet.
 
 #### OwnerIdentifierType
 
-* Description: Enum class representing the owner identifier types for address
+- Description: Enum class representing the owner identifier types for address
   mapping.
-* Members:
-  * EOA - The Externally Owned Account (EOA) owner identifier.
-  * WebAuthn - The WebAuthn owner identifier.
+- Members:
+  - EOA - The Externally Owned Account (EOA) owner identifier.
+  - WebAuthn - The WebAuthn owner identifier.
 
 #### WebAuthnMode
 
-* Description: Enum class representing the WebAuthn modes.
-* Members:
-  * Login - Mode for logging in with an existing credential.
-  * Register - Mode for registering a new credential.
+- Description: Enum class representing the WebAuthn modes.
+- Members:
+  - Login - Mode for logging in with an existing credential.
+  - Register - Mode for registering a new credential.
 
 ### Interfaces
 
 #### AuthenticatorAssertionResponse
 
-* Description: Represents a digital signature from a WebAuthn credential,
+- Description: Represents a digital signature from a WebAuthn credential,
   allowing servers to verify and authenticate a user during actions like signing
   in.
-* Properties:
-  * userHandle: ArrayBuffer - A read-only property providing an opaque
+- Properties:
+  - userHandle: ArrayBuffer - A read-only property providing an opaque
     identifier for linking a user account to its credentials.
     [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAssertionResponse)
 
 #### AuthenticatorAttestationResponse
 
-* Description: Represents a digital signature from a WebAuthn credential,
+- Description: Represents a digital signature from a WebAuthn credential,
   allowing servers to verify and authenticate a user during actions like signing
   in.
-* Methods:
-  * getPublicKey(): ArrayBuffer - Returns an ArrayBuffer containing the DER
+- Methods:
+  - getPublicKey(): ArrayBuffer - Returns an ArrayBuffer containing the DER
     SubjectPublicKeyInfo of the new credential, or null if unavailable.
     [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAttestationResponse)
 
 #### CreateCredentialParameters
 
-* Description: Defines the parameters required to create a WebAuthn credential.
-* Properties:
-  * credential: PublicKeyCredential - The WebAuthn Credential.
-  * rpId: string | undefined - The RP ID.
+- Description: Defines the parameters required to create a WebAuthn credential.
+- Properties:
+  - credential: PublicKeyCredential - The WebAuthn Credential.
+  - rpId: string | undefined - The RP ID.
 
 #### CustomPublicKeyCredentialCreationOptions
 
-* Description: Defines the parameters required to create a WebAuthn credential
+- Description: Defines the parameters required to create a WebAuthn credential
   with support for custom user entities and advanced authentication options.
-* Properties:
-  * challenge: string - A unique challenge generated by the server to prevent
+- Properties:
+  - challenge: string - A unique challenge generated by the server to prevent
     replay attacks.
-  * pubKeyCredParams: PublicKeyCredentialParameters\[] - The list of acceptable
+  - pubKeyCredParams: PublicKeyCredentialParameters\[] - The list of acceptable
     credential types and cryptographic algorithms.
-  * rp: PublicKeyCredentialRpEntity - The relying party (RP) entity initiating
+  - rp: PublicKeyCredentialRpEntity - The relying party (RP) entity initiating
     the credential creation.
-  * user: CustomPublicKeyCredentialUserEntity - Information about the user for
+  - user: CustomPublicKeyCredentialUserEntity - Information about the user for
     whom the credential is being created.
-  * attestation?: AttestationConveyancePreference - Indicates the desired
+  - attestation?: AttestationConveyancePreference - Indicates the desired
     attestation type (e.g., none, indirect, or direct).
-  * authenticatorSelection?: AuthenticatorSelectionCriteria - Specifies criteria
+  - authenticatorSelection?: AuthenticatorSelectionCriteria - Specifies criteria
     for selecting the authenticator to use.
-  * excludeCredentials?: PublicKeyCredentialDescriptor\[] - Credentials to
+  - excludeCredentials?: PublicKeyCredentialDescriptor\[] - Credentials to
     exclude during the creation process to prevent duplication.
-  * extensions?: AuthenticationExtensionsClientInputs - Additional extensions
+  - extensions?: AuthenticationExtensionsClientInputs - Additional extensions
     for client-side processing during credential creation.
-  * timeout?: number - The time (in milliseconds) the operation is allowed to
+  - timeout?: number - The time (in milliseconds) the operation is allowed to
     take before timing out.
 
 #### CustomPublicKeyCredentialDescriptor
 
-* Description: Represents a descriptor for a WebAuthn credential.
-* Properties:
-  * id: string - The unique identifier for the credential.
-  * type: "public-key" - The type of credential, which is always "public-key"
+- Description: Represents a descriptor for a WebAuthn credential.
+- Properties:
+  - id: string - The unique identifier for the credential.
+  - type: "public-key" - The type of credential, which is always "public-key"
     for WebAuthn.
-  * transports?: AuthenticatorTransport\[] - The list of supported transport
+  - transports?: AuthenticatorTransport\[] - The list of supported transport
     methods.
 
 #### CustomPublicKeyCredentialRequestOptions
 
-* Description: Defines the parameters for requesting a WebAuthn credential.
-* Properties:
-  * challenge: string - A unique challenge generated by the server to prevent
+- Description: Defines the parameters for requesting a WebAuthn credential.
+- Properties:
+  - challenge: string - A unique challenge generated by the server to prevent
     replay attacks.
-  * allowCredentials?: CustomPublicKeyCredentialDescriptor\[] - A list of
+  - allowCredentials?: CustomPublicKeyCredentialDescriptor\[] - A list of
     credentials that are allowed to authenticate the user.
-  * extensions?: AuthenticationExtensionsClientInputs - Additional extensions
+  - extensions?: AuthenticationExtensionsClientInputs - Additional extensions
     for client-side processing during the authentication process.
-  * rpId?: string - The relying party (RP) ID associated with the authentication
+  - rpId?: string - The relying party (RP) ID associated with the authentication
     request.
-  * timeout?: number - The time (in milliseconds) the operation is allowed to
+  - timeout?: number - The time (in milliseconds) the operation is allowed to
     take before timing out.
-  * userVerification?: UserVerificationRequirement - Specifies the user
+  - userVerification?: UserVerificationRequirement - Specifies the user
     verification level required.
 
 #### CustomPublicKeyCredentialUserEntity
 
-* Description: Represents information about a user entity for creating or
+- Description: Represents information about a user entity for creating or
   managing WebAuthn credentials.
-* Properties:
-  * displayName: string - The user's display name.
-  * id: string - A unique identifier for the user.
-  * name: string - The user's name (for example, username or email).
+- Properties:
+  - displayName: string - The user's display name.
+  - id: string - A unique identifier for the user.
+  - name: string - The user's name (for example, username or email).
 
 #### EstimateExecuteRecoveryGasParameters
 
-* Description: Defines the parameters required to estimate gas to execute
+- Description: Defines the parameters required to estimate gas to execute
   recovery.
-* Properties:
-  * credential: P256Credential - The newly registered passkey credential.
+- Properties:
+  - credential: P256Credential - The newly registered passkey credential.
 
 #### EstimateRegisterRecoveryAddressGasParameters
 
-* Description: Defines the parameters required to estimate gas to register a
+- Description: Defines the parameters required to estimate gas to register a
   recovery address.
-* Properties:
-  * recoveryAddress: `0x${string}` - The derived address of the recovery key.
+- Properties:
+  - recoveryAddress: `0x${string}` - The derived address of the recovery key.
 
 #### ExecuteRecoveryParameters
 
-* Description: Defines the parameters required to execute recovery.
-* Properties:
-  * credential: P256Credential - The newly registered passkey credential.
+- Description: Defines the parameters required to execute recovery.
+- Properties:
+  - credential: P256Credential - The newly registered passkey credential.
 
 #### GetLoginVerificationReturnType
 
-* Description: Represents the return type for a login verification request.
-* Properties:
-  * publicKey: string - The public key associated with the login verification
+- Description: Represents the return type for a login verification request.
+- Properties:
+  - publicKey: string - The public key associated with the login verification
     process.
 
 #### GetRegistrationVerificationReturnType
 
-* Description: Represents the return type for a registration verification
+- Description: Represents the return type for a registration verification
   request.
-* Properties:
-  * verified?: null | boolean - The verification status, which can be true
+- Properties:
+  - verified?: null | boolean - The verification status, which can be true
     (verified), false (not verified), or null (no status available).
 
 #### GetUserOperationGasPriceReturnType
 
-* Description: Represents the return type for the
-  circle\_getUserOperationGasPrice RPC method.
-* Properties:
-  * low: GasPriceLevel - The low gas price level.
-  * medium: GasPriceLevel - The medium gas price level.
-  * high: GasPriceLevel - The high gas price level.
-  * deployed?: boolean - The deployed verification gas.
-  * notDeployed?: boolean - The non-deployed verification gas.
+- Description: Represents the return type for the
+  circle_getUserOperationGasPrice RPC method.
+- Properties:
+  - low: GasPriceLevel - The low gas price level.
+  - medium: GasPriceLevel - The medium gas price level.
+  - high: GasPriceLevel - The high gas price level.
+  - deployed?: boolean - The deployed verification gas.
+  - notDeployed?: boolean - The non-deployed verification gas.
 
 #### RegisterRecoveryAddressParameters
 
-* Description: Defines the parameters required to register a recovery address.
-* Properties:
-  * recoveryAddress: `0x${string}` - The recovery address.
+- Description: Defines the parameters required to register a recovery address.
+- Properties:
+  - recoveryAddress: `0x${string}` - The recovery address.
 
 #### ToCircleModularWalletClientParameters
 
-* Description: Defines the parameters required to create a Circle Modular Wallet
+- Description: Defines the parameters required to create a Circle Modular Wallet
   Client.
-* Properties:
-  * client: Client - The client instance used to interact with the Circle
+- Properties:
+  - client: Client - The client instance used to interact with the Circle
     Modular Wallet.
 
 #### ToWebAuthnAccountParameters
 
-* Description: Defines the parameters required to convert an account to a
+- Description: Defines the parameters required to convert an account to a
   WebAuthn-based account.
-* Properties:
-  * mode: WebAuthnMode - The WebAuthn mode to be used.
-  * transport: Transport - The transport mechanism used for interacting with the
+- Properties:
+  - mode: WebAuthnMode - The WebAuthn mode to be used.
+  - transport: Transport - The transport mechanism used for interacting with the
     WebAuthn API.
-  * credentialId?: string - The ID of the WebAuthn credential.
-  * username?: string - The username associated with the account.
+  - credentialId?: string - The ID of the WebAuthn credential.
+  - username?: string - The username associated with the account.
 
 #### WebAuthnCredential
 
-* Description: Represents a WebAuthn credential.
-* Properties:
-  * id: string - The unique identifier for the WebAuthn credential.
-  * publicKey: `0x${string}` - The public key associated with the credential, in
+- Description: Represents a WebAuthn credential.
+- Properties:
+  - id: string - The unique identifier for the WebAuthn credential.
+  - publicKey: `0x${string}` - The public key associated with the credential, in
     hexadecimal format.
-  * raw: PublicKeyCredential - The raw WebAuthn credential object.
-  * rpId: undefined | string - The relying party (RP) ID linked to the
+  - raw: PublicKeyCredential - The raw WebAuthn credential object.
+  - rpId: undefined | string - The relying party (RP) ID linked to the
     credential.
 
 ### Types
 
 #### CircleModularWalletClient
 
-* Description: Represents a client for interacting with modular wallets.
-* Type Definition:
+- Description: Represents a client for interacting with modular wallets.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type CircleModularWalletClient: Client<
@@ -751,10 +751,10 @@ type CircleModularWalletClient: Client<
 
 #### CircleSmartAccountImplementation
 
-* Description: Extends the SmartAccountImplementation with additional factory
+- Description: Extends the SmartAccountImplementation with additional factory
   arguments and signing capabilities specific to Circle's modular smart contract
   accounts.
-* Type Definition:
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type CircleSmartAccountImplementation = Assign<
@@ -784,8 +784,8 @@ type CircleSmartAccountImplementation = Assign<
 
 #### CreateAddressMappingReturnType
 
-* Description: The return type for adding an address mapping.
-* Type Definition:
+- Description: The return type for adding an address mapping.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 CreateAddressMappingReturnType: AddressMappingResponse[]
@@ -793,8 +793,8 @@ CreateAddressMappingReturnType: AddressMappingResponse[]
 
 #### CreateAddressMappingRpcSchema
 
-* Description: The RPC schema for adding an address mapping.
-* Type Definition:
+- Description: The RPC schema for adding an address mapping.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type CreateAddressMappingRpcSchema = {
@@ -806,9 +806,9 @@ type CreateAddressMappingRpcSchema = {
 
 #### CreateRpClientErrorType
 
-* Description: Represents possible error types for creating an RP Client,
+- Description: Represents possible error types for creating an RP Client,
   combining standard client error types and additional error types.
-* Type Definition:
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type CreateRpClientErrorType = CreateClientErrorType | ErrorType;
@@ -816,10 +816,10 @@ type CreateRpClientErrorType = CreateClientErrorType | ErrorType;
 
 #### ExtendedRpcSchema\<rpcSchema>
 
-* Description: Extends the base RPC schema by appending the Modular Wallet RPC
+- Description: Extends the base RPC schema by appending the Modular Wallet RPC
   schema. If rpcSchema is provided and extends RpcSchema, it combines both;
   otherwise, it defaults to the Modular Wallet RPC schema.
-* Type Definition:
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type ExtendedRpcSchema = rpcSchema extends RpcSchema
@@ -829,8 +829,8 @@ type ExtendedRpcSchema = rpcSchema extends RpcSchema
 
 #### GetAddressMappingReturnType
 
-* Description: The return type for getting an address mapping.
-* Type Definition:
+- Description: The return type for getting an address mapping.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 GetAddressMappingReturnType: AddressMappingResponse[]
@@ -838,8 +838,8 @@ GetAddressMappingReturnType: AddressMappingResponse[]
 
 #### GetAddressMappingRpcSchema
 
-* Description: Get the address mapping for the specified owner.
-* Type Definition:
+- Description: Get the address mapping for the specified owner.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type GetAddressMappingRpcSchema = {
@@ -851,8 +851,8 @@ type GetAddressMappingRpcSchema = {
 
 #### GetAddressParameters
 
-* Description: Defines the parameters required for retrieving an address.
-* Type Definition:
+- Description: Defines the parameters required for retrieving an address.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type GetAddressParameters = [
@@ -873,8 +873,8 @@ type GetAddressParameters = [
 
 #### GetAddressReturnType
 
-* Description: The Get Circle modular wallet address response.
-* Type Definition:
+- Description: The Get Circle modular wallet address response.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type GetAddressReturnType = ModularWallet;
@@ -882,8 +882,8 @@ type GetAddressReturnType = ModularWallet;
 
 #### GetAddressRpcSchema
 
-* Description: Defines the RPC schema for the circle\_getAddress method
-* Type Definition:
+- Description: Defines the RPC schema for the circle_getAddress method
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type GetAddressRpcSchema = {
@@ -907,8 +907,8 @@ type GetAddressRpcSchema = {
 
 #### GetLoginOptionsParameters
 
-* Description: Defines the parameters required to retrieve login options.
-* Type Definition:
+- Description: Defines the parameters required to retrieve login options.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type GetLoginOptionsParameters = {
@@ -918,8 +918,8 @@ type GetLoginOptionsParameters = {
 
 #### GetLoginOptionsReturnType
 
-* Description: Defines the parameters required to retrieve login options.
-* Type Definition:
+- Description: Defines the parameters required to retrieve login options.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type GetLoginOptionsReturnType = CustomPublicKeyCredentialRequestOptions;
@@ -927,8 +927,8 @@ type GetLoginOptionsReturnType = CustomPublicKeyCredentialRequestOptions;
 
 #### GetLoginOptionsRpcSchema
 
-* Description: Defines the RPC schema for the rp\_getLoginOptions method.
-* Type Definition:
+- Description: Defines the RPC schema for the rp_getLoginOptions method.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type GetLoginOptionsRpcSchema = {
@@ -940,8 +940,8 @@ type GetLoginOptionsRpcSchema = {
 
 #### GetLoginVerificationParameters
 
-* Description: Defines the parameters required to verify a login attempt.
-* Type Definition:
+- Description: Defines the parameters required to verify a login attempt.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type GetLoginVerificationParameters = {
@@ -951,8 +951,8 @@ type GetLoginVerificationParameters = {
 
 #### GetLoginVerificationRpcSchema
 
-* Description: Defines the RPC schema for the rp\_getLoginVerification method.
-* Type Definition:
+- Description: Defines the RPC schema for the rp_getLoginVerification method.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type GetLoginVerificationRpcSchema = {
@@ -964,8 +964,8 @@ type GetLoginVerificationRpcSchema = {
 
 #### GetRegistrationOptionsParameters
 
-* Description: Defines the parameters required to retrieve registration options.
-* Type Definition:
+- Description: Defines the parameters required to retrieve registration options.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type GetRegistrationOptionsParameters = {
@@ -975,8 +975,8 @@ type GetRegistrationOptionsParameters = {
 
 #### GetRegistrationOptionsReturnType
 
-* Description: Represents the return type for retrieving registration options.
-* Type Definition:
+- Description: Represents the return type for retrieving registration options.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type GetRegistrationOptionsReturnType =
@@ -985,8 +985,8 @@ type GetRegistrationOptionsReturnType =
 
 #### GetRegistrationOptionsRpcSchema
 
-* Description: Defines the RPC schema for the rp\_getRegistrationOptions method.
-* Type Definition:
+- Description: Defines the RPC schema for the rp_getRegistrationOptions method.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type GetRegistrationOptionsRpcSchema = {
@@ -998,8 +998,8 @@ type GetRegistrationOptionsRpcSchema = {
 
 #### GetRegistrationVerificationParameters
 
-* Description: Defines the parameters required to verify a registration attempt.
-* Type Definition:
+- Description: Defines the parameters required to verify a registration attempt.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type GetRegistrationVerificationParameters = {
@@ -1009,9 +1009,9 @@ type GetRegistrationVerificationParameters = {
 
 #### GetRegistrationVerificationRpcSchema
 
-* Description: Defines the RPC schema for the rp\_getRegistrationVerification
+- Description: Defines the RPC schema for the rp_getRegistrationVerification
   method.
-* Type Definition:
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type GetRegistrationVerificationRpcSchema = {
@@ -1023,9 +1023,9 @@ type GetRegistrationVerificationRpcSchema = {
 
 #### GetUserOperationGasPriceRpcSchema
 
-* Description: Defines the RPC schema for the circle\_getUserOperationGasPrice
+- Description: Defines the RPC schema for the circle_getUserOperationGasPrice
   method.
-* Type Definition:
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type GetUserOperationGasPriceRpcSchema = {
@@ -1037,8 +1037,8 @@ type GetUserOperationGasPriceRpcSchema = {
 
 #### ModularWalletActions
 
-* Description: Represents the available actions for a modular wallet,
-* Type Definition:
+- Description: Represents the available actions for a modular wallet,
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type ModularWalletActions = {
@@ -1050,8 +1050,8 @@ type ModularWalletActions = {
 
 #### ModularWalletRpcSchema
 
-* Description: Represents the RPC schema for modular wallets.
-* Type Definition:
+- Description: Represents the RPC schema for modular wallets.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type ModularWalletRpcSchema = [GetAddressRpcSchema];
@@ -1059,9 +1059,9 @@ type ModularWalletRpcSchema = [GetAddressRpcSchema];
 
 #### RecoveryActions
 
-* Description: Represents the actions available for the passkey recovery
+- Description: Represents the actions available for the passkey recovery
   process.
-* Type Definition:
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type RecoveryActions = {
@@ -1082,8 +1082,8 @@ type RecoveryActions = {
 
 #### RpActions
 
-* Description: Represents the actions available for the RP (Relying Party) API.
-* Type Definition:
+- Description: Represents the actions available for the RP (Relying Party) API.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type RpActions = {
@@ -1104,8 +1104,8 @@ type RpActions = {
 
 #### RpClient\<transport, rpcSchema>
 
-* Description: Represents a prettified RP (Relying Party) client.
-* Type Definition:
+- Description: Represents a prettified RP (Relying Party) client.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type RpClient = Prettify<
@@ -1123,9 +1123,9 @@ type RpClient = Prettify<
 
 #### RpClientConfig\<transport, rpcSchema>
 
-* Description: Represents the configuration options for creating an RP (Relying
+- Description: Represents the configuration options for creating an RP (Relying
   Party) client.
-* Type Definition:
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type RpClientConfig = Prettify<
@@ -1138,8 +1138,8 @@ type RpClientConfig = Prettify<
 
 #### RpRpcSchema
 
-* Description: Represents the RPC schema for the RP (Relying Party) client.
-* Type Definition:
+- Description: Represents the RPC schema for the RP (Relying Party) client.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type RpRpcSchema = [
@@ -1152,8 +1152,8 @@ type RpRpcSchema = [
 
 #### ToCircleSmartAccountParameters
 
-* Description: Defines the parameters required to create a Circle Smart Account.
-* Type Definition:
+- Description: Defines the parameters required to create a Circle Smart Account.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type ToCircleSmartAccountParameters = {
@@ -1167,15 +1167,14 @@ type ToCircleSmartAccountParameters = {
 
 #### ToCircleSmartAccountReturnType
 
-* Description: Represents the return type for creating a Circle Smart Account.
-* Type Definition:
+- Description: Represents the return type for creating a Circle Smart Account.
+- Type Definition:
 
 ```javascript JavaScript theme={null}
 type ToCircleSmartAccountReturnType = Prettify<
   SmartAccount<CircleSmartAccountImplementation>
 >;
 ```
-
 
 ---
 

@@ -12,9 +12,9 @@ in the **Wallets / Account Types** page.
 
       <Icon icon="arrow-right" />
     </div>
+
   </Card>
 </div>
-
 
 ---
 

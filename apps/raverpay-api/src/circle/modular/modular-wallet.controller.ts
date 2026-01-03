@@ -28,7 +28,7 @@ interface AuthRequest {
 /**
  * Modular Wallet Controller
  * Handles Circle Modular Wallets (Smart Accounts with Passkey authentication)
- * 
+ *
  * Note: Passkey registration/login and transaction signing happen client-side.
  * This controller only manages the database records for wallets and credentials.
  */
@@ -165,9 +165,7 @@ export class ModularWalletController {
   })
   @ApiResponse({ status: 200, description: 'Modular wallets retrieved' })
   async getWallets(@Request() req: AuthRequest) {
-    const wallets = await this.modularWalletService.getUserWallets(
-      req.user.id,
-    );
+    const wallets = await this.modularWalletService.getUserWallets(req.user.id);
 
     return {
       success: true,

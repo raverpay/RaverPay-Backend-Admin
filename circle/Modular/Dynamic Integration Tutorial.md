@@ -10,14 +10,14 @@ the `viem` account abstraction utilities, enabled by the modular wallets SDK.
 
 Before you begin, make sure you have:
 
-* A [Circle Developer Console](https://console.circle.com) account.
-* A [Dynamic Dashboard](https://app.dynamic.xyz/) account.
-* [Node.js](https://nodejs.org/) installed for local testing. Circle recommends
+- A [Circle Developer Console](https://console.circle.com) account.
+- A [Dynamic Dashboard](https://app.dynamic.xyz/) account.
+- [Node.js](https://nodejs.org/) installed for local testing. Circle recommends
   Node 16 or higher.
-* Testnet funds in your wallet:
-  * **Testnet USDC**: Use the [Circle Faucet](https://faucet.circle.com) to mint
+- Testnet funds in your wallet:
+  - **Testnet USDC**: Use the [Circle Faucet](https://faucet.circle.com) to mint
     USDC on supported testnets (for example, USDC on Polygon Amoy).
-  * **Native testnet tokens**: Use a
+  - **Native testnet tokens**: Use a
     [Public Faucet](https://www.alchemy.com/dapps/best/crypto-faucets) to get
     native testnet tokens (for example, MATIC for Polygon Amoy). You'll need
     these to pay for transaction fees when gas sponsorship isn't available.
@@ -27,16 +27,15 @@ Before you begin, make sure you have:
 1. In the [Circle Developer Console](https://console.circle.com), complete the
    setup below by following the steps in the
    [Modular Wallets Console Setup](/wallets/modular/console-setup) section:
-   * Create a **Client Key** for the modular wallets SDK.
-   * Retrieve the **Client URL**.
+   - Create a **Client Key** for the modular wallets SDK.
+   - Retrieve the **Client URL**.
 
 2. In the [Dynamic Dashboard](https://app.dynamic.xyz/), do the following:
-
-   * Obtain your **Environment ID** and store it in the project's `.env` file
+   - Obtain your **Environment ID** and store it in the project's `.env` file
      along with other credentials, to be accessed later using `import.meta.env`.
-   * Set the default network to one of Circle's supported networks. In this
+   - Set the default network to one of Circle's supported networks. In this
      example, we use **Polygon Amoy**.
-   * Alternatively, configure a custom list of supported networks using
+   - Alternatively, configure a custom list of supported networks using
      [Dynamic's network overrides](https://docs.dynamic.xyz/chains/evmNetwork#example).
 
    <Frame>
@@ -90,9 +89,10 @@ Install the required Dynamic SDK packages, depending on your package manager:
   npm install @dynamic-labs/ethereum @dynamic-labs/sdk-react-core
   ```
 
-  ```shell yarn theme={null}
-  yarn add @dynamic-labs/ethereum @dynamic-labs/sdk-react-core
-  ```
+```shell yarn theme={null}
+yarn add @dynamic-labs/ethereum @dynamic-labs/sdk-react-core
+```
+
 </CodeGroup>
 
 ### Step 2: Wrap your app in the Dynamic context provider
@@ -101,16 +101,13 @@ Wrap your app with `DynamicContextProvider` from the Dynamic SDK to enable
 wallet authentication and connection.
 
 ```tsx Web theme={null}
-import * as React from "react";
-import * as ReactDOM from "react-dom/client";
+import * as React from 'react';
+import * as ReactDOM from 'react-dom/client';
 
-import { EthereumWalletConnectors } from "@dynamic-labs/ethereum";
-import {
-  DynamicContextProvider,
-  DynamicWidget,
-} from "@dynamic-labs/sdk-react-core";
+import { EthereumWalletConnectors } from '@dynamic-labs/ethereum';
+import { DynamicContextProvider, DynamicWidget } from '@dynamic-labs/sdk-react-core';
 
-import { Example } from ".";
+import { Example } from '.';
 
 const environmentId = import.meta.env.VITE_DYNAMIC_ENV_ID as string;
 
@@ -128,9 +125,7 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <App />,
-);
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(<App />);
 ```
 
 ### Step 3: Create a Circle Smart Account using Dynamic provider
@@ -139,31 +134,28 @@ Use the Dynamic context and Circle's modular wallets SDK to create a Smart
 Account. Here's the full working example:
 
 ```tsx Web theme={null}
-import React, { useEffect } from "react";
-import { createPublicClient, Hex, parseUnits } from "viem";
+import React, { useEffect } from 'react';
+import { createPublicClient, Hex, parseUnits } from 'viem';
 
-import { isEthereumWallet } from "@dynamic-labs/ethereum";
-import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
+import { isEthereumWallet } from '@dynamic-labs/ethereum';
+import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 
 import {
   toCircleSmartAccount,
   toModularTransport,
   walletClientToLocalAccount,
   encodeTransfer,
-} from "@circle-fin/modular-wallets-core";
+} from '@circle-fin/modular-wallets-core';
 
-import { createBundlerClient, SmartAccount } from "viem/account-abstraction";
+import { createBundlerClient, SmartAccount } from 'viem/account-abstraction';
 
-import { polygonAmoy } from "viem/chains";
+import { polygonAmoy } from 'viem/chains';
 
 const clientKey = import.meta.env.VITE_CLIENT_KEY as string;
 const clientUrl = import.meta.env.VITE_CLIENT_URL as string;
 
 // Create Circle transports
-const modularTransport = toModularTransport(
-  `${clientUrl}/polygonAmoy`,
-  clientKey,
-);
+const modularTransport = toModularTransport(`${clientUrl}/polygonAmoy`, clientKey);
 
 // Create a public client
 const client = createPublicClient({
@@ -191,7 +183,7 @@ export const Example = () => {
       }
 
       if (!isEthereumWallet(primaryWallet)) {
-        throw new Error("Wallet is not EVM-compatible.");
+        throw new Error('Wallet is not EVM-compatible.');
       }
 
       const walletClient = await primaryWallet.getWalletClient(); // Dynamic provider
@@ -212,16 +204,12 @@ export const Example = () => {
     if (!account) return;
 
     const formData = new FormData(event.currentTarget);
-    const to = formData.get("to") as `0x${string}`;
-    const value = formData.get("value") as string;
+    const to = formData.get('to') as `0x${string}`;
+    const value = formData.get('value') as string;
 
-    const USDC_CONTRACT_ADDRESS = "0x41e94eb019c0762f9bfcf9fb1e58725bfb0e7582"; // Polygon Amoy testnet
+    const USDC_CONTRACT_ADDRESS = '0x41e94eb019c0762f9bfcf9fb1e58725bfb0e7582'; // Polygon Amoy testnet
     const USDC_DECIMALS = 6; // Used for parseUnits
-    const callData = encodeTransfer(
-      to,
-      USDC_CONTRACT_ADDRESS,
-      parseUnits(value, USDC_DECIMALS),
-    );
+    const callData = encodeTransfer(to, USDC_CONTRACT_ADDRESS, parseUnits(value, USDC_DECIMALS));
 
     const opHash = await bundlerClient.sendUserOperation({
       account,
@@ -310,16 +298,15 @@ Once logged in, you'll see the UI for sending a user operation:
 In this tutorial, you integrated Dynamic as an EOA signer for Circle Smart
 Accounts using the modular wallets SDK. You:
 
-* Set up credentials in both Circle and Dynamic.
-* Installed required dependencies.
-* Wrapped your app with `DynamicContextProvider`.
-* Created a smart account using `toCircleSmartAccount()`.
-* Sent a user operation using `viem` bundler client.
+- Set up credentials in both Circle and Dynamic.
+- Installed required dependencies.
+- Wrapped your app with `DynamicContextProvider`.
+- Created a smart account using `toCircleSmartAccount()`.
+- Sent a user operation using `viem` bundler client.
 
 This integration enables a seamless, passwordless Web3 onboarding experience and
 allows you to build advanced features like gas sponsorship and session keys
 using Circle's modular wallets framework.
-
 
 ---
 
