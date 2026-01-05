@@ -102,8 +102,8 @@ export class AuditService {
           executionTime,
           deviceId: dto.deviceId || metadata.deviceId,
           location,
-          oldValue: dto.oldValue as any,
-          newValue: dto.newValue as any,
+          oldValue: dto.oldValue,
+          newValue: dto.newValue,
         },
       });
     } catch (error) {

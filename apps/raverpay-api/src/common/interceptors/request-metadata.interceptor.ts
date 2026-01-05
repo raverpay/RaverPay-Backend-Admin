@@ -115,6 +115,7 @@ export class RequestMetadataInterceptor implements NestInterceptor {
 /**
  * Extend Express Request type to include metadata
  */
+/* eslint-disable @typescript-eslint/no-namespace */
 declare global {
   namespace Express {
     interface Request {
@@ -130,3 +131,4 @@ declare global {
     }
   }
 }
+/* eslint-enable @typescript-eslint/no-namespace */

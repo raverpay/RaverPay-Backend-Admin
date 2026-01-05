@@ -269,19 +269,21 @@ export default function AuditLogsPage() {
             </Card>
           )}
 
-          {stats.byResource && stats.byResource.length > 0 && (
+          {stats.topResources && stats.topResources.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Top Resources</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {stats.byResource.slice(0, 5).map((item) => (
-                    <div key={item.resource} className="flex items-center justify-between py-2">
-                      <span className="text-sm">{item.resource}</span>
-                      <span className="font-medium">{item.count}</span>
-                    </div>
-                  ))}
+                  {stats.topResources
+                    .slice(0, 5)
+                    .map((item: { resource: string; count: number }) => (
+                      <div key={item.resource} className="flex items-center justify-between py-2">
+                        <span className="text-sm">{item.resource}</span>
+                        <span className="font-medium">{item.count}</span>
+                      </div>
+                    ))}
                 </div>
               </CardContent>
             </Card>
@@ -444,8 +446,10 @@ export default function AuditLogsPage() {
                           {log.status && (
                             <div className="flex items-center gap-2">
                               {(() => {
-                                const StatusIcon = statusConfig[log.status.toLowerCase()]?.icon || Clock;
-                                const color = statusConfig[log.status.toLowerCase()]?.color || 'text-gray-600';
+                                const StatusIcon =
+                                  statusConfig[log.status.toLowerCase()]?.icon || Clock;
+                                const color =
+                                  statusConfig[log.status.toLowerCase()]?.color || 'text-gray-600';
                                 return <StatusIcon className={`h-4 w-4 ${color}`} />;
                               })()}
                               <span className="text-sm capitalize">{log.status.toLowerCase()}</span>

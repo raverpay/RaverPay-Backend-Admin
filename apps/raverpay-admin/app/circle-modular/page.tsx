@@ -251,18 +251,21 @@ function CircleModularPageContent() {
       // Create public client
       const publicClient = createPublicClient({
         chain: polygonAmoy,
-        transport: modularTransport,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        transport: modularTransport as any,
       });
 
       // Create bundler client (reserved for future use)
       createBundlerClient({
         chain: polygonAmoy,
-        transport: modularTransport,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        transport: modularTransport as any,
       });
 
       // Create smart account
       const smartAccount = await toCircleSmartAccount({
-        client: publicClient,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        client: publicClient as any,
         owner: toWebAuthnAccount({ credential }),
         name: username || `Wallet_${userId}`,
       });
@@ -338,17 +341,20 @@ function CircleModularPageContent() {
       // Create clients
       const publicClient = createPublicClient({
         chain: polygonAmoy,
-        transport: modularTransport,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        transport: modularTransport as any,
       });
 
       const bundlerClient = createBundlerClient({
         chain: polygonAmoy,
-        transport: modularTransport,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        transport: modularTransport as any,
       });
 
       // Create smart account
       const smartAccount = await toCircleSmartAccount({
-        client: publicClient,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        client: publicClient as any,
         owner: toWebAuthnAccount({ credential }),
       });
 
