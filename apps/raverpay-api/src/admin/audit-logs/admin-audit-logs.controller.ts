@@ -1,4 +1,12 @@
-import { Controller, Get, Param, Query, UseGuards, Res, StreamableFile } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  UseGuards,
+  Res,
+  StreamableFile,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -27,9 +35,24 @@ export class AdminAuditLogsController {
   @ApiQuery({ name: 'resource', required: false, type: String })
   @ApiQuery({ name: 'userId', required: false, type: String })
   @ApiQuery({ name: 'resourceId', required: false, type: String })
-  @ApiQuery({ name: 'severity', required: false, type: String, description: 'LOW, MEDIUM, HIGH, CRITICAL' })
-  @ApiQuery({ name: 'actorType', required: false, type: String, description: 'USER, ADMIN, SYSTEM, SERVICE' })
-  @ApiQuery({ name: 'status', required: false, type: String, description: 'success, failure, pending' })
+  @ApiQuery({
+    name: 'severity',
+    required: false,
+    type: String,
+    description: 'LOW, MEDIUM, HIGH, CRITICAL',
+  })
+  @ApiQuery({
+    name: 'actorType',
+    required: false,
+    type: String,
+    description: 'USER, ADMIN, SYSTEM, SERVICE',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    type: String,
+    description: 'success, failure, pending',
+  })
   @ApiQuery({ name: 'ipAddress', required: false, type: String })
   @ApiQuery({ name: 'startDate', required: false, type: String })
   @ApiQuery({ name: 'endDate', required: false, type: String })

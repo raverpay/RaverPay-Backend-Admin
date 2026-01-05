@@ -429,20 +429,18 @@ export class NotificationDispatcherService {
         });
 
         // Audit log for broadcast email
-        await this.auditService.log(
-          {
-            userId: event.userId,
-            action: AuditAction.EMAIL_NOTIFICATION_SENT,
-            resource: 'NOTIFICATION',
-            metadata: {
-              notificationId,
-              eventType: event.eventType,
-              category: event.category,
-              email: user.email,
-              provider: 'resend',
-            },
+        await this.auditService.log({
+          userId: event.userId,
+          action: AuditAction.EMAIL_NOTIFICATION_SENT,
+          resource: 'NOTIFICATION',
+          metadata: {
+            notificationId,
+            eventType: event.eventType,
+            category: event.category,
+            email: user.email,
+            provider: 'resend',
           },
-        );
+        });
       } else {
         await this.logService.logFailure({
           notificationId,
@@ -943,20 +941,18 @@ export class NotificationDispatcherService {
         });
 
         // Audit log for broadcast SMS
-        await this.auditService.log(
-          {
-            userId: event.userId,
-            action: AuditAction.SMS_NOTIFICATION_SENT,
-            resource: 'NOTIFICATION',
-            metadata: {
-              notificationId,
-              eventType: event.eventType,
-              category: event.category,
-              phone: user.phone,
-              provider: this.smsService.getProviderName(),
-            },
+        await this.auditService.log({
+          userId: event.userId,
+          action: AuditAction.SMS_NOTIFICATION_SENT,
+          resource: 'NOTIFICATION',
+          metadata: {
+            notificationId,
+            eventType: event.eventType,
+            category: event.category,
+            phone: user.phone,
+            provider: this.smsService.getProviderName(),
           },
-        );
+        });
       } else {
         await this.logService.logFailure({
           notificationId,
@@ -1031,20 +1027,18 @@ export class NotificationDispatcherService {
         });
 
         // Audit log for push notification
-        await this.auditService.log(
-          {
-            userId: event.userId,
-            action: AuditAction.PUSH_NOTIFICATION_SENT,
-            resource: 'NOTIFICATION',
-            metadata: {
-              notificationId,
-              eventType: event.eventType,
-              category: event.category,
-              token: user.expoPushToken?.substring(0, 20) + '...',
-              provider: 'expo',
-            },
+        await this.auditService.log({
+          userId: event.userId,
+          action: AuditAction.PUSH_NOTIFICATION_SENT,
+          resource: 'NOTIFICATION',
+          metadata: {
+            notificationId,
+            eventType: event.eventType,
+            category: event.category,
+            token: user.expoPushToken?.substring(0, 20) + '...',
+            provider: 'expo',
           },
-        );
+        });
 
         this.logger.log(
           `Push notification sent for notification ${notificationId}`,

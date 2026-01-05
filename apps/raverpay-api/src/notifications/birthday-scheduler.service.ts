@@ -8,7 +8,11 @@ import { NotificationsService } from './notifications.service';
 import { NotificationQueueProcessor } from './notification-queue.processor';
 import { NotificationChannel } from '@prisma/client';
 import { AuditService } from '../common/services/audit.service';
-import { AuditAction, ActorType, AuditStatus } from '../common/types/audit-log.types';
+import {
+  AuditAction,
+  ActorType,
+  AuditStatus,
+} from '../common/types/audit-log.types';
 
 /**
  * Birthday Scheduler Service
@@ -67,22 +71,20 @@ export class BirthdaySchedulerService {
 
       if (birthdayUsers.length === 0) {
         this.logger.log('No users with birthdays today');
-        
+
         // Audit log for job completed with no work
-        await this.auditService.log(
-          {
-            userId: null,
-            action: AuditAction.JOB_COMPLETED,
-            resource: 'JOB',
-            metadata: {
-              jobName: 'sendBirthdayNotifications',
-              usersNotified: 0,
-            },
-            actorType: ActorType.SYSTEM,
-            status: AuditStatus.SUCCESS,
+        await this.auditService.log({
+          userId: null,
+          action: AuditAction.JOB_COMPLETED,
+          resource: 'JOB',
+          metadata: {
+            jobName: 'sendBirthdayNotifications',
+            usersNotified: 0,
           },
-        );
-        
+          actorType: ActorType.SYSTEM,
+          status: AuditStatus.SUCCESS,
+        });
+
         return;
       }
 

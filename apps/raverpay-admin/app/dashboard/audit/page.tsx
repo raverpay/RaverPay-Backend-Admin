@@ -4,7 +4,16 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import Link from 'next/link';
-import { Search, Eye, Activity, Download, AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
+import {
+  Search,
+  Eye,
+  Activity,
+  Download,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  XCircle,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import { auditLogsApi } from '@/lib/api/audit-logs';
@@ -30,7 +39,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Pagination } from '@/components/ui/pagination';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils';
-import { toast } from 'sonner';
 
 // Severity colors
 const severityColors: Record<string, string> = {
@@ -49,7 +57,10 @@ const actorTypeColors: Record<string, string> = {
 };
 
 // Status icons and colors
-const statusConfig: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string }> = {
+const statusConfig: Record<
+  string,
+  { icon: React.ComponentType<{ className?: string }>; color: string }
+> = {
   success: { icon: CheckCircle, color: 'text-green-600' },
   failure: { icon: XCircle, color: 'text-red-600' },
   pending: { icon: Clock, color: 'text-yellow-600' },
@@ -106,7 +117,16 @@ export default function AuditLogsPage() {
   const [isExporting, setIsExporting] = useState(false);
 
   const { data: logsData, isPending: isLoading } = useQuery({
-    queryKey: ['audit-logs', page, debouncedSearch, resourceFilter, actionFilter, severityFilter, actorTypeFilter, statusFilter],
+    queryKey: [
+      'audit-logs',
+      page,
+      debouncedSearch,
+      resourceFilter,
+      actionFilter,
+      severityFilter,
+      actorTypeFilter,
+      statusFilter,
+    ],
     queryFn: () =>
       auditLogsApi.getAll({
         page,
@@ -136,9 +156,10 @@ export default function AuditLogsPage() {
         ...(statusFilter !== 'all' && { status: statusFilter }),
       };
 
-      const blob = format === 'csv' 
-        ? await auditLogsApi.exportCsv(params)
-        : await auditLogsApi.exportJson(params);
+      const blob =
+        format === 'csv'
+          ? await auditLogsApi.exportCsv(params)
+          : await auditLogsApi.exportJson(params);
 
       // Create download link
       const url = window.URL.createObjectURL(blob);
@@ -168,19 +189,11 @@ export default function AuditLogsPage() {
           <p className="text-muted-foreground">Track all system activities and changes</p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => handleExport('csv')}
-            disabled={isExporting}
-          >
+          <Button variant="outline" onClick={() => handleExport('csv')} disabled={isExporting}>
             <Download className="h-4 w-4 mr-2" />
             Export CSV
           </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => handleExport('json')}
-            disabled={isExporting}
-          >
+          <Button variant="outline" onClick={() => handleExport('json')} disabled={isExporting}>
             <Download className="h-4 w-4 mr-2" />
             Export JSON
           </Button>
@@ -199,7 +212,9 @@ export default function AuditLogsPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Critical Events</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Critical Events
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
@@ -209,7 +224,9 @@ export default function AuditLogsPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Failed Operations</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Failed Operations
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
@@ -219,12 +236,12 @@ export default function AuditLogsPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Success Rate</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Success Rate
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {stats?.successRate || '0%'}
-            </div>
+            <div className="text-2xl font-bold text-green-600">{stats?.successRate || '0%'}</div>
           </CardContent>
         </Card>
       </div>
@@ -317,6 +334,44 @@ export default function AuditLogsPage() {
                 ))}
               </SelectContent>
             </Select>
+
+            <Select value={severityFilter} onValueChange={setSeverityFilter}>
+              <SelectTrigger className="w-full md:w-[180px]">
+                <SelectValue placeholder="Severity" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Severities</SelectItem>
+                <SelectItem value="LOW">Low</SelectItem>
+                <SelectItem value="MEDIUM">Medium</SelectItem>
+                <SelectItem value="HIGH">High</SelectItem>
+                <SelectItem value="CRITICAL">Critical</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={actorTypeFilter} onValueChange={setActorTypeFilter}>
+              <SelectTrigger className="w-full md:w-[180px]">
+                <SelectValue placeholder="Actor Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Actor Types</SelectItem>
+                <SelectItem value="USER">User</SelectItem>
+                <SelectItem value="ADMIN">Admin</SelectItem>
+                <SelectItem value="SYSTEM">System</SelectItem>
+                <SelectItem value="SERVICE">Service</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full md:w-[180px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="SUCCESS">Success</SelectItem>
+                <SelectItem value="FAILURE">Failure</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Table */}
@@ -335,6 +390,9 @@ export default function AuditLogsPage() {
                       <TableHead>Action</TableHead>
                       <TableHead>Resource</TableHead>
                       <TableHead>User</TableHead>
+                      <TableHead>Actor Type</TableHead>
+                      <TableHead>Severity</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead>IP Address</TableHead>
                       <TableHead>Timestamp</TableHead>
                       <TableHead className="text-right">Details</TableHead>
@@ -366,6 +424,32 @@ export default function AuditLogsPage() {
                             </div>
                           ) : (
                             <span className="text-sm text-muted-foreground">System</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {log.actorType && (
+                            <Badge className={actorTypeColors[log.actorType] || 'bg-gray-500'}>
+                              {log.actorType}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {log.severity && (
+                            <Badge className={severityColors[log.severity] || 'bg-gray-500'}>
+                              {log.severity}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {log.status && (
+                            <div className="flex items-center gap-2">
+                              {(() => {
+                                const StatusIcon = statusConfig[log.status.toLowerCase()]?.icon || Clock;
+                                const color = statusConfig[log.status.toLowerCase()]?.color || 'text-gray-600';
+                                return <StatusIcon className={`h-4 w-4 ${color}`} />;
+                              })()}
+                              <span className="text-sm capitalize">{log.status.toLowerCase()}</span>
+                            </div>
                           )}
                         </TableCell>
                         <TableCell>

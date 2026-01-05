@@ -15,7 +15,11 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/services/audit.service';
-import { AuditAction, ActorType, AuditStatus } from '../common/types/audit-log.types';
+import {
+  AuditAction,
+  ActorType,
+  AuditStatus,
+} from '../common/types/audit-log.types';
 
 interface VTPassWebhookPayload {
   event: string;
@@ -66,25 +70,23 @@ export class VTUWebhooksController {
     const isValid = this.vtpassService.verifyWebhook(signature, payload);
     if (!isValid) {
       this.logger.error('[VTPassWebhook] Invalid webhook signature');
-      
+
       // Audit log for failed verification
-      await this.auditService.log(
-        {
-          userId: null,
-          action: AuditAction.WEBHOOK_FAILED,
-          resource: 'WEBHOOK',
-          metadata: {
-            provider: 'vtpass',
-            event: payload.event,
-            reference: payload.data?.reference,
-            error: 'Invalid webhook signature',
-          },
-          actorType: ActorType.SYSTEM,
-          status: AuditStatus.FAILURE,
-          errorMessage: 'Invalid webhook signature',
+      await this.auditService.log({
+        userId: null,
+        action: AuditAction.WEBHOOK_FAILED,
+        resource: 'WEBHOOK',
+        metadata: {
+          provider: 'vtpass',
+          event: payload.event,
+          reference: payload.data?.reference,
+          error: 'Invalid webhook signature',
         },
-      );
-      
+        actorType: ActorType.SYSTEM,
+        status: AuditStatus.FAILURE,
+        errorMessage: 'Invalid webhook signature',
+      });
+
       throw new BadRequestException('Invalid signature');
     }
 
@@ -108,41 +110,37 @@ export class VTUWebhooksController {
       }
 
       // Audit log for successful processing
-      await this.auditService.log(
-        {
-          userId: null,
-          action: AuditAction.WEBHOOK_PROCESSED,
-          resource: 'WEBHOOK',
-          metadata: {
-            provider: 'vtpass',
-            event: payload.event,
-            reference: payload.data?.reference,
-          },
-          actorType: ActorType.SYSTEM,
-          status: AuditStatus.SUCCESS,
+      await this.auditService.log({
+        userId: null,
+        action: AuditAction.WEBHOOK_PROCESSED,
+        resource: 'WEBHOOK',
+        metadata: {
+          provider: 'vtpass',
+          event: payload.event,
+          reference: payload.data?.reference,
         },
-      );
+        actorType: ActorType.SYSTEM,
+        status: AuditStatus.SUCCESS,
+      });
 
       return { status: 'success' };
     } catch (error) {
       // Audit log for processing failure
-      await this.auditService.log(
-        {
-          userId: null,
-          action: AuditAction.WEBHOOK_FAILED,
-          resource: 'WEBHOOK',
-          metadata: {
-            provider: 'vtpass',
-            event: payload.event,
-            reference: payload.data?.reference,
-            error: error.message,
-          },
-          actorType: ActorType.SYSTEM,
-          status: AuditStatus.FAILURE,
-          errorMessage: error.message,
+      await this.auditService.log({
+        userId: null,
+        action: AuditAction.WEBHOOK_FAILED,
+        resource: 'WEBHOOK',
+        metadata: {
+          provider: 'vtpass',
+          event: payload.event,
+          reference: payload.data?.reference,
+          error: error.message,
         },
-      );
-      
+        actorType: ActorType.SYSTEM,
+        status: AuditStatus.FAILURE,
+        errorMessage: error.message,
+      });
+
       throw error;
     }
   }

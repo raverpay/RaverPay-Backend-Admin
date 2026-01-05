@@ -6,7 +6,11 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CryptoSendService } from '../services/crypto-send.service';
 import { CryptoTransactionStatus } from '@prisma/client';
 import { AuditService } from '../../common/services/audit.service';
-import { AuditAction, ActorType, AuditStatus } from '../../common/types/audit-log.types';
+import {
+  AuditAction,
+  ActorType,
+  AuditStatus,
+} from '../../common/types/audit-log.types';
 
 /**
  * Transaction Status Check Cron Job
@@ -135,38 +139,34 @@ export class TransactionStatusCron {
       }
 
       // Audit log for job completed
-      await this.auditService.log(
-        {
-          userId: null,
-          action: AuditAction.JOB_COMPLETED,
-          resource: 'JOB',
-          metadata: {
-            jobName: 'checkPendingTransactions',
-            transactionsChecked: checkedCount,
-            transactionsUpdated: updatedCount,
-          },
-          actorType: ActorType.SYSTEM,
-          status: AuditStatus.SUCCESS,
+      await this.auditService.log({
+        userId: null,
+        action: AuditAction.JOB_COMPLETED,
+        resource: 'JOB',
+        metadata: {
+          jobName: 'checkPendingTransactions',
+          transactionsChecked: checkedCount,
+          transactionsUpdated: updatedCount,
         },
-      );
+        actorType: ActorType.SYSTEM,
+        status: AuditStatus.SUCCESS,
+      });
     } catch (error) {
       this.logger.error('Error in transaction status check cron', error);
-      
+
       // Audit log for job failed
-      await this.auditService.log(
-        {
-          userId: null,
-          action: AuditAction.JOB_FAILED,
-          resource: 'JOB',
-          metadata: {
-            jobName: 'checkPendingTransactions',
-            error: error.message,
-          },
-          actorType: ActorType.SYSTEM,
-          status: AuditStatus.FAILURE,
-          errorMessage: error.message,
+      await this.auditService.log({
+        userId: null,
+        action: AuditAction.JOB_FAILED,
+        resource: 'JOB',
+        metadata: {
+          jobName: 'checkPendingTransactions',
+          error: error.message,
         },
-      );
+        actorType: ActorType.SYSTEM,
+        status: AuditStatus.FAILURE,
+        errorMessage: error.message,
+      });
     } finally {
       this.isRunning = false;
     }

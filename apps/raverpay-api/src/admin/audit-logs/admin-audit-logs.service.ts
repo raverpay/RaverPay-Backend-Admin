@@ -34,7 +34,8 @@ export class AdminAuditLogsService {
     if (severity) where.severity = severity as any;
     if (actorType) where.actorType = actorType as any;
     if (status) where.status = status as any;
-    if (ipAddress) where.ipAddress = { contains: ipAddress, mode: 'insensitive' };
+    if (ipAddress)
+      where.ipAddress = { contains: ipAddress, mode: 'insensitive' };
 
     if (startDate || endDate) {
       where.createdAt = {};

@@ -13,6 +13,22 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils';
 
+// Severity colors
+const severityColors: Record<string, string> = {
+  LOW: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100',
+  MEDIUM: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100',
+  HIGH: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100',
+  CRITICAL: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100',
+};
+
+// Actor type colors
+const actorTypeColors: Record<string, string> = {
+  USER: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
+  ADMIN: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100',
+  SYSTEM: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100',
+  SERVICE: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100',
+};
+
 const actionColors: Record<string, string> = {
   CREATE: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
   UPDATE: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100',
@@ -92,6 +108,30 @@ export default function AuditLogDetailPage({ params }: { params: Promise<{ logId
               <p className="text-sm font-medium text-muted-foreground">Resource ID</p>
               <p className="text-sm font-mono bg-muted p-2 rounded">{log.resourceId}</p>
             </div>
+            {log.severity && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Severity</p>
+                <Badge className={severityColors[log.severity] || 'bg-gray-500'}>
+                  {log.severity}
+                </Badge>
+              </div>
+            )}
+            {log.status && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Status</p>
+                <Badge
+                  className={
+                    log.status === 'SUCCESS'
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
+                      : log.status === 'FAILURE'
+                        ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'
+                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100'
+                  }
+                >
+                  {log.status}
+                </Badge>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -104,6 +144,14 @@ export default function AuditLogDetailPage({ params }: { params: Promise<{ logId
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {log.actorType && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Actor Type</p>
+                <Badge className={actorTypeColors[log.actorType] || 'bg-gray-500'}>
+                  {log.actorType}
+                </Badge>
+              </div>
+            )}
             {log.user ? (
               <>
                 <div>
@@ -145,10 +193,24 @@ export default function AuditLogDetailPage({ params }: { params: Promise<{ logId
               <p className="text-sm font-medium text-muted-foreground">IP Address</p>
               <p className="text-lg font-mono">{log.ipAddress || 'N/A'}</p>
             </div>
+            {log.location && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Location</p>
+                <p className="text-sm">{log.location}</p>
+              </div>
+            )}
             <div>
               <p className="text-sm font-medium text-muted-foreground">User Agent</p>
               <p className="text-sm text-muted-foreground break-all">{log.userAgent || 'N/A'}</p>
             </div>
+            {log.errorMessage && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground text-red-600">Error</p>
+                <p className="text-sm text-red-600 bg-red-50 dark:bg-red-950 p-2 rounded">
+                  {log.errorMessage}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -167,6 +229,35 @@ export default function AuditLogDetailPage({ params }: { params: Promise<{ logId
             </div>
           </CardContent>
         </Card>
+
+        {/* State Changes Comparison */}
+        {(log.beforeState || log.afterState) && (
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>State Changes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2">
+                {log.beforeState && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">Before</p>
+                    <pre className="text-sm bg-red-50 dark:bg-red-950 p-4 rounded-lg overflow-auto max-h-64 border border-red-200 dark:border-red-800">
+                      {JSON.stringify(log.beforeState, null, 2)}
+                    </pre>
+                  </div>
+                )}
+                {log.afterState && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">After</p>
+                    <pre className="text-sm bg-green-50 dark:bg-green-950 p-4 rounded-lg overflow-auto max-h-64 border border-green-200 dark:border-green-800">
+                      {JSON.stringify(log.afterState, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Changes */}
         {log.changes && Object.keys(log.changes).length > 0 && (

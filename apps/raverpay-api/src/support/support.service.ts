@@ -449,21 +449,19 @@ export class SupportService {
       );
 
       // Audit log
-      await this.auditService.log(
-        {
-          userId,
-          action: AuditAction.TICKET_CREATED,
-          resource: 'SUPPORT',
-          metadata: {
-            ticketId: ticket.id,
-            ticketNumber: ticket.ticketNumber,
-            conversationId: dto.conversationId,
-            category: dto.category,
-            title: dto.title,
-            priority: ticket.priority,
-          },
+      await this.auditService.log({
+        userId,
+        action: AuditAction.TICKET_CREATED,
+        resource: 'SUPPORT',
+        metadata: {
+          ticketId: ticket.id,
+          ticketNumber: ticket.ticketNumber,
+          conversationId: dto.conversationId,
+          category: dto.category,
+          title: dto.title,
+          priority: ticket.priority,
         },
-      );
+      });
 
       return ticket;
     } catch (error) {
@@ -590,21 +588,19 @@ export class SupportService {
     );
 
     // Audit log
-    await this.auditService.log(
-      {
-        userId: agentId ?? ticket.userId,
-        action: AuditAction.TICKET_UPDATED,
-        resource: 'SUPPORT',
-        metadata: {
-          ticketId: ticket.id,
-          ticketNumber: ticket.ticketNumber,
-          previousStatus: ticket.status,
-          newStatus: dto.status,
-          changes: dto,
-          agentId,
-        },
+    await this.auditService.log({
+      userId: agentId ?? ticket.userId,
+      action: AuditAction.TICKET_UPDATED,
+      resource: 'SUPPORT',
+      metadata: {
+        ticketId: ticket.id,
+        ticketNumber: ticket.ticketNumber,
+        previousStatus: ticket.status,
+        newStatus: dto.status,
+        changes: dto,
+        agentId,
       },
-    );
+    });
 
     return updatedTicket;
   }
@@ -639,20 +635,18 @@ export class SupportService {
     );
 
     // Audit log
-    await this.auditService.log(
-      {
-        userId: agentId,
-        action: AuditAction.TICKET_ASSIGNED,
-        resource: 'SUPPORT',
-        metadata: {
-          ticketId: ticket.id,
-          ticketNumber: ticket.ticketNumber,
-          userId: ticket.userId,
-          conversationId: ticket.conversationId,
-          previousStatus: ticket.status,
-        },
+    await this.auditService.log({
+      userId: agentId,
+      action: AuditAction.TICKET_ASSIGNED,
+      resource: 'SUPPORT',
+      metadata: {
+        ticketId: ticket.id,
+        ticketNumber: ticket.ticketNumber,
+        userId: ticket.userId,
+        conversationId: ticket.conversationId,
+        previousStatus: ticket.status,
       },
-    );
+    });
 
     return updatedTicket;
   }
@@ -762,20 +756,18 @@ export class SupportService {
     );
 
     // Audit log
-    await this.auditService.log(
-      {
-        userId: agentId,
-        action: AuditAction.TICKET_RESOLVED,
-        resource: 'SUPPORT',
-        metadata: {
-          ticketId: ticket.id,
-          ticketNumber: ticket.ticketNumber,
-          userId: ticket.userId,
-          conversationId: ticket.conversationId,
-          resolvedAt: updatedTicket.resolvedAt,
-        },
+    await this.auditService.log({
+      userId: agentId,
+      action: AuditAction.TICKET_RESOLVED,
+      resource: 'SUPPORT',
+      metadata: {
+        ticketId: ticket.id,
+        ticketNumber: ticket.ticketNumber,
+        userId: ticket.userId,
+        conversationId: ticket.conversationId,
+        resolvedAt: updatedTicket.resolvedAt,
       },
-    );
+    });
 
     return updatedTicket;
   }
@@ -810,20 +802,18 @@ export class SupportService {
     );
 
     // Audit log
-    await this.auditService.log(
-      {
-        userId: agentId,
-        action: AuditAction.TICKET_CLOSED,
-        resource: 'SUPPORT',
-        metadata: {
-          ticketId: ticket.id,
-          ticketNumber: ticket.ticketNumber,
-          userId: ticket.userId,
-          conversationId: ticket.conversationId,
-          closedAt: updatedTicket.closedAt,
-        },
+    await this.auditService.log({
+      userId: agentId,
+      action: AuditAction.TICKET_CLOSED,
+      resource: 'SUPPORT',
+      metadata: {
+        ticketId: ticket.id,
+        ticketNumber: ticket.ticketNumber,
+        userId: ticket.userId,
+        conversationId: ticket.conversationId,
+        closedAt: updatedTicket.closedAt,
       },
-    );
+    });
 
     return updatedTicket;
   }
