@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import Link from 'next/link';
-import { Search, Eye, Activity } from 'lucide-react';
+import { Search, Eye, Activity, Download, AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { auditLogsApi } from '@/lib/api/audit-logs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,6 +30,31 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Pagination } from '@/components/ui/pagination';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils';
+import { toast } from 'sonner';
+
+// Severity colors
+const severityColors: Record<string, string> = {
+  LOW: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100',
+  MEDIUM: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100',
+  HIGH: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100',
+  CRITICAL: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100',
+};
+
+// Actor type colors
+const actorTypeColors: Record<string, string> = {
+  USER: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
+  ADMIN: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100',
+  SYSTEM: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100',
+  SERVICE: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100',
+};
+
+// Status icons and colors
+const statusConfig: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string }> = {
+  success: { icon: CheckCircle, color: 'text-green-600' },
+  failure: { icon: XCircle, color: 'text-red-600' },
+  pending: { icon: Clock, color: 'text-yellow-600' },
+  partial_success: { icon: AlertCircle, color: 'text-orange-600' },
+};
 
 const actionColors: Record<string, string> = {
   CREATE: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100',
@@ -51,6 +77,9 @@ const resourceTypes = [
   'VIRTUAL_ACCOUNT',
   'NOTIFICATION',
   'DELETION_REQUEST',
+  'SUPPORT',
+  'WEBHOOK',
+  'CIRCLE',
 ];
 
 const actionTypes = [
@@ -71,16 +100,23 @@ export default function AuditLogsPage() {
   const debouncedSearch = useDebouncedValue(search, 300, 2);
   const [resourceFilter, setResourceFilter] = useState<string>('all');
   const [actionFilter, setActionFilter] = useState<string>('all');
+  const [severityFilter, setSeverityFilter] = useState<string>('all');
+  const [actorTypeFilter, setActorTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data: logsData, isPending: isLoading } = useQuery({
-    queryKey: ['audit-logs', page, debouncedSearch, resourceFilter, actionFilter],
+    queryKey: ['audit-logs', page, debouncedSearch, resourceFilter, actionFilter, severityFilter, actorTypeFilter, statusFilter],
     queryFn: () =>
       auditLogsApi.getAll({
         page,
         limit: 20,
-        ...(debouncedSearch && { search: debouncedSearch }),
+        ...(debouncedSearch && { action: debouncedSearch }),
         ...(resourceFilter !== 'all' && { resource: resourceFilter }),
         ...(actionFilter !== 'all' && { action: actionFilter }),
+        ...(severityFilter !== 'all' && { severity: severityFilter }),
+        ...(actorTypeFilter !== 'all' && { actorType: actorTypeFilter }),
+        ...(statusFilter !== 'all' && { status: statusFilter }),
       }),
   });
 
@@ -88,6 +124,40 @@ export default function AuditLogsPage() {
     queryKey: ['audit-logs-stats'],
     queryFn: () => auditLogsApi.getStats(),
   });
+
+  const handleExport = async (format: 'csv' | 'json') => {
+    setIsExporting(true);
+    try {
+      const params = {
+        ...(resourceFilter !== 'all' && { resource: resourceFilter }),
+        ...(actionFilter !== 'all' && { action: actionFilter }),
+        ...(severityFilter !== 'all' && { severity: severityFilter }),
+        ...(actorTypeFilter !== 'all' && { actorType: actorTypeFilter }),
+        ...(statusFilter !== 'all' && { status: statusFilter }),
+      };
+
+      const blob = format === 'csv' 
+        ? await auditLogsApi.exportCsv(params)
+        : await auditLogsApi.exportJson(params);
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `audit-logs-${new Date().toISOString()}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success(`Audit logs exported as ${format.toUpperCase()}`);
+    } catch (error) {
+      toast.error('Failed to export audit logs');
+      console.error('Export error:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -97,9 +167,27 @@ export default function AuditLogsPage() {
           <h2 className="text-3xl font-bold tracking-tight">Audit Logs</h2>
           <p className="text-muted-foreground">Track all system activities and changes</p>
         </div>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => handleExport('csv')}
+            disabled={isExporting}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => handleExport('json')}
+            disabled={isExporting}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export JSON
+          </Button>
+        </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Enhanced Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
@@ -111,13 +199,31 @@ export default function AuditLogsPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Today&apos;s Activity
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Critical Events</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {stats?.today?.toLocaleString() || 0}
+            <div className="text-2xl font-bold text-red-600">
+              {stats?.criticalCount?.toLocaleString() || 0}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Failed Operations</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              {stats?.failedCount?.toLocaleString() || 0}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Success Rate</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {stats?.successRate || '0%'}
             </div>
           </CardContent>
         </Card>

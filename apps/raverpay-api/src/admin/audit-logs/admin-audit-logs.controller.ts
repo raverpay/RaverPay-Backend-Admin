@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards, Res, StreamableFile } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -6,6 +6,7 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { AdminAuditLogsService } from './admin-audit-logs.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -26,6 +27,10 @@ export class AdminAuditLogsController {
   @ApiQuery({ name: 'resource', required: false, type: String })
   @ApiQuery({ name: 'userId', required: false, type: String })
   @ApiQuery({ name: 'resourceId', required: false, type: String })
+  @ApiQuery({ name: 'severity', required: false, type: String, description: 'LOW, MEDIUM, HIGH, CRITICAL' })
+  @ApiQuery({ name: 'actorType', required: false, type: String, description: 'USER, ADMIN, SYSTEM, SERVICE' })
+  @ApiQuery({ name: 'status', required: false, type: String, description: 'success, failure, pending' })
+  @ApiQuery({ name: 'ipAddress', required: false, type: String })
   @ApiQuery({ name: 'startDate', required: false, type: String })
   @ApiQuery({ name: 'endDate', required: false, type: String })
   @Get()
@@ -37,6 +42,10 @@ export class AdminAuditLogsController {
     @Query('resource') resource?: string,
     @Query('userId') userId?: string,
     @Query('resourceId') resourceId?: string,
+    @Query('severity') severity?: string,
+    @Query('actorType') actorType?: string,
+    @Query('status') status?: string,
+    @Query('ipAddress') ipAddress?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
@@ -47,6 +56,10 @@ export class AdminAuditLogsController {
       resource,
       userId,
       resourceId,
+      severity,
+      actorType,
+      status,
+      ipAddress,
       startDate,
       endDate,
     );
@@ -62,6 +75,92 @@ export class AdminAuditLogsController {
     @Query('endDate') endDate?: string,
   ) {
     return this.auditLogsService.getStats(startDate, endDate);
+  }
+
+  @ApiOperation({ summary: 'Export audit logs as CSV' })
+  @ApiQuery({ name: 'action', required: false, type: String })
+  @ApiQuery({ name: 'resource', required: false, type: String })
+  @ApiQuery({ name: 'userId', required: false, type: String })
+  @ApiQuery({ name: 'severity', required: false, type: String })
+  @ApiQuery({ name: 'actorType', required: false, type: String })
+  @ApiQuery({ name: 'status', required: false, type: String })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
+  @Get('export/csv')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  async exportCsv(
+    @Query('action') action?: string,
+    @Query('resource') resource?: string,
+    @Query('userId') userId?: string,
+    @Query('severity') severity?: string,
+    @Query('actorType') actorType?: string,
+    @Query('status') status?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Res({ passthrough: true }) res?: Response,
+  ) {
+    const csvContent = await this.auditLogsService.exportCsv(
+      action,
+      resource,
+      userId,
+      severity,
+      actorType,
+      status,
+      startDate,
+      endDate,
+    );
+
+    if (res) {
+      res.set({
+        'Content-Type': 'text/csv',
+        'Content-Disposition': `attachment; filename="audit-logs-${new Date().toISOString()}.csv"`,
+      });
+    }
+
+    return csvContent;
+  }
+
+  @ApiOperation({ summary: 'Export audit logs as JSON' })
+  @ApiQuery({ name: 'action', required: false, type: String })
+  @ApiQuery({ name: 'resource', required: false, type: String })
+  @ApiQuery({ name: 'userId', required: false, type: String })
+  @ApiQuery({ name: 'severity', required: false, type: String })
+  @ApiQuery({ name: 'actorType', required: false, type: String })
+  @ApiQuery({ name: 'status', required: false, type: String })
+  @ApiQuery({ name: 'startDate', required: false, type: String })
+  @ApiQuery({ name: 'endDate', required: false, type: String })
+  @Get('export/json')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  async exportJson(
+    @Query('action') action?: string,
+    @Query('resource') resource?: string,
+    @Query('userId') userId?: string,
+    @Query('severity') severity?: string,
+    @Query('actorType') actorType?: string,
+    @Query('status') status?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Res({ passthrough: true }) res?: Response,
+  ) {
+    const jsonData = await this.auditLogsService.exportJson(
+      action,
+      resource,
+      userId,
+      severity,
+      actorType,
+      status,
+      startDate,
+      endDate,
+    );
+
+    if (res) {
+      res.set({
+        'Content-Type': 'application/json',
+        'Content-Disposition': `attachment; filename="audit-logs-${new Date().toISOString()}.json"`,
+      });
+    }
+
+    return jsonData;
   }
 
   @ApiOperation({ summary: "Get user's activity logs" })

@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../prisma/prisma.service';
 import { DeletionRequestStatus } from '@prisma/client';
+import { AuditService } from '../../common/services/audit.service';
+import { AuditAction, ActorType, AuditStatus } from '../../common/types/audit-log.types';
 
 /**
  * Deletion Scheduler Service
@@ -14,7 +16,10 @@ import { DeletionRequestStatus } from '@prisma/client';
 export class DeletionSchedulerService {
   private readonly logger = new Logger(DeletionSchedulerService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditService: AuditService,
+  ) {}
 
   /**
    * Cron job that runs every hour to process scheduled deletions
@@ -26,6 +31,18 @@ export class DeletionSchedulerService {
   })
   async processScheduledDeletions() {
     this.logger.log('Starting scheduled deletion processing...');
+
+    // Audit log for job started
+    await this.auditService.log({
+      userId: null,
+      action: AuditAction.JOB_STARTED,
+      resource: 'JOB',
+      metadata: {
+        jobName: 'processScheduledDeletions',
+        scheduledTime: new Date(),
+      },
+      actorType: ActorType.SYSTEM,
+    });
 
     const now = new Date();
 
@@ -44,10 +61,29 @@ export class DeletionSchedulerService {
 
     if (dueDeletions.length === 0) {
       this.logger.log('No scheduled deletions to process');
+      
+      // Audit log for job completed with no work
+      await this.auditService.log(
+        {
+          userId: null,
+          action: AuditAction.JOB_COMPLETED,
+          resource: 'JOB',
+          metadata: {
+            jobName: 'processScheduledDeletions',
+            deletionsProcessed: 0,
+          },
+          actorType: ActorType.SYSTEM,
+          status: AuditStatus.SUCCESS,
+        },
+      );
+      
       return;
     }
 
     this.logger.log(`Processing ${dueDeletions.length} scheduled deletion(s)`);
+
+    let successCount = 0;
+    let failureCount = 0;
 
     for (const deletionRequest of dueDeletions) {
       try {
@@ -55,15 +91,34 @@ export class DeletionSchedulerService {
         this.logger.log(
           `Successfully soft deleted user ${deletionRequest.userId}`,
         );
+        successCount++;
       } catch (error) {
         this.logger.error(
           `Failed to soft delete user ${deletionRequest.userId}: ${error.message}`,
           error.stack,
         );
+        failureCount++;
       }
     }
 
     this.logger.log(`Completed processing ${dueDeletions.length} deletion(s)`);
+
+    // Audit log for job completed
+    await this.auditService.log(
+      {
+        userId: null,
+        action: AuditAction.JOB_COMPLETED,
+        resource: 'JOB',
+        metadata: {
+          jobName: 'processScheduledDeletions',
+          deletionsProcessed: dueDeletions.length,
+          successCount,
+          failureCount,
+        },
+        actorType: ActorType.SYSTEM,
+        status: failureCount > 0 ? AuditStatus.PENDING : AuditStatus.SUCCESS,
+      },
+    );
   }
 
   /**

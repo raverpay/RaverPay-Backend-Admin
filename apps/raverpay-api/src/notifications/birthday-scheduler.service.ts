@@ -7,6 +7,8 @@ import { ExpoPushService } from './expo-push.service';
 import { NotificationsService } from './notifications.service';
 import { NotificationQueueProcessor } from './notification-queue.processor';
 import { NotificationChannel } from '@prisma/client';
+import { AuditService } from '../common/services/audit.service';
+import { AuditAction, ActorType, AuditStatus } from '../common/types/audit-log.types';
 
 /**
  * Birthday Scheduler Service
@@ -31,6 +33,7 @@ export class BirthdaySchedulerService {
     private readonly smsService: SmsService,
     private readonly expoPushService: ExpoPushService,
     private readonly notificationsService: NotificationsService,
+    private readonly auditService: AuditService,
     @Inject(forwardRef(() => NotificationQueueProcessor))
     private readonly queueProcessor: NotificationQueueProcessor,
   ) {}
@@ -47,11 +50,39 @@ export class BirthdaySchedulerService {
   async sendBirthdayNotifications() {
     this.logger.log('Starting birthday notification job...');
 
+    // Audit log for job started
+    await this.auditService.log({
+      userId: null,
+      action: AuditAction.JOB_STARTED,
+      resource: 'JOB',
+      metadata: {
+        jobName: 'sendBirthdayNotifications',
+        scheduledTime: new Date(),
+      },
+      actorType: ActorType.SYSTEM,
+    });
+
     try {
       const birthdayUsers = await this.findUsersWithBirthdayToday();
 
       if (birthdayUsers.length === 0) {
         this.logger.log('No users with birthdays today');
+        
+        // Audit log for job completed with no work
+        await this.auditService.log(
+          {
+            userId: null,
+            action: AuditAction.JOB_COMPLETED,
+            resource: 'JOB',
+            metadata: {
+              jobName: 'sendBirthdayNotifications',
+              usersNotified: 0,
+            },
+            actorType: ActorType.SYSTEM,
+            status: AuditStatus.SUCCESS,
+          },
+        );
+        
         return;
       }
 

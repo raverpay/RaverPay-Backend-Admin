@@ -16,6 +16,10 @@ export class AdminAuditLogsService {
     resource?: string,
     userId?: string,
     resourceId?: string,
+    severity?: string,
+    actorType?: string,
+    status?: string,
+    ipAddress?: string,
     startDate?: string,
     endDate?: string,
   ) {
@@ -27,6 +31,10 @@ export class AdminAuditLogsService {
     if (resource) where.resource = { contains: resource, mode: 'insensitive' };
     if (userId) where.userId = userId;
     if (resourceId) where.resourceId = resourceId;
+    if (severity) where.severity = severity as any;
+    if (actorType) where.actorType = actorType as any;
+    if (status) where.status = status as any;
+    if (ipAddress) where.ipAddress = { contains: ipAddress, mode: 'insensitive' };
 
     if (startDate || endDate) {
       where.createdAt = {};
@@ -98,7 +106,18 @@ export class AdminAuditLogsService {
       if (endDate) where.createdAt.lte = new Date(endDate);
     }
 
-    const [totalCount, byAction, byResource, byUser] = await Promise.all([
+    const [
+      totalCount,
+      byAction,
+      byResource,
+      byUser,
+      bySeverity,
+      byActorType,
+      byStatus,
+      criticalCount,
+      failedCount,
+      successCount,
+    ] = await Promise.all([
       this.prisma.auditLog.count({ where }),
 
       this.prisma.auditLog.groupBy({
@@ -123,6 +142,42 @@ export class AdminAuditLogsService {
         _count: true,
         orderBy: { _count: { userId: 'desc' } },
         take: 10,
+      }),
+
+      // New: Group by severity
+      this.prisma.auditLog.groupBy({
+        by: ['severity'],
+        where,
+        _count: true,
+      }),
+
+      // New: Group by actor type
+      this.prisma.auditLog.groupBy({
+        by: ['actorType'],
+        where,
+        _count: true,
+      }),
+
+      // New: Group by status
+      this.prisma.auditLog.groupBy({
+        by: ['status'],
+        where,
+        _count: true,
+      }),
+
+      // Critical logs count
+      this.prisma.auditLog.count({
+        where: { ...where, severity: 'CRITICAL' },
+      }),
+
+      // Failed operations count
+      this.prisma.auditLog.count({
+        where: { ...where, status: 'FAILURE' },
+      }),
+
+      // Success operations count
+      this.prisma.auditLog.count({
+        where: { ...where, status: 'SUCCESS' },
       }),
     ]);
 
@@ -156,8 +211,16 @@ export class AdminAuditLogsService {
       };
     });
 
+    // Calculate success rate
+    const successRate =
+      totalCount > 0 ? ((successCount / totalCount) * 100).toFixed(2) : '0';
+
     return {
       totalCount,
+      criticalCount,
+      failedCount,
+      successCount,
+      successRate: `${successRate}%`,
       topActions: byAction.map((item) => ({
         action: item.action,
         count: item._count,
@@ -167,6 +230,18 @@ export class AdminAuditLogsService {
         count: item._count,
       })),
       topAdmins,
+      bySeverity: bySeverity.map((item) => ({
+        severity: item.severity,
+        count: item._count,
+      })),
+      byActorType: byActorType.map((item) => ({
+        actorType: item.actorType,
+        count: item._count,
+      })),
+      byStatus: byStatus.map((item) => ({
+        status: item.status,
+        count: item._count,
+      })),
     };
   }
 
@@ -247,6 +322,161 @@ export class AdminAuditLogsService {
         limit,
         totalPages: Math.ceil(total / limit),
       },
+    };
+  }
+
+  /**
+   * Export audit logs as CSV
+   */
+  async exportCsv(
+    action?: string,
+    resource?: string,
+    userId?: string,
+    severity?: string,
+    actorType?: string,
+    status?: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<string> {
+    const where: Prisma.AuditLogWhereInput = {};
+
+    if (action) where.action = { contains: action, mode: 'insensitive' };
+    if (resource) where.resource = { contains: resource, mode: 'insensitive' };
+    if (userId) where.userId = userId;
+    if (severity) where.severity = severity as any;
+    if (actorType) where.actorType = actorType as any;
+    if (status) where.status = status as any;
+
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate);
+      if (endDate) where.createdAt.lte = new Date(endDate);
+    }
+
+    const logs = await this.prisma.auditLog.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 10000, // Limit to 10k records for performance
+      include: {
+        user: {
+          select: {
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+          },
+        },
+      },
+    });
+
+    // CSV header
+    const headers = [
+      'ID',
+      'Action',
+      'Resource',
+      'Resource ID',
+      'User ID',
+      'User Email',
+      'User Name',
+      'Actor Type',
+      'Severity',
+      'Status',
+      'IP Address',
+      'User Agent',
+      'Location',
+      'Error Message',
+      'Created At',
+    ];
+
+    // CSV rows
+    const rows = logs.map((log) => [
+      log.id,
+      log.action,
+      log.resource || '',
+      log.resourceId || '',
+      log.userId || '',
+      log.user?.email || '',
+      log.user ? `${log.user.firstName} ${log.user.lastName}` : '',
+      log.actorType || '',
+      log.severity || '',
+      log.status || '',
+      log.ipAddress || '',
+      log.userAgent || '',
+      log.location || '',
+      log.errorMessage || '',
+      log.createdAt.toISOString(),
+    ]);
+
+    // Build CSV string
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) =>
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','),
+      ),
+    ].join('\\n');
+
+    return csvContent;
+  }
+
+  /**
+   * Export audit logs as JSON
+   */
+  async exportJson(
+    action?: string,
+    resource?: string,
+    userId?: string,
+    severity?: string,
+    actorType?: string,
+    status?: string,
+    startDate?: string,
+    endDate?: string,
+  ) {
+    const where: Prisma.AuditLogWhereInput = {};
+
+    if (action) where.action = { contains: action, mode: 'insensitive' };
+    if (resource) where.resource = { contains: resource, mode: 'insensitive' };
+    if (userId) where.userId = userId;
+    if (severity) where.severity = severity as any;
+    if (actorType) where.actorType = actorType as any;
+    if (status) where.status = status as any;
+
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate);
+      if (endDate) where.createdAt.lte = new Date(endDate);
+    }
+
+    const logs = await this.prisma.auditLog.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 10000, // Limit to 10k records for performance
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+          },
+        },
+      },
+    });
+
+    return {
+      exportedAt: new Date().toISOString(),
+      totalRecords: logs.length,
+      filters: {
+        action,
+        resource,
+        userId,
+        severity,
+        actorType,
+        status,
+        startDate,
+        endDate,
+      },
+      logs,
     };
   }
 }

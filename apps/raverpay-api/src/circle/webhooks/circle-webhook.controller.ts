@@ -11,6 +11,8 @@ import {
 import { CircleWebhookService } from './circle-webhook.service';
 import type { CircleWebhookEvent } from '../circle.types';
 import { Public } from '../../auth/decorators/public.decorator';
+import { AuditService } from '../../common/services/audit.service';
+import { AuditAction, ActorType, AuditStatus } from '../../common/types/audit-log.types';
 
 /**
  * Circle Webhook Controller
@@ -22,7 +24,10 @@ import { Public } from '../../auth/decorators/public.decorator';
 export class CircleWebhookController {
   private readonly logger = new Logger(CircleWebhookController.name);
 
-  constructor(private readonly webhookService: CircleWebhookService) {}
+  constructor(
+    private readonly webhookService: CircleWebhookService,
+    private readonly auditService: AuditService,
+  ) {}
 
   /**
    * Receive webhook from Circle
@@ -41,6 +46,20 @@ export class CircleWebhookController {
     this.logger.log(
       `Webhook received: ${webhookEvent.notificationType} - ${webhookEvent.notificationId}`,
     );
+
+    // Audit log for webhook received
+    await this.auditService.log({
+      userId: null,
+      action: AuditAction.WEBHOOK_RECEIVED,
+      resource: 'WEBHOOK',
+      metadata: {
+        provider: 'circle',
+        notificationType: webhookEvent.notificationType,
+        notificationId: webhookEvent.notificationId,
+        subscriptionId: webhookEvent.subscriptionId,
+      },
+      actorType: ActorType.SYSTEM,
+    });
 
     // Verify signature if provided
     if (signature && timestamp) {
@@ -69,8 +88,42 @@ export class CircleWebhookController {
   private async processWebhookAsync(event: CircleWebhookEvent): Promise<void> {
     try {
       await this.webhookService.processWebhook(event);
+      
+      // Audit log for successful processing
+      await this.auditService.log(
+        {
+          userId: null,
+          action: AuditAction.WEBHOOK_PROCESSED,
+          resource: 'WEBHOOK',
+          metadata: {
+            provider: 'circle',
+            notificationType: event.notificationType,
+            notificationId: event.notificationId,
+          },
+          actorType: ActorType.SYSTEM,
+          status: AuditStatus.SUCCESS,
+        },
+      );
     } catch (error) {
       this.logger.error('Webhook processing error:', error);
+      
+      // Audit log for webhook processing failure
+      await this.auditService.log(
+        {
+          userId: null,
+          action: AuditAction.WEBHOOK_FAILED,
+          resource: 'WEBHOOK',
+          metadata: {
+            provider: 'circle',
+            notificationType: event.notificationType,
+            notificationId: event.notificationId,
+            error: error.message,
+          },
+          actorType: ActorType.SYSTEM,
+          status: AuditStatus.FAILURE,
+          errorMessage: error.message,
+        },
+      );
       // Error is already logged in service
     }
   }

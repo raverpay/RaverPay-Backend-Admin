@@ -16,6 +16,8 @@ import { SmsService } from '../services/sms/sms.service';
 import { NotificationQueueProcessor } from './notification-queue.processor';
 import { QueueService } from '../queue/queue.service';
 import { NotificationChannel } from '@prisma/client';
+import { AuditService } from '../common/services/audit.service';
+import { AuditAction } from '../common/types/audit-log.types';
 
 /**
  * Notification Event Interface
@@ -63,6 +65,7 @@ export class NotificationDispatcherService {
     private readonly smsService: SmsService,
     private readonly expoPushService: ExpoPushService,
     private readonly configService: ConfigService,
+    private readonly auditService: AuditService,
     @Inject(forwardRef(() => NotificationQueueProcessor))
     @Optional()
     private readonly queueProcessor: NotificationQueueProcessor,
@@ -424,6 +427,22 @@ export class NotificationDispatcherService {
           status: 'SENT',
           provider: 'resend',
         });
+
+        // Audit log for broadcast email
+        await this.auditService.log(
+          {
+            userId: event.userId,
+            action: AuditAction.EMAIL_NOTIFICATION_SENT,
+            resource: 'NOTIFICATION',
+            metadata: {
+              notificationId,
+              eventType: event.eventType,
+              category: event.category,
+              email: user.email,
+              provider: 'resend',
+            },
+          },
+        );
       } else {
         await this.logService.logFailure({
           notificationId,
@@ -922,6 +941,22 @@ export class NotificationDispatcherService {
           status: 'SENT',
           provider: this.smsService.getProviderName(),
         });
+
+        // Audit log for broadcast SMS
+        await this.auditService.log(
+          {
+            userId: event.userId,
+            action: AuditAction.SMS_NOTIFICATION_SENT,
+            resource: 'NOTIFICATION',
+            metadata: {
+              notificationId,
+              eventType: event.eventType,
+              category: event.category,
+              phone: user.phone,
+              provider: this.smsService.getProviderName(),
+            },
+          },
+        );
       } else {
         await this.logService.logFailure({
           notificationId,
@@ -994,6 +1029,22 @@ export class NotificationDispatcherService {
           status: 'SENT',
           provider: 'expo',
         });
+
+        // Audit log for push notification
+        await this.auditService.log(
+          {
+            userId: event.userId,
+            action: AuditAction.PUSH_NOTIFICATION_SENT,
+            resource: 'NOTIFICATION',
+            metadata: {
+              notificationId,
+              eventType: event.eventType,
+              category: event.category,
+              token: user.expoPushToken?.substring(0, 20) + '...',
+              provider: 'expo',
+            },
+          },
+        );
 
         this.logger.log(
           `Push notification sent for notification ${notificationId}`,

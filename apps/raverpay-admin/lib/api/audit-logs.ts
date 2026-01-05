@@ -3,17 +3,38 @@ import { AuditLog, PaginatedResponse } from '@/types';
 
 export interface AuditLogStatistics {
   totalCount: number;
-  today: number;
-  byAction: Array<{
+  criticalCount: number;
+  failedCount: number;
+  successCount: number;
+  successRate: string;
+  today?: number;
+  topActions: Array<{
     action: string;
     count: number;
   }>;
-  byResource: Array<{
+  topResources: Array<{
     resource: string;
     count: number;
   }>;
-  topActions?: Array<{
-    action: string;
+  topAdmins: Array<{
+    userId: string | null;
+    user: {
+      email: string;
+      name: string;
+      role: string;
+    } | null;
+    actionCount: number;
+  }>;
+  bySeverity: Array<{
+    severity: string | null;
+    count: number;
+  }>;
+  byActorType: Array<{
+    actorType: string | null;
+    count: number;
+  }>;
+  byStatus: Array<{
+    status: string | null;
     count: number;
   }>;
 }
@@ -56,6 +77,22 @@ export const auditLogsApi = {
 
   getById: async (logId: string): Promise<AuditLog> => {
     const response = await apiClient.get<AuditLog>(`/admin/audit-logs/${logId}`);
+    return response.data;
+  },
+
+  exportCsv: async (params?: Record<string, unknown>): Promise<Blob> => {
+    const response = await apiClient.get('/admin/audit-logs/export/csv', {
+      params,
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  exportJson: async (params?: Record<string, unknown>): Promise<Blob> => {
+    const response = await apiClient.get('/admin/audit-logs/export/json', {
+      params,
+      responseType: 'blob',
+    });
     return response.data;
   },
 };

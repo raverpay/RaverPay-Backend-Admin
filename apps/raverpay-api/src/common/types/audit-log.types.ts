@@ -174,7 +174,9 @@ export enum AuditAction {
   NOTIFICATION_PREFERENCES_UPDATED = 'NOTIFICATION_PREFERENCES_UPDATED',
   BROADCAST_SENT = 'BROADCAST_SENT',
   EMAIL_SENT = 'EMAIL_SENT',
+  EMAIL_NOTIFICATION_SENT = 'EMAIL_NOTIFICATION_SENT',
   SMS_SENT = 'SMS_SENT',
+  SMS_NOTIFICATION_SENT = 'SMS_NOTIFICATION_SENT',
   PUSH_NOTIFICATION_SENT = 'PUSH_NOTIFICATION_SENT',
 
   // ============================================
@@ -206,6 +208,13 @@ export enum AuditAction {
   WEBHOOK_RECEIVED = 'WEBHOOK_RECEIVED',
   WEBHOOK_PROCESSED = 'WEBHOOK_PROCESSED',
   WEBHOOK_FAILED = 'WEBHOOK_FAILED',
+
+  // ============================================
+  // SCHEDULED JOBS
+  // ============================================
+  JOB_STARTED = 'JOB_STARTED',
+  JOB_COMPLETED = 'JOB_COMPLETED',
+  JOB_FAILED = 'JOB_FAILED',
 
   // Generic CRUD operations
   CREATE = 'CREATE',
@@ -300,7 +309,7 @@ export interface AuditLogMetadata {
 }
 
 export interface CreateAuditLogDto {
-  userId?: string;
+  userId?: string | null;
   action: AuditAction | string;
   resource: AuditResource | string;
   resourceId?: string;

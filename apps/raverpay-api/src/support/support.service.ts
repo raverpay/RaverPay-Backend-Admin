@@ -26,6 +26,8 @@ import {
   FindMessagesDto,
   RateConversationDto,
 } from './dto';
+import { AuditService } from '../common/services/audit.service';
+import { AuditAction } from '../common/types/audit-log.types';
 
 @Injectable()
 export class SupportService {
@@ -37,6 +39,7 @@ export class SupportService {
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
+    private auditService: AuditService,
   ) {
     const apiKey = this.configService.get<string>('RESEND_API_KEY');
     this.fromEmail =
@@ -445,6 +448,23 @@ export class SupportService {
         `Ticket #${ticket.ticketNumber} created for user ${userId}`,
       );
 
+      // Audit log
+      await this.auditService.log(
+        {
+          userId,
+          action: AuditAction.TICKET_CREATED,
+          resource: 'SUPPORT',
+          metadata: {
+            ticketId: ticket.id,
+            ticketNumber: ticket.ticketNumber,
+            conversationId: dto.conversationId,
+            category: dto.category,
+            title: dto.title,
+            priority: ticket.priority,
+          },
+        },
+      );
+
       return ticket;
     } catch (error) {
       this.logger.error('Error creating ticket:', error);
@@ -569,6 +589,23 @@ export class SupportService {
       `Ticket #${ticket.ticketNumber} updated by agent ${agentId}`,
     );
 
+    // Audit log
+    await this.auditService.log(
+      {
+        userId: agentId ?? ticket.userId,
+        action: AuditAction.TICKET_UPDATED,
+        resource: 'SUPPORT',
+        metadata: {
+          ticketId: ticket.id,
+          ticketNumber: ticket.ticketNumber,
+          previousStatus: ticket.status,
+          newStatus: dto.status,
+          changes: dto,
+          agentId,
+        },
+      },
+    );
+
     return updatedTicket;
   }
 
@@ -599,6 +636,22 @@ export class SupportService {
 
     this.logger.log(
       `Ticket #${ticket.ticketNumber} assigned to agent ${agentId}`,
+    );
+
+    // Audit log
+    await this.auditService.log(
+      {
+        userId: agentId,
+        action: AuditAction.TICKET_ASSIGNED,
+        resource: 'SUPPORT',
+        metadata: {
+          ticketId: ticket.id,
+          ticketNumber: ticket.ticketNumber,
+          userId: ticket.userId,
+          conversationId: ticket.conversationId,
+          previousStatus: ticket.status,
+        },
+      },
     );
 
     return updatedTicket;
@@ -708,6 +761,22 @@ export class SupportService {
       `Ticket #${ticket.ticketNumber} resolved by agent ${agentId}`,
     );
 
+    // Audit log
+    await this.auditService.log(
+      {
+        userId: agentId,
+        action: AuditAction.TICKET_RESOLVED,
+        resource: 'SUPPORT',
+        metadata: {
+          ticketId: ticket.id,
+          ticketNumber: ticket.ticketNumber,
+          userId: ticket.userId,
+          conversationId: ticket.conversationId,
+          resolvedAt: updatedTicket.resolvedAt,
+        },
+      },
+    );
+
     return updatedTicket;
   }
 
@@ -738,6 +807,22 @@ export class SupportService {
 
     this.logger.log(
       `Ticket #${ticket.ticketNumber} closed by agent ${agentId}`,
+    );
+
+    // Audit log
+    await this.auditService.log(
+      {
+        userId: agentId,
+        action: AuditAction.TICKET_CLOSED,
+        resource: 'SUPPORT',
+        metadata: {
+          ticketId: ticket.id,
+          ticketNumber: ticket.ticketNumber,
+          userId: ticket.userId,
+          conversationId: ticket.conversationId,
+          closedAt: updatedTicket.closedAt,
+        },
+      },
     );
 
     return updatedTicket;

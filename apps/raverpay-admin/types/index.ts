@@ -304,10 +304,10 @@ export interface Notification {
 // Audit Log Types
 export interface AuditLog {
   id: string;
-  userId: string;
+  userId: string | null;
   action: string;
-  resource: string;
-  resourceId: string;
+  resource: string | null;
+  resourceId: string | null;
   changes?: Record<string, unknown> | null;
   metadata?: Record<string, unknown> | null;
   ipAddress?: string | null;
@@ -315,16 +315,17 @@ export interface AuditLog {
   createdAt: string;
   user?: User;
 
-  // Enhanced fields
-  actorType?: 'USER' | 'ADMIN' | 'SYSTEM' | 'WEBHOOK' | 'API';
-  severity?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  status?: 'SUCCESS' | 'FAILURE' | 'PENDING';
+  // Enhanced fields from Phase 1
+  actorType?: 'USER' | 'ADMIN' | 'SYSTEM' | 'SERVICE' | null;
+  actorId?: string | null;
+  severity?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | null;
+  status?: string | null; // 'success', 'failure', 'pending', 'partial_success'
   errorMessage?: string | null;
-  executionTime?: number | null;
-  deviceId?: string | null;
   location?: string | null;
-  oldValue?: Record<string, unknown> | null;
-  newValue?: Record<string, unknown> | null;
+  beforeState?: Record<string, unknown> | null;
+  afterState?: Record<string, unknown> | null;
+  requestId?: string | null;
+  sessionId?: string | null;
 }
 
 // Analytics Types

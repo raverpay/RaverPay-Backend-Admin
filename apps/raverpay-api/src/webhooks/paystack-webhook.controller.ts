@@ -14,6 +14,8 @@ import type { RawBodyRequest } from '@nestjs/common';
 import { Request } from 'express';
 import { PaystackWebhookService } from './paystack-webhook.service';
 import { PaystackService } from '../payments/paystack.service';
+import { AuditService } from '../common/services/audit.service';
+import { AuditAction, ActorType, AuditStatus } from '../common/types/audit-log.types';
 
 /**
  * Paystack Webhook Controller
@@ -36,6 +38,7 @@ export class PaystackWebhookController {
   constructor(
     private readonly paystackService: PaystackService,
     private readonly webhookService: PaystackWebhookService,
+    private readonly auditService: AuditService,
   ) {}
 
   /**
@@ -64,6 +67,20 @@ export class PaystackWebhookController {
 
     this.logger.log(`📨 Received Paystack webhook: ${event}`);
 
+    // Audit log for webhook received
+    await this.auditService.log({
+      userId: null,
+      action: AuditAction.WEBHOOK_RECEIVED,
+      resource: 'WEBHOOK',
+      metadata: {
+        provider: 'paystack',
+        event,
+        reference: data?.reference,
+        amount: data?.amount,
+      },
+      actorType: ActorType.SYSTEM,
+    });
+
     try {
       switch (event) {
         case 'charge.success':
@@ -90,9 +107,44 @@ export class PaystackWebhookController {
           this.logger.log(`⚠️  Unhandled webhook event: ${event}`);
       }
 
+      // Audit log for successful processing
+      await this.auditService.log(
+        {
+          userId: null,
+          action: AuditAction.WEBHOOK_PROCESSED,
+          resource: 'WEBHOOK',
+          metadata: {
+            provider: 'paystack',
+            event,
+            reference: data?.reference,
+          },
+          actorType: ActorType.SYSTEM,
+          status: AuditStatus.SUCCESS,
+        },
+      );
+
       return { status: 'success' };
     } catch (error) {
       this.logger.error(`Error processing webhook ${event}:`, error);
+      
+      // Audit log for webhook processing failure
+      await this.auditService.log(
+        {
+          userId: null,
+          action: AuditAction.WEBHOOK_FAILED,
+          resource: 'WEBHOOK',
+          metadata: {
+            provider: 'paystack',
+            event,
+            reference: data?.reference,
+            error: error.message,
+          },
+          actorType: ActorType.SYSTEM,
+          status: AuditStatus.FAILURE,
+          errorMessage: error.message,
+        },
+      );
+      
       // Return 200 to prevent Paystack from retrying
       // Log error for manual investigation
       return { status: 'error', message: 'Processed with errors' };
