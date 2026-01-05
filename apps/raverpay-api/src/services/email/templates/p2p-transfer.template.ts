@@ -140,7 +140,7 @@ export function p2pTransferEmailTemplate(details: P2PTransferDetails): {
                     <!-- Info Box -->
                     <div style="background: #fffbeb; border: 1px solid #fbbf24; border-radius: 8px; padding: 16px; margin-bottom: 30px;">
                       <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.6;">
-                        <strong>Quick Tip:</strong> You can send money instantly to any RaverPay user using their @tag. It's fast, free, and secure!
+                        <strong>Quick Tip:</strong> You can send money instantly to any Raverpay user using their @tag. It's fast, free, and secure!
                       </p>
                     </div>
                     `
@@ -190,20 +190,20 @@ export function p2pTransferEmailTemplate(details: P2PTransferDetails): {
                       <tr>
                         <td style="text-align: center; padding-top: 15px; border-top: 1px solid #e5e7eb;">
                           <p style="margin: 0 0 5px 0; color: #6b7280; font-size: 13px; font-weight: 600;">
-                            <strong>RaverPay</strong>
+                            <strong>Raverpay</strong>
                           </p>
                           <p style="margin: 0; color: #9ca3af; font-size: 12px; line-height: 1.5;">
                             Your Trusted Fintech Partner
                           </p>
                           <p style="margin: 10px 0 0 0; color: #9ca3af; font-size: 11px;">
-                            &copy; 2025 RaverPay. All rights reserved.
+                        © ${new Date().getFullYear()} Raverpay. All rights reserved.
                           </p>
                         </td>
                       </tr>
                       <tr>
                         <td style="text-align: center; padding-top: 15px;">
                           <p style="margin: 0 0 10px 0; color: #9ca3af; font-size: 11px; line-height: 1.5;">
-                            This email was sent to you because you have a RaverPay account.<br>
+                            This email was sent to you because you have a Raverpay account.<br>
                             Please do not reply to this email. For support, contact us through the app.
                           </p>
                           <div style="margin-top: 10px;">

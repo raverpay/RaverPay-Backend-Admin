@@ -226,11 +226,11 @@ export function cryptoTransactionEmailTemplate(
         <!-- Footer -->
         <div style="text-align: center; padding: 25px 20px; color: #94a3b8; font-size: 13px;">
             <p style="margin: 0 0 10px 0;">
-                This is an automated notification from RaverPay.<br>
+                This is an automated notification from Raverpay.<br>
                 Please do not reply to this email.
             </p>
             <p style="margin: 0;">
-                © ${new Date().getFullYear()} RaverPay. All rights reserved.
+                © ${new Date().getFullYear()} Raverpay. All rights reserved.
             </p>
         </div>
     </div>

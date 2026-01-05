@@ -232,7 +232,7 @@ export function circleUsdcTransactionTemplate(
                 ? `
             <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 16px 20px; border-radius: 8px; margin-bottom: 25px;">
                 <p style="color: #15803d; margin: 0; font-size: 15px; line-height: 1.6;">
-                    <strong>✅ Transaction Confirmed</strong><br>
+                    <strong>Transaction Confirmed</strong><br>
                     ${
                       isReceive
                         ? 'Your USDC has been received and confirmed on the blockchain.'
@@ -245,7 +245,7 @@ export function circleUsdcTransactionTemplate(
                   ? `
             <div style="background: #fefce8; border-left: 4px solid #fbbf24; padding: 16px 20px; border-radius: 8px; margin-bottom: 25px;">
                 <p style="color: #a16207; margin: 0; font-size: 15px; line-height: 1.6;">
-                    <strong>⏳ Transaction Pending</strong><br>
+                    <strong>Transaction Pending</strong><br>
                     Your transaction is being processed on the blockchain. This usually takes 1-3 minutes. You'll receive another notification once it's confirmed.
                 </p>
             </div>
@@ -253,7 +253,7 @@ export function circleUsdcTransactionTemplate(
                   : `
             <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 16px 20px; border-radius: 8px; margin-bottom: 25px;">
                 <p style="color: #dc2626; margin: 0; font-size: 15px; line-height: 1.6;">
-                    <strong>❌ Transaction Failed</strong><br>
+                    <strong>Transaction Failed</strong><br>
                     ${details.errorReason || 'Your transaction could not be completed. Please try again or contact support if the issue persists.'}
                 </p>
             </div>

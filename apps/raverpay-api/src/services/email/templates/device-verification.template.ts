@@ -11,7 +11,7 @@ export function deviceVerificationTemplate(
     osVersion?: string;
   },
 ): { html: string; subject: string } {
-  const subject = 'Device Verification Required - RaverPay';
+  const subject = 'Device Verification Required - Raverpay';
 
   // Build device description
   const deviceParts: string[] = [deviceInfo.deviceName];
@@ -46,7 +46,7 @@ export function deviceVerificationTemplate(
                 <tr>
                   <td style="background: #5b55f6; padding: 40px 30px; text-align: center; border-radius: 12px 12px 0 0;">
                     <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">
-                      RaverPay
+                      Raverpay
                     </h1>
                     <p style="margin: 10px 0 0 0; color: rgba(255, 255, 255, 0.9); font-size: 16px;">
                       Device Verification Required
@@ -103,7 +103,7 @@ export function deviceVerificationTemplate(
                     
                     <!-- Security Notice -->
                     <p style="margin: 30px 0 0 0; font-size: 13px; color: #999999; line-height: 1.5; border-top: 1px solid #e0e0e0; padding-top: 20px;">
-                      <strong>Security Tip:</strong> Never share your verification code with anyone. RaverPay will never ask for your code via phone, email, or social media.
+                      <strong>Security Tip:</strong> Never share your verification code with anyone. Raverpay will never ask for your code via phone, email, or social media.
                     </p>
                   </td>
                 </tr>
@@ -112,7 +112,7 @@ export function deviceVerificationTemplate(
                 <tr>
                   <td style="background: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 12px 12px; border-top: 1px solid #e0e0e0;">
                     <p style="margin: 0 0 10px 0; color: #999999; font-size: 14px;">
-                      <strong>RaverPay</strong> - Making Payments Easy
+                      <strong>Raverpay</strong> - Making Payments Easy
                     </p>
                     <p style="margin: 0 0 15px 0; color: #999999; font-size: 12px;">
                       Lagos, Nigeria 
@@ -130,7 +130,7 @@ export function deviceVerificationTemplate(
                 <tr>
                   <td style="text-align: center; padding: 0 20px;">
                     <p style="margin: 0; color: #999999; font-size: 12px;">
-                      Need help? Contact us at <a href="mailto:support@expertvetteddigital.tech" style="color: #5b55f6; text-decoration: none;">support@RaverPay.com</a>
+                      Need help? Contact us at <a href="mailto:support@raverpay.com" style="color: #5b55f6; text-decoration: none;">support@raverpay.com</a>
                     </p>
                   </td>
                 </tr>

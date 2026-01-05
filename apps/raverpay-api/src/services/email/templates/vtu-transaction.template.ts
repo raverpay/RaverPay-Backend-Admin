@@ -242,13 +242,13 @@ export function vtuTransactionEmailTemplate(details: VTUTransactionDetails): {
                       <a href="https://www.facebook.com/useraverpay" style="display: inline-block; margin: 0 10px; color: #667eea; text-decoration: none; font-size: 12px;">Facebook</a>
                     </p>
                     <p style="margin: 0 0 10px 0; color: #999999; font-size: 14px;">
-                      <strong>RaverPay</strong>
+                      <strong>Raverpay</strong>
                     </p>
                     <p style="margin: 0 0 15px 0; color: #999999; font-size: 12px;">
                       Lagos, Nigeria
                     </p>
                     <p style="margin: 0; color: #cccccc; font-size: 11px;">
-                      © 2025 RaverPay. All rights reserved.
+                    © ${new Date().getFullYear()} Raverpay. All rights reserved.
                     </p>
                   </td>
                 </tr>
@@ -262,7 +262,7 @@ export function vtuTransactionEmailTemplate(details: VTUTransactionDetails): {
                     <p style="margin: 0; color: #999999; font-size: 12px;">
                       <a href="https://raverpay.expertvetteddigital.tech/privacy" style="color: #667eea; text-decoration: none; margin: 0 10px;">Privacy Policy</a>
                       <a href="https://raverpay.expertvetteddigital.tech/tos" style="color: #667eea; text-decoration: none; margin: 0 10px;">Terms of Service</a>
-                      <a href="mailto:expertvetteddigital@gmail.com" style="color: #667eea; text-decoration: none; margin: 0 10px;">Contact Support</a>
+                      <a href="mailto:support@raverpay.com" style="color: #667eea; text-decoration: none; margin: 0 10px;">Contact Support</a>
                     </p>
                   </td>
                 </tr>

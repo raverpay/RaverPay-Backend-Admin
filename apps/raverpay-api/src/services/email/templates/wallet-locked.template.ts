@@ -148,8 +148,8 @@ export function walletLockedTemplate(data: WalletLockedData): {
               <strong>Need help?</strong> Our support team is here for you 24/7.
             </p>
             <p style="margin: 0; font-size: 14px; color: #92400E;">
-              📧 Email: <a href="mailto:support@raverpay.com" style="color: #92400E; text-decoration: underline;">support@raverpay.com</a><br>
-              💬 Live Chat: Open the app and tap "Support"
+              Email: <a href="mailto:support@raverpay.com" style="color: #92400E; text-decoration: underline;">support@raverpay.com</a><br>
+              Live Chat: Open the app and tap "Support"
             </p>
           </div>
 
@@ -157,7 +157,7 @@ export function walletLockedTemplate(data: WalletLockedData): {
 
         <!-- Footer -->
         <div style="background: #F9FAFB; padding: 30px; border: 1px solid #E5E7EB; border-top: none; border-radius: 0 0 12px 12px; text-align: center;">
-          <p style="margin: 0 0 10px 0; color: #6B7280; font-size: 14px; font-weight: 600;">RaverPay</p>
+          <p style="margin: 0 0 10px 0; color: #6B7280; font-size: 14px; font-weight: 600;">Raverpay</p>
           <p style="margin: 0 0 15px 0; color: #9CA3AF; font-size: 12px;">Your Trusted Fintech Partner</p>
           <p style="margin: 0; color: #9CA3AF; font-size: 11px; line-height: 1.5;">
             This is an automated security notification.<br>

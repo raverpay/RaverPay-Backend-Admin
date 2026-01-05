@@ -12,7 +12,7 @@ export function birthdayEmailTemplate(details: BirthdayEmailDetails): {
   html: string;
   subject: string;
 } {
-  const subject = `Happy Birthday, ${details.firstName}! - RaverPay`;
+  const subject = `Happy Birthday, ${details.firstName}! - Raverpay`;
 
   const html = `
     <!DOCTYPE html>
@@ -20,7 +20,7 @@ export function birthdayEmailTemplate(details: BirthdayEmailDetails): {
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Happy Birthday from RaverPay</title>
+        <title>Happy Birthday from Raverpay</title>
       </head>
       <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
         <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f5f5f5;" cellpadding="0" cellspacing="0">
@@ -46,11 +46,11 @@ export function birthdayEmailTemplate(details: BirthdayEmailDetails): {
                 <tr>
                   <td style="padding: 40px 30px;">
                     <p style="margin: 0 0 25px 0; font-size: 18px; color: #333333; line-height: 1.7; text-align: center;">
-                      On this special day, all of us at <strong style="color: #5B55F6;">RaverPay</strong> want to wish you the happiest of birthdays!
+                      On this special day, all of us at <strong style="color: #5B55F6;">Raverpay</strong> want to wish you the happiest of birthdays!
                     </p>
 
                     <p style="margin: 25px 0; font-size: 16px; color: #666666; line-height: 1.7; text-align: center;">
-                      Thank you for being a valued member of the RaverPay family. We're honored to be part of your financial journey.
+                      Thank you for being a valued member of the Raverpay family. We're honored to be part of your financial journey.
                     </p>
 
                     <!-- Special Birthday Wishes -->
@@ -59,14 +59,14 @@ export function birthdayEmailTemplate(details: BirthdayEmailDetails): {
                         "May your birthday be the start of a year filled with good luck, good health, and much happiness."
                       </p>
                       <p style="margin: 15px 0 0 0; font-size: 14px; color: #888888; text-align: right;">
-                        - The RaverPay Team
+                        - The Raverpay Team
                       </p>
                     </div>
 
                     <!-- CTA Button -->
                     <div style="text-align: center; margin: 35px 0;">
                       <a href="raverpay://app" style="display: inline-block; background: #5b55f6; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 30px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
-                        Open RaverPay App
+                        Open Raverpay App
                       </a>
                     </div>
 
@@ -88,13 +88,13 @@ export function birthdayEmailTemplate(details: BirthdayEmailDetails): {
                       <a href="https://www.facebook.com/useraverpay" style="display: inline-block; margin: 0 10px; color: #667eea; text-decoration: none; font-size: 12px;">Facebook</a>
                     </p>
                     <p style="margin: 0 0 10px 0; color: #999999; font-size: 14px;">
-                      <strong>RaverPay</strong>
+                      <strong>Raverpay</strong>
                     </p>
                     <p style="margin: 0 0 15px 0; color: #999999; font-size: 12px;">
                       Lagos, Nigeria
                     </p>
                     <p style="margin: 0; color: #cccccc; font-size: 11px;">
-                      &copy; 2025 RaverPay. All rights reserved.
+                     © ${new Date().getFullYear()} Raverpay. All rights reserved.
                     </p>
                   </td>
                 </tr>
@@ -108,7 +108,7 @@ export function birthdayEmailTemplate(details: BirthdayEmailDetails): {
                     <p style="margin: 0; color: #999999; font-size: 12px;">
                       <a href="https://raverpay.expertvetteddigital.tech/privacy" style="color: #667eea; text-decoration: none; margin: 0 10px;">Privacy Policy</a>
                       <a href="https://raverpay.expertvetteddigital.tech/tos" style="color: #667eea; text-decoration: none; margin: 0 10px;">Terms of Service</a>
-                      <a href="mailto:expertvetteddigital@gmail.com" style="color: #667eea; text-decoration: none; margin: 0 10px;">Contact Support</a>
+                      <a href="mailto:support@raverpay.com" style="color: #667eea; text-decoration: none; margin: 0 10px;">Contact Support</a> 
                     </p>
                   </td>
                 </tr>
