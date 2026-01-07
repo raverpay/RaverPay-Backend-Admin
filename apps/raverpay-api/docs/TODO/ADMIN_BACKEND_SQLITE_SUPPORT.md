@@ -1,3 +1,137 @@
+
+I need to implement the SQLite offline-first feature for RaverPay mobile app and admin dashboard.
+
+## Context
+
+We have two comprehensive implementation plans:
+
+1. **Mobile App Implementation Plan:**
+   Location: [apps/raverpay-api/docs/TODO/SQLITE_IMPLEMENTATION_PLAN.md](cci:7://file:///Users/joseph/Desktop/raverpay/apps/raverpay-api/docs/TODO/SQLITE_IMPLEMENTATION_PLAN.md:0:0-0:0)
+   - Complete SQLite schema design
+   - Offline-first transaction handling
+   - Double-spending prevention
+   - Multi-device sync handling
+   - Data cleanup & storage management
+   - Schema migrations
+   - Partial sync recovery
+   - Security & abuse prevention
+   - Sentry monitoring integration
+
+2. **Admin Dashboard & Backend Plan:**
+   Location: [apps/raverpay-api/docs/TODO/ADMIN_BACKEND_SQLITE_SUPPORT.md](cci:7://file:///Users/joseph/Desktop/raverpay/apps/raverpay-api/docs/TODO/ADMIN_BACKEND_SQLITE_SUPPORT.md:0:0-0:0)
+   - Database schema changes (extend Device table + 4 new tables)
+   - Backend controllers (4 new controllers)
+   - Admin dashboard (1 new page with 5 tabs)
+   - Leverages existing infrastructure
+
+## Your Task
+
+Please help me implement this feature following these guidelines:
+
+### 1. **Study Existing Patterns First**
+
+Before writing any code, please:
+
+- Review existing mobile app patterns in `apps/raverpaymobile/src/`:
+  - How we structure hooks (check `hooks/` directory)
+  - How we use React Query (check `lib/api/` directory)
+  - How we handle API calls (check `lib/api/client.ts`)
+  - How we structure screens (check `app/` directory)
+  - Our component patterns (check existing screens)
+
+- Review existing backend patterns in `apps/raverpay-api/src/`:
+  - How we structure controllers (check `admin/` directory)
+  - How we structure services (check existing services)
+  - How we write Prisma migrations (check `prisma/migrations/`)
+  - Our DTO patterns (check `admin/dto/` directory)
+  - Our error handling patterns
+
+- Review existing admin dashboard patterns in `apps/raverpay-admin/`:
+  - How we structure pages (check `app/dashboard/` directory)
+  - Our component patterns (check `components/` directory)
+  - How we use shadcn/ui components
+  - Our API integration patterns (check `lib/api/` directory)
+  - Our table/list patterns (check existing dashboard pages)
+
+### 2. **Implementation Approach**
+
+Follow this order:
+
+**Phase 1: Backend Foundation (Week 1)**
+- Extend Device table with SQLite tracking fields
+- Create 4 new tables (SyncEvent, PendingMutationLog, DeviceConflict, DatabaseCleanup)
+- Write and test Prisma migrations
+- Update Prisma schema
+
+**Phase 2: Backend Services & Controllers (Week 2)**
+- Create AdminDevicesService
+- Create AdminPendingMutationsService
+- Create AdminDatabaseHealthService
+- Create AdminConflictsService
+- Create corresponding controllers
+- Follow existing controller/service patterns
+
+**Phase 3: Mobile App - Database Setup (Week 3)**
+- Set up expo-sqlite
+- Create database initialization
+- Create schema (10 core tables + 2 metadata tables)
+- Create database helper functions
+- Follow existing mobile app patterns
+
+**Phase 4: Mobile App - Offline Features (Week 4)**
+- Implement offline-first hooks
+- Implement mutation queue
+- Implement sync service
+- Implement optimistic updates
+- Follow existing React Query patterns
+
+**Phase 5: Admin Dashboard (Week 5)**
+- Create single "Offline Sync Management" page with 5 tabs
+- Add sync status card to user detail page
+- Follow existing dashboard patterns
+- Use existing shadcn/ui components
+
+### 3. **Key Requirements**
+
+- **Reuse existing components** - Don't recreate what exists
+- **Follow existing patterns** - Match the codebase style
+- **Use existing utilities** - Check for existing helper functions
+- **Follow TypeScript best practices** - Use proper typing
+- **Add proper error handling** - Follow existing error patterns
+- **Add Sentry tracking** - Follow existing Sentry integration
+- **Write tests** - Follow existing test patterns
+
+### 4. **Important Notes**
+
+- The backend already has Device, SavedRecipient, and AuditLog models - we're extending, not replacing
+- The admin dashboard already has comprehensive user management - we're adding to it
+- The mobile app already uses React Query and axios - we're integrating with them
+- We already have Sentry integrated - we're adding new tracking
+
+### 5. **What I Need From You**
+
+When implementing, please:
+
+1. **Ask questions** if existing patterns are unclear
+2. **Show me the code** you plan to write before implementing
+3. **Explain your decisions** when deviating from the plan
+4. **Point out potential issues** you see in the implementation plans
+5. **Suggest improvements** based on the existing codebase
+
+### 6. **Start Here**
+
+Please start by:
+
+1. Reading both implementation plan documents thoroughly
+2. Exploring the existing codebase patterns mentioned above
+3. Asking me which phase you should start with (I'll tell you)
+4. Showing me your understanding of the existing patterns
+5. Proposing the first set of changes
+
+Let's build this feature properly! 🚀
+
+
+
 # Admin Dashboard & Backend Changes for SQLite Offline-First
 
 ## Overview
