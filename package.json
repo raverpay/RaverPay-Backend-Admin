@@ -41,7 +41,8 @@
     "precommit": "bash scripts/precommit.sh",
     "test:smoke:local": "bash scripts/smoke-tests-local.sh",
     "check:all": "pnpm precommit && pnpm test:smoke:local",
-    "start": "pnpm --filter @raverpay/raverpay-admin start"
+    "start": "pnpm --filter @raverpay/raverpay-admin start",
+    "dev:all": "concurrently -n \"API,ADMIN,MOBILE,NGROK\" -c \"blue,green,yellow,magenta\" \"pnpm dev:api\" \"pnpm dev:admin\" \"pnpm start:mobile\" \"sleep 3 && ngrok http 3001\""
   },
   "engines": {
     "node": ">=18.0.0",
