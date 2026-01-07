@@ -50,6 +50,7 @@ When adding an Expo app to the monorepo, **pnpm gets stuck** during package inst
 ## Root Cause
 
 The root cause is that pnpm's default isolation mode conflicts with how:
+
 - **Metro** (React Native bundler) resolves modules
 - **React Native** native modules expect to find dependencies
 - **Expo** prebuild and EAS build systems work
@@ -182,12 +183,12 @@ This should now work without hanging!
 Create/update `apps/raverpay-mobile/metro.config.js`:
 
 ```javascript
-const { getDefaultConfig } = require("expo/metro-config");
-const path = require("path");
+const { getDefaultConfig } = require('expo/metro-config');
+const path = require('path');
 
 // Find the project and workspace directories
 const projectRoot = __dirname;
-const monorepoRoot = path.resolve(projectRoot, "../..");
+const monorepoRoot = path.resolve(projectRoot, '../..');
 
 const config = getDefaultConfig(projectRoot);
 
@@ -196,8 +197,8 @@ config.watchFolders = [monorepoRoot];
 
 // 2. Let Metro know where to resolve packages and in what order
 config.resolver.nodeModulesPaths = [
-  path.resolve(projectRoot, "node_modules"),
-  path.resolve(monorepoRoot, "node_modules"),
+  path.resolve(projectRoot, 'node_modules'),
+  path.resolve(monorepoRoot, 'node_modules'),
 ];
 
 // 3. Disable hierarchical lookup (for pnpm compatibility)
@@ -327,16 +328,13 @@ Create `apps/raverpay-mobile/tailwind.config.js`:
 ```javascript
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: [
-    "./app/**/*.{js,jsx,ts,tsx}",
-    "./components/**/*.{js,jsx,ts,tsx}",
-  ],
-  presets: [require("nativewind/preset")],
+  content: ['./app/**/*.{js,jsx,ts,tsx}', './components/**/*.{js,jsx,ts,tsx}'],
+  presets: [require('nativewind/preset')],
   theme: {
     extend: {
       fontFamily: {
-        urbanist: ["Urbanist"],
-        "urbanist-bold": ["Urbanist-Bold"],
+        urbanist: ['Urbanist'],
+        'urbanist-bold': ['Urbanist-Bold'],
       },
     },
   },
@@ -358,11 +356,8 @@ Update `apps/raverpay-mobile/babel.config.js`:
 module.exports = function (api) {
   api.cache(true);
   return {
-    presets: [
-      ["babel-preset-expo", { jsxImportSource: "nativewind" }],
-      "nativewind/babel",
-    ],
-    plugins: ["react-native-reanimated/plugin"],
+    presets: [['babel-preset-expo', { jsxImportSource: 'nativewind' }], 'nativewind/babel'],
+    plugins: ['react-native-reanimated/plugin'],
   };
 };
 ```
@@ -378,8 +373,8 @@ mkdir -p apps/raverpay-mobile/app
 Create `apps/raverpay-mobile/app/_layout.tsx`:
 
 ```tsx
-import { Stack } from "expo-router";
-import "../global.css";
+import { Stack } from 'expo-router';
+import '../global.css';
 
 export default function RootLayout() {
   return <Stack />;
@@ -389,14 +384,12 @@ export default function RootLayout() {
 Create `apps/raverpay-mobile/app/index.tsx`:
 
 ```tsx
-import { View, Text } from "react-native";
+import { View, Text } from 'react-native';
 
 export default function Index() {
   return (
     <View className="flex-1 items-center justify-center bg-white">
-      <Text className="text-2xl font-bold text-gray-900">
-        RaverPay Mobile
-      </Text>
+      <Text className="text-2xl font-bold text-gray-900">RaverPay Mobile</Text>
     </View>
   );
 }

@@ -3,16 +3,16 @@ name: Monitoring Services Testing Plan
 overview: Create a comprehensive testing plan to verify PostHog, Logtail, Sentry, and BullMQ are working correctly. Each service will be tested individually with specific API calls and dashboard verification steps.
 todos:
   - id: test-posthog
-    content: 'Test PostHog: User identification, transaction events, VTU events, payment events'
+    content: "Test PostHog: User identification, transaction events, VTU events, payment events"
     status: completed
   - id: test-logtail
-    content: 'Test Logtail: HTTP request logs, error logs, application logs with context'
+    content: "Test Logtail: HTTP request logs, error logs, application logs with context"
     status: completed
   - id: test-sentry
-    content: 'Test Sentry: Error capture, user context, sensitive data filtering'
+    content: "Test Sentry: Error capture, user context, sensitive data filtering"
     status: pending
   - id: test-bullmq
-    content: 'Test BullMQ: Queue initialization, notification processing, webhook retry, reconciliation'
+    content: "Test BullMQ: Queue initialization, notification processing, webhook retry, reconciliation"
     status: pending
 ---
 
@@ -428,13 +428,15 @@ Content-Type: application/json
 - Look for: `[NotificationProcessor] Notification sent successfully`
 
 2. **Check Redis (if accessible):**
-
    ```bash
-         # Connect to Redis and check queue
-         redis-cli -u <REDIS_URL>
-         > KEYS bull:notifications:*
-         > LLEN bull:notifications:waiting
+            # Connect to Redis and check queue
+            redis-cli -u <REDIS_URL>
+            > KEYS bull:notifications:*
+            > LLEN bull:notifications:waiting
    ```
+
+
+
 
 3. **Check Database:**
 
@@ -538,4 +540,3 @@ After completing all tests:
 
 1. Document any issues found
 2. Verify all dashboards are receiving data
-3. Set up alerts/notifications in each service
