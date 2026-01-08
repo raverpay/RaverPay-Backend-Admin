@@ -11,13 +11,14 @@ interface BaseCardProps {
 }
 
 interface PressableCardProps
-  extends BaseCardProps, Omit<TouchableOpacityProps, 'style' | 'className'> {
+  extends Omit<TouchableOpacityProps, 'style' | 'className' | 'children'>, BaseCardProps {
   pressable: true;
   onPress: () => void;
   className?: string;
 }
 
-interface StaticCardProps extends BaseCardProps, Omit<ViewProps, 'style' | 'className'> {
+interface StaticCardProps
+  extends Omit<ViewProps, 'style' | 'className' | 'children'>, BaseCardProps {
   pressable?: false;
   className?: string;
 }

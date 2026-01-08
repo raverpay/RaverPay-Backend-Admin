@@ -1,9 +1,9 @@
 // store/user.store.ts
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
-import { KYCTier, User, UserStatus } from "../types/api.types";
-import { clearUserContext, setUserContext } from "../utils/sentryConfig";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import { KYCTier, User, UserStatus } from '../types/api.types';
+import { clearUserContext, setUserContext } from '../utils/sentryConfig';
 
 interface UserState {
   user: User | null;
@@ -53,9 +53,9 @@ export const useUserStore = create<UserState>()(
         // Clear all sensitive information while keeping minimal display data
         set({
           user: {
-            id: "", // Clear ID (required field, but empty string is acceptable for display-only)
+            id: '', // Clear ID (required field, but empty string is acceptable for display-only)
             email: currentUser.email, // Keep for display
-            phone: "", // Clear phone (required field, but empty string is acceptable)
+            phone: '', // Clear phone (required field, but empty string is acceptable)
             firstName: currentUser.firstName, // Keep for display
             lastName: currentUser.lastName, // Keep for display
             dateOfBirth: undefined, // Clear
@@ -94,8 +94,8 @@ export const useUserStore = create<UserState>()(
       },
     }),
     {
-      name: "user-storage",
+      name: 'user-storage',
       storage: createJSONStorage(() => AsyncStorage),
-    }
-  )
+    },
+  ),
 );

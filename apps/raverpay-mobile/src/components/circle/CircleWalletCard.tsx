@@ -1,9 +1,9 @@
 // src/components/circle/CircleWalletCard.tsx
-import { Card, Text } from "@/src/components/ui";
-import { CircleBlockchain, CircleWallet } from "@/src/types/circle.types";
-import { Ionicons } from "@expo/vector-icons";
-import React from "react";
-import { TouchableOpacity, View } from "react-native";
+import { Card, Text } from '@/src/components/ui';
+import { CircleBlockchain, CircleWallet } from '@/src/types/circle.types';
+import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { TouchableOpacity, View } from 'react-native';
 
 interface CircleWalletCardProps {
   wallet: CircleWallet;
@@ -14,33 +14,30 @@ interface CircleWalletCardProps {
   isUnsupported?: boolean;
 }
 
-const BLOCKCHAIN_INFO: Record<
-  CircleBlockchain,
-  { name: string; color: string; icon: string }
-> = {
-  ETH: { name: "Ethereum", color: "bg-blue-500", icon: "Ξ" },
-  "ETH-SEPOLIA": { name: "Ethereum Sepolia", color: "bg-blue-400", icon: "Ξ" },
-  MATIC: { name: "Polygon", color: "bg-purple-500", icon: "⬣" },
-  "MATIC-AMOY": { name: "Polygon Amoy", color: "bg-purple-400", icon: "⬣" },
-  ARB: { name: "Arbitrum", color: "bg-sky-500", icon: "A" },
-  "ARB-SEPOLIA": { name: "Arbitrum Sepolia", color: "bg-sky-400", icon: "A" },
+const BLOCKCHAIN_INFO: Record<CircleBlockchain, { name: string; color: string; icon: string }> = {
+  ETH: { name: 'Ethereum', color: 'bg-blue-500', icon: 'Ξ' },
+  'ETH-SEPOLIA': { name: 'Ethereum Sepolia', color: 'bg-blue-400', icon: 'Ξ' },
+  MATIC: { name: 'Polygon', color: 'bg-purple-500', icon: '⬣' },
+  'MATIC-AMOY': { name: 'Polygon Amoy', color: 'bg-purple-400', icon: '⬣' },
+  ARB: { name: 'Arbitrum', color: 'bg-sky-500', icon: 'A' },
+  'ARB-SEPOLIA': { name: 'Arbitrum Sepolia', color: 'bg-sky-400', icon: 'A' },
   SOL: {
-    name: "Solana",
-    color: "bg-gradient-to-r from-purple-500 to-green-400",
-    icon: "◎",
+    name: 'Solana',
+    color: 'bg-gradient-to-r from-purple-500 to-green-400',
+    icon: '◎',
   },
-  "SOL-DEVNET": { name: "Solana Devnet", color: "bg-purple-300", icon: "◎" },
-  AVAX: { name: "Avalanche", color: "bg-red-500", icon: "🔺" },
-  "AVAX-FUJI": { name: "Avalanche Fuji", color: "bg-red-400", icon: "🔺" },
-  BASE: { name: "Base", color: "bg-blue-600", icon: "🔵" },
-  "BASE-SEPOLIA": { name: "Base Sepolia", color: "bg-blue-400", icon: "🔵" },
-  OP: { name: "Optimism", color: "bg-red-600", icon: "🔴" },
-  "OP-SEPOLIA": { name: "Optimism Sepolia", color: "bg-red-400", icon: "🔴" },
+  'SOL-DEVNET': { name: 'Solana Devnet', color: 'bg-purple-300', icon: '◎' },
+  AVAX: { name: 'Avalanche', color: 'bg-red-500', icon: '🔺' },
+  'AVAX-FUJI': { name: 'Avalanche Fuji', color: 'bg-red-400', icon: '🔺' },
+  BASE: { name: 'Base', color: 'bg-blue-600', icon: '🔵' },
+  'BASE-SEPOLIA': { name: 'Base Sepolia', color: 'bg-blue-400', icon: '🔵' },
+  OP: { name: 'Optimism', color: 'bg-red-600', icon: '🔴' },
+  'OP-SEPOLIA': { name: 'Optimism Sepolia', color: 'bg-red-400', icon: '🔴' },
 };
 
 export const CircleWalletCard: React.FC<CircleWalletCardProps> = ({
   wallet,
-  usdcBalance = "0.00",
+  usdcBalance = '0.00',
   isSelected = false,
   onPress,
   isSponsored = false,
@@ -48,15 +45,15 @@ export const CircleWalletCard: React.FC<CircleWalletCardProps> = ({
 }) => {
   const blockchainInfo = BLOCKCHAIN_INFO[wallet.blockchain] || {
     name: wallet.blockchain,
-    color: "bg-gray-500",
-    icon: "?",
+    color: 'bg-gray-500',
+    icon: '?',
   };
 
   const truncatedAddress = `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`;
 
   const CardContent = (
     <View
-      className={`flex-row items-center justify-between p-4 overflow-hidden rounded-2xl ${isSelected ? "border-2 border-[#2775CA]" : ""}`}
+      className={`flex-row items-center justify-between p-4 overflow-hidden rounded-2xl ${isSelected ? 'border-2 border-[#2775CA]' : ''}`}
     >
       <View className="flex-row items-center flex-1">
         <View
@@ -72,7 +69,7 @@ export const CircleWalletCard: React.FC<CircleWalletCardProps> = ({
               {blockchainInfo.name}
             </Text>
             {/* Wallet Type Badge */}
-            {(wallet as any).type === "MODULAR" ? (
+            {(wallet as any).type === 'MODULAR' ? (
               // Modular Wallet (Gasless)
               <View className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 rounded-full mr-2">
                 <Text
@@ -83,7 +80,7 @@ export const CircleWalletCard: React.FC<CircleWalletCardProps> = ({
                   Gasless
                 </Text>
               </View>
-            ) : wallet.custodyType === "USER" ? (
+            ) : wallet.custodyType === 'USER' ? (
               // User-Controlled Wallet (Advanced)
               <View className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 rounded-full mr-2">
                 <Text
@@ -133,9 +130,7 @@ export const CircleWalletCard: React.FC<CircleWalletCardProps> = ({
               </View>
             )}
 
-            {isSelected && (
-              <Ionicons name="checkmark-circle" size={16} color="#2775CA" />
-            )}
+            {isSelected && <Ionicons name="checkmark-circle" size={16} color="#2775CA" />}
           </View>
           <Text variant="caption" className="font-mono">
             {truncatedAddress}

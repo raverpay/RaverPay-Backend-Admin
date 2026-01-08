@@ -11,39 +11,39 @@ import {
   Skeleton,
   Text,
   TransactionDetail,
-} from "@/src/components/ui";
-import { detectNetwork } from "@/src/constants/network-prefixes";
-import { NETWORK_PROVIDERS } from "@/src/constants/vtu";
+} from '@/src/components/ui';
+import { detectNetwork } from '@/src/constants/network-prefixes';
+import { NETWORK_PROVIDERS } from '@/src/constants/vtu';
 import {
   useCalculateCashback,
   useCashbackConfig,
   useCashbackWallet,
-} from "@/src/hooks/useCashback";
-import { useTheme } from "@/src/hooks/useTheme";
+} from '@/src/hooks/useCashback';
+import { useTheme } from '@/src/hooks/useTheme';
 import {
   useDataPlans,
   usePurchaseData,
   useSMEDataPlans,
   useSavedRecipients,
   type SavedRecipient,
-} from "@/src/hooks/useVTU";
+} from '@/src/hooks/useVTU';
 import {
   categorizePlans,
   getAvailableCategories,
   type PlanCategory,
-} from "@/src/lib/utils/data-plan-helper";
-import { formatCurrency } from "@/src/lib/utils/formatters";
-import { checkPinSetOrPrompt } from "@/src/lib/utils/pin-helper";
-import { handleSuccessfulTransaction } from "@/src/lib/utils/rating-helper";
-import { useUserStore } from "@/src/store/user.store";
-import { useWalletStore } from "@/src/store/wallet.store";
-import { Ionicons } from "@expo/vector-icons";
-import { FlashList } from "@shopify/flash-list";
-import { useQueryClient } from "@tanstack/react-query";
-import * as Contacts from "expo-contacts";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useMemo, useRef, useState } from "react";
+} from '@/src/lib/utils/data-plan-helper';
+import { formatCurrency } from '@/src/lib/utils/formatters';
+import { checkPinSetOrPrompt } from '@/src/lib/utils/pin-helper';
+import { handleSuccessfulTransaction } from '@/src/lib/utils/rating-helper';
+import { useUserStore } from '@/src/store/user.store';
+import { useWalletStore } from '@/src/store/wallet.store';
+import { Ionicons } from '@expo/vector-icons';
+import { FlashList } from '@shopify/flash-list';
+import { useQueryClient } from '@tanstack/react-query';
+import * as Contacts from 'expo-contacts';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
@@ -53,8 +53,8 @@ import {
   ScrollView,
   TouchableOpacity,
   View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function BuyDataScreen() {
   const { isDark } = useTheme();
@@ -64,7 +64,7 @@ export default function BuyDataScreen() {
   const insets = useSafeAreaInsets();
 
   const [selectedNetwork, setSelectedNetwork] = useState<string | null>(null);
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [isSME, setIsSME] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
@@ -73,11 +73,8 @@ export default function BuyDataScreen() {
   const [showContactsSheet, setShowContactsSheet] = useState(false);
   // const [deviceContacts, setDeviceContacts] = useState<any[]>([]);
   // const [isLoadingContacts, setIsLoadingContacts] = useState(false);
-  const [selectedCategory, setSelectedCategory] =
-    useState<PlanCategory>("All Plans");
-  const [autoDetectedNetwork, setAutoDetectedNetwork] = useState<string | null>(
-    null
-  );
+  const [selectedCategory, setSelectedCategory] = useState<PlanCategory>('All Plans');
+  const [autoDetectedNetwork, setAutoDetectedNetwork] = useState<string | null>(null);
   const [isAutoDetected, setIsAutoDetected] = useState(false);
   const [pendingCashback, setPendingCashback] = useState<{
     use: boolean;
@@ -89,18 +86,18 @@ export default function BuyDataScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const { data: regularPlans, isPending: loadingRegular } = useDataPlans(
-    selectedNetwork || "",
-    !!selectedNetwork && !isSME
+    selectedNetwork || '',
+    !!selectedNetwork && !isSME,
   );
 
   const { data: smePlans, isPending: loadingSME } = useSMEDataPlans(
-    selectedNetwork || "",
-    !!selectedNetwork && isSME
+    selectedNetwork || '',
+    !!selectedNetwork && isSME,
   );
 
   const { mutate: purchaseData, isPending: isPurchasing } = usePurchaseData();
 
-  const { data: savedRecipients = [] } = useSavedRecipients("DATA");
+  const { data: savedRecipients = [] } = useSavedRecipients('DATA');
 
   // Cashback hooks
   const { data: cashbackWallet } = useCashbackWallet();
@@ -136,13 +133,11 @@ export default function BuyDataScreen() {
   // Calculate cashback when plan is selected
   React.useEffect(() => {
     if (selectedPlan && selectedNetwork) {
-      const planAmount = parseFloat(
-        selectedPlan.variation_amount || selectedPlan.amount || 0
-      );
+      const planAmount = parseFloat(selectedPlan.variation_amount || selectedPlan.amount || 0);
 
       calculateCashback(
         {
-          serviceType: "DATA",
+          serviceType: 'DATA',
           provider: selectedNetwork.toUpperCase(),
           amount: planAmount,
         },
@@ -157,7 +152,7 @@ export default function BuyDataScreen() {
           onError: () => {
             setCashbackToEarn(0);
           },
-        }
+        },
       );
     } else {
       setCashbackToEarn(0);
@@ -167,11 +162,8 @@ export default function BuyDataScreen() {
   const handleSelectContact = async () => {
     try {
       const { status } = await Contacts.requestPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission Required",
-          "Please allow access to contacts to use this feature"
-        );
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow access to contacts to use this feature');
         return;
       }
 
@@ -182,18 +174,18 @@ export default function BuyDataScreen() {
       });
 
       if (data.length === 0) {
-        Alert.alert("No Contacts", "No contacts found on your device");
+        Alert.alert('No Contacts', 'No contacts found on your device');
         //setIsLoadingContacts(false);
         return;
       }
 
       // Find contacts with phone numbers
       const contactsWithPhones = data.filter(
-        (contact) => contact.phoneNumbers && contact.phoneNumbers.length > 0
+        (contact) => contact.phoneNumbers && contact.phoneNumbers.length > 0,
       );
 
       if (contactsWithPhones.length === 0) {
-        Alert.alert("No Phone Numbers", "No contacts with phone numbers found");
+        Alert.alert('No Phone Numbers', 'No contacts with phone numbers found');
         // setIsLoadingContacts(false);
         return;
       }
@@ -208,25 +200,24 @@ export default function BuyDataScreen() {
       // setDeviceContacts(sortedContacts);
       // setIsLoadingContacts(false);
     } catch (error) {
-      console.error("Error selecting contact:", error);
-      Alert.alert("Error", "Failed to access contacts");
+      console.error('Error selecting contact:', error);
+      Alert.alert('Error', 'Failed to access contacts');
       // setIsLoadingContacts(false);
     }
   };
 
   const handleContactSelect = (contact: any) => {
     // Get the first phone number
-    const phoneNumber =
-      contact.phoneNumbers?.[0]?.number?.replace(/\D/g, "") || "";
+    const phoneNumber = contact.phoneNumbers?.[0]?.number?.replace(/\D/g, '') || '';
 
     // Normalize phone number (remove country code if present)
     let normalized = phoneNumber;
-    if (normalized.startsWith("234")) {
-      normalized = "0" + normalized.substring(3);
-    } else if (normalized.startsWith("+234")) {
-      normalized = "0" + normalized.substring(4);
-    } else if (normalized.length === 10 && !normalized.startsWith("0")) {
-      normalized = "0" + normalized;
+    if (normalized.startsWith('234')) {
+      normalized = '0' + normalized.substring(3);
+    } else if (normalized.startsWith('+234')) {
+      normalized = '0' + normalized.substring(4);
+    } else if (normalized.length === 10 && !normalized.startsWith('0')) {
+      normalized = '0' + normalized;
     }
 
     // Only use first 11 digits
@@ -236,10 +227,7 @@ export default function BuyDataScreen() {
       setPhoneNumber(normalized);
       setShowContactsSheet(false);
     } else {
-      Alert.alert(
-        "Invalid Number",
-        "Selected contact has an invalid phone number format"
-      );
+      Alert.alert('Invalid Number', 'Selected contact has an invalid phone number format');
     }
   };
 
@@ -257,10 +245,10 @@ export default function BuyDataScreen() {
           setSelectedNetwork(detected);
           setIsAutoDetected(true);
           setSelectedPlan(null); // Reset plan when network changes
-          setSelectedCategory("All Plans"); // Reset category when network changes
+          setSelectedCategory('All Plans'); // Reset category when network changes
 
           // Reset SME toggle if switching away from GLO
-          if (detected.toLowerCase() !== "glo") {
+          if (detected.toLowerCase() !== 'glo') {
             setIsSME(false);
           }
 
@@ -286,10 +274,10 @@ export default function BuyDataScreen() {
   const handleNetworkChange = (network: string) => {
     setSelectedNetwork(network);
     setSelectedPlan(null); // Reset plan when network changes
-    setSelectedCategory("All Plans"); // Reset category when network changes
+    setSelectedCategory('All Plans'); // Reset category when network changes
     setIsAutoDetected(false); // User manually selected, disable auto-detection
     // Reset SME toggle if switching away from GLO
-    if (network.toLowerCase() !== "glo") {
+    if (network.toLowerCase() !== 'glo') {
       setIsSME(false);
     }
   };
@@ -320,7 +308,7 @@ export default function BuyDataScreen() {
   const handleSMEToggle = () => {
     setIsSME(!isSME);
     setSelectedPlan(null); // Reset plan when toggling SME
-    setSelectedCategory("All Plans"); // Reset category when toggling SME
+    setSelectedCategory('All Plans'); // Reset category when toggling SME
   };
 
   const handleRecipientSelect = (recipient: SavedRecipient) => {
@@ -333,16 +321,11 @@ export default function BuyDataScreen() {
   const handlePurchase = () => {
     if (!selectedPlan) return;
 
-    const planAmount = parseFloat(
-      selectedPlan.variation_amount || selectedPlan.amount || 0
-    );
+    const planAmount = parseFloat(selectedPlan.variation_amount || selectedPlan.amount || 0);
 
     // Check balance without cashback (modal will handle cashback calculation)
     if (planAmount > balance) {
-      Alert.alert(
-        "Insufficient Balance",
-        "Please fund your wallet to continue"
-      );
+      Alert.alert('Insufficient Balance', 'Please fund your wallet to continue');
       return;
     }
 
@@ -354,10 +337,7 @@ export default function BuyDataScreen() {
     setShowConfirmationModal(true);
   };
 
-  const handleConfirmTransaction = (
-    useCashback: boolean,
-    cashbackAmount: number
-  ) => {
+  const handleConfirmTransaction = (useCashback: boolean, cashbackAmount: number) => {
     // Store the cashback decision for use in handlePINSubmit
     setPendingCashback({ use: useCashback, amount: cashbackAmount });
     setShowConfirmationModal(false);
@@ -369,8 +349,8 @@ export default function BuyDataScreen() {
 
     if (!productCode) {
       Alert.alert(
-        "Invalid Plan",
-        "We couldn't find the selected plan details. Please select a plan again."
+        'Invalid Plan',
+        "We couldn't find the selected plan details. Please select a plan again.",
       );
       return;
     }
@@ -383,17 +363,15 @@ export default function BuyDataScreen() {
         isSME,
         pin,
         useCashback: pendingCashback.use,
-        cashbackAmount: pendingCashback.use
-          ? pendingCashback.amount
-          : undefined,
+        cashbackAmount: pendingCashback.use ? pendingCashback.amount : undefined,
       },
       {
         onSuccess: async (data) => {
           setShowPINModal(false);
-          queryClient.invalidateQueries({ queryKey: ["wallet"] });
-          queryClient.invalidateQueries({ queryKey: ["transactions"] });
-          queryClient.invalidateQueries({ queryKey: ["cashback", "wallet"] });
-          queryClient.invalidateQueries({ queryKey: ["cashback", "history"] });
+          queryClient.invalidateQueries({ queryKey: ['wallet'] });
+          queryClient.invalidateQueries({ queryKey: ['transactions'] });
+          queryClient.invalidateQueries({ queryKey: ['cashback', 'wallet'] });
+          queryClient.invalidateQueries({ queryKey: ['cashback', 'history'] });
 
           // Check if user is eligible for rating prompt
           await handleSuccessfulTransaction();
@@ -401,43 +379,39 @@ export default function BuyDataScreen() {
           // Navigate to success screen with transaction data
           const successDetails: TransactionDetail[] = [
             {
-              label: "Network",
+              label: 'Network',
               value:
-                NETWORK_PROVIDERS.find(
-                  (p) => p.code === selectedNetwork?.toLowerCase()
-                )?.name ||
+                NETWORK_PROVIDERS.find((p) => p.code === selectedNetwork?.toLowerCase())?.name ||
                 selectedNetwork ||
-                "",
+                '',
             },
             {
-              label: "Phone Number",
+              label: 'Phone Number',
               value: phoneNumber,
             },
             {
-              label: "Data Plan",
-              value: selectedPlan?.name || "",
+              label: 'Data Plan',
+              value: selectedPlan?.name || '',
               highlight: true,
             },
           ];
 
           // Add SME indicator if applicable
-          if (selectedNetwork?.toLowerCase() === "glo" && isSME) {
+          if (selectedNetwork?.toLowerCase() === 'glo' && isSME) {
             successDetails.push({
-              label: "Plan Type",
-              value: "SME Data",
+              label: 'Plan Type',
+              value: 'SME Data',
             });
           }
 
           router.push({
-            pathname: "/transaction-success",
+            pathname: '/transaction-success',
             params: {
-              serviceType: "Data Purchase",
+              serviceType: 'Data Purchase',
               amount: planAmount.toString(),
-              reference: data.reference || "",
+              reference: data.reference || '',
               cashbackEarned: cashbackToEarn.toString(),
-              cashbackRedeemed: pendingCashback.use
-                ? pendingCashback.amount.toString()
-                : "0",
+              cashbackRedeemed: pendingCashback.use ? pendingCashback.amount.toString() : '0',
               details: JSON.stringify(successDetails),
             },
           });
@@ -445,38 +419,35 @@ export default function BuyDataScreen() {
         onError: () => {
           setShowPINModal(false);
         },
-      }
+      },
     );
   };
 
-  const isFormValid =
-    selectedNetwork && phoneNumber.length === 11 && selectedPlan;
+  const isFormValid = selectedNetwork && phoneNumber.length === 11 && selectedPlan;
 
   // Prepare transaction details for confirmation modal
   const transactionDetails: TransactionDetail[] = [
     {
-      label: "Network",
+      label: 'Network',
       value:
-        NETWORK_PROVIDERS.find((p) => p.code === selectedNetwork)?.name ||
-        selectedNetwork ||
-        "",
+        NETWORK_PROVIDERS.find((p) => p.code === selectedNetwork)?.name || selectedNetwork || '',
     },
     {
-      label: "Phone Number",
+      label: 'Phone Number',
       value: phoneNumber,
     },
     {
-      label: "Data Plan",
-      value: selectedPlan?.name || "",
+      label: 'Data Plan',
+      value: selectedPlan?.name || '',
       highlight: true,
     },
   ];
 
   // Add SME indicator if applicable
-  if (selectedNetwork?.toLowerCase() === "glo" && isSME) {
+  if (selectedNetwork?.toLowerCase() === 'glo' && isSME) {
     transactionDetails.push({
-      label: "Plan Type",
-      value: "SME Data",
+      label: 'Plan Type',
+      value: 'SME Data',
     });
   }
 
@@ -486,10 +457,10 @@ export default function BuyDataScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1 bg-gray-50 dark:bg-gray-900"
     >
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* Header */}
       <ScreenHeader title="Buy Data" subtitle={balance} />
@@ -543,8 +514,7 @@ export default function BuyDataScreen() {
           >
             {NETWORK_PROVIDERS.map((provider) => {
               const isSelected = selectedNetwork === provider.code;
-              const isAutoSelected =
-                isAutoDetected && autoDetectedNetwork === provider.code;
+              const isAutoSelected = isAutoDetected && autoDetectedNetwork === provider.code;
 
               return (
                 <TouchableOpacity
@@ -566,11 +536,11 @@ export default function BuyDataScreen() {
                       </Animated.View>
                     )}
                     <Card
-                      variant={isSelected ? "filled" : "elevated"}
+                      variant={isSelected ? 'filled' : 'elevated'}
                       className={`p-4 items-center relative ${
                         isSelected
-                          ? "bg-purple-100 dark:bg-purple-900/30 border-2 border-[#5B55F6]"
-                          : ""
+                          ? 'bg-purple-100 dark:bg-purple-900/30 border-2 border-[#5B55F6]'
+                          : ''
                       }`}
                     >
                       <Image
@@ -592,7 +562,7 @@ export default function BuyDataScreen() {
 
         {/* SME Toggle - Only show for GLO network */}
 
-        {selectedNetwork?.toLowerCase() === "glo" && (
+        {selectedNetwork?.toLowerCase() === 'glo' && (
           <View className="mb-6">
             <Card variant="elevated" className="p-4">
               <View className="flex-row items-center justify-between">
@@ -603,12 +573,10 @@ export default function BuyDataScreen() {
                   </Text>
                 </View>
                 <TouchableOpacity
-                  className={`w-14 h-8 rounded-full p-1 ${isSME ? "bg-[#5B55F6]" : "bg-gray-300"}`}
+                  className={`w-14 h-8 rounded-full p-1 ${isSME ? 'bg-[#5B55F6]' : 'bg-gray-300'}`}
                   onPress={handleSMEToggle}
                 >
-                  <View
-                    className={`w-6 h-6 rounded-full bg-white ${isSME ? "ml-auto" : "ml-0"}`}
-                  />
+                  <View className={`w-6 h-6 rounded-full bg-white ${isSME ? 'ml-auto' : 'ml-0'}`} />
                 </TouchableOpacity>
               </View>
             </Card>
@@ -640,16 +608,14 @@ export default function BuyDataScreen() {
                       <View
                         className={`px-4 py-2 rounded-full ${
                           selectedCategory === category
-                            ? "bg-[#5B55F6] dark:bg-[#5B55F6]"
-                            : "bg-gray-200 dark:bg-gray-700"
+                            ? 'bg-[#5B55F6] dark:bg-[#5B55F6]'
+                            : 'bg-gray-200 dark:bg-gray-700'
                         }`}
                       >
                         <Text
                           variant="caption"
                           className={`font-medium ${
-                            selectedCategory === category
-                              ? "text-white"
-                              : "text-gray-700"
+                            selectedCategory === category ? 'text-white' : 'text-gray-700'
                           }`}
                         >
                           {category}
@@ -679,22 +645,16 @@ export default function BuyDataScreen() {
                     }}
                     renderItem={({ item: plan }) => {
                       const planCode = plan.variation_code || plan.code;
-                      const planAmount = parseFloat(
-                        plan.variation_amount || plan.amount || 0
-                      );
-                      const selectedPlanCode =
-                        selectedPlan?.variation_code || selectedPlan?.code;
+                      const planAmount = parseFloat(plan.variation_amount || plan.amount || 0);
+                      const selectedPlanCode = selectedPlan?.variation_code || selectedPlan?.code;
 
                       // Calculate cashback for this plan
                       const planCashbackConfig =
-                        cashbackConfig?.DATA?.[
-                          selectedNetwork?.toUpperCase() || ""
-                        ];
+                        cashbackConfig?.DATA?.[selectedNetwork?.toUpperCase() || ''];
                       let planCashback = 0;
 
                       if (planCashbackConfig) {
-                        const { percentage, minAmount, maxCashback } =
-                          planCashbackConfig;
+                        const { percentage, minAmount, maxCashback } = planCashbackConfig;
                         if (planAmount >= minAmount) {
                           planCashback = (planAmount * percentage) / 100;
                           if (maxCashback && planCashback > maxCashback) {
@@ -707,18 +667,14 @@ export default function BuyDataScreen() {
                         <TouchableOpacity
                           onPress={() => setSelectedPlan(plan)}
                           className="mb-3 flex-1 min-h-32 "
-                          style={{ maxWidth: "95%", marginHorizontal: "0.5%" }}
+                          style={{ maxWidth: '95%', marginHorizontal: '0.5%' }}
                         >
                           <Card
-                            variant={
-                              selectedPlanCode === planCode
-                                ? "filled"
-                                : "elevated"
-                            }
+                            variant={selectedPlanCode === planCode ? 'filled' : 'elevated'}
                             className={`p-3 px-1 h-full ${
                               selectedPlanCode === planCode
-                                ? "bg-purple-100 dark:bg-purple-900/30 border-2 border-[#5B55F6]"
-                                : ""
+                                ? 'bg-purple-100 dark:bg-purple-900/30 border-2 border-[#5B55F6]'
+                                : ''
                             }`}
                           >
                             <View className="items-center">
@@ -729,21 +685,14 @@ export default function BuyDataScreen() {
                               >
                                 {plan.name}
                               </Text>
-                              <Text
-                                variant="bodyMedium"
-                                className="text-[#5B55F6] font-semibold"
-                              >
+                              <Text variant="bodyMedium" className="text-[#5B55F6] font-semibold">
                                 {formatCurrency(planAmount)}
                               </Text>
 
                               {/* Cashback Badge */}
                               {planCashback > 0 && (
                                 <View className=" mt-2 bg-[#5B55F6] rounded-full px-2 py-1">
-                                  <Text
-                                    variant="h8"
-                                    className="text-white"
-                                    weight="semibold"
-                                  >
+                                  <Text variant="h8" className="text-white" weight="semibold">
                                     {formatCurrency(planCashback)} cashback
                                   </Text>
                                 </View>
@@ -767,20 +716,13 @@ export default function BuyDataScreen() {
         </View>
 
         {/* Info Card */}
-        <Card
-          variant="elevated"
-          className="p-4 mb-6 bg-purple-50 dark:bg-purple-900/20"
-        >
+        <Card variant="elevated" className="p-4 mb-6 bg-purple-50 dark:bg-purple-900/20">
           <View className="flex-row items-start">
-            <Ionicons
-              name="information-circle-outline"
-              size={20}
-              color="#5B55F6"
-            />
+            <Ionicons name="information-circle-outline" size={20} color="#5B55F6" />
             <View className="ml-3 flex-1">
               <Text variant="caption" color="secondary">
-                • Data will be sent instantly{"\n"}• SME data is cheaper but
-                same validity{"\n"}• Works on all data-enabled SIM cards
+                • Data will be sent instantly{'\n'}• SME data is cheaper but same validity{'\n'}•
+                Works on all data-enabled SIM cards
               </Text>
             </View>
           </View>
@@ -915,10 +857,7 @@ export default function BuyDataScreen() {
       </BottomSheet> */}
 
       {/* Saved Recipients Bottom Sheet */}
-      <BottomSheet
-        visible={showRecipientsSheet}
-        onClose={() => setShowRecipientsSheet(false)}
-      >
+      <BottomSheet visible={showRecipientsSheet} onClose={() => setShowRecipientsSheet(false)}>
         <View className="flex-row justify-between items-start mb-4">
           <View className="flex-1">
             <Text variant="h3" className="mb-1">
@@ -933,11 +872,7 @@ export default function BuyDataScreen() {
             onPress={() => setShowRecipientsSheet(false)}
             className="bg-gray-100 dark:bg-gray-700 p-1 rounded-lg"
           >
-            <Ionicons
-              name="close"
-              size={24}
-              color={isDark ? "#9CA3AF" : "#6B7280"}
-            />
+            <Ionicons name="close" size={24} color={isDark ? '#9CA3AF' : '#6B7280'} />
           </TouchableOpacity>
         </View>
 
@@ -950,17 +885,10 @@ export default function BuyDataScreen() {
         ) : (
           <View className="gap-3">
             {savedRecipients.map((recipient: SavedRecipient) => (
-              <TouchableOpacity
-                key={recipient.id}
-                onPress={() => handleRecipientSelect(recipient)}
-              >
+              <TouchableOpacity key={recipient.id} onPress={() => handleRecipientSelect(recipient)}>
                 <Card variant="elevated" className="p-4">
                   <View className="flex-row items-center">
-                    <Ionicons
-                      name="person-circle-outline"
-                      size={32}
-                      color="#6B7280"
-                    />
+                    <Ionicons name="person-circle-outline" size={32} color="#6B7280" />
                     <View className="ml-3 flex-1">
                       {recipient.recipientName && (
                         <Text
@@ -975,15 +903,10 @@ export default function BuyDataScreen() {
                       <Text variant="body" className="text-gray-700">
                         {recipient.recipient}
                       </Text>
-                      <Text
-                        variant="caption"
-                        color="secondary"
-                        className="mt-1"
-                      >
+                      <Text variant="caption" color="secondary" className="mt-1">
                         {
-                          NETWORK_PROVIDERS.find(
-                            (p) => p.code === recipient.provider.toLowerCase()
-                          )?.name
+                          NETWORK_PROVIDERS.find((p) => p.code === recipient.provider.toLowerCase())
+                            ?.name
                         }
                       </Text>
                     </View>

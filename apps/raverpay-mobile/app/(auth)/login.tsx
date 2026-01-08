@@ -1,30 +1,24 @@
 // app/(auth)/login.tsx
-import { SentryErrorBoundary } from "@/src/components/SentryErrorBoundary";
-import { Button, Input, Text } from "@/src/components/ui";
-import { useAuth } from "@/src/hooks/useAuth";
-import { useBiometricAuth } from "@/src/hooks/useBiometricAuth";
-import { useTheme } from "@/src/hooks/useTheme";
-import { getDeviceFingerprint } from "@/src/lib/device-fingerprint";
-import { errorLogger } from "@/src/lib/utils/error-logger";
-import { toast } from "@/src/lib/utils/toast";
-import { emailSchema, passwordSchema } from "@/src/lib/utils/validators";
-import { Ionicons } from "@expo/vector-icons";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { z } from "zod";
+import { SentryErrorBoundary } from '@/src/components/SentryErrorBoundary';
+import { Button, Input, Text } from '@/src/components/ui';
+import { useAuth } from '@/src/hooks/useAuth';
+import { useBiometricAuth } from '@/src/hooks/useBiometricAuth';
+import { useTheme } from '@/src/hooks/useTheme';
+import { getDeviceFingerprint } from '@/src/lib/device-fingerprint';
+import { errorLogger } from '@/src/lib/utils/error-logger';
+import { toast } from '@/src/lib/utils/toast';
+import { emailSchema, passwordSchema } from '@/src/lib/utils/validators';
+import { Ionicons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
+import { z } from 'zod';
 
-import { useUserStore } from "@/src/store/user.store";
+import { useUserStore } from '@/src/store/user.store';
 
 const loginSchema = z.object({
   email: emailSchema,
@@ -74,13 +68,13 @@ function LoginContent() {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
-      password: "",
+      email: '',
+      password: '',
     },
   });
 
   // Watch password field to track if user has entered anything
-  const password = watch("password");
+  const password = watch('password');
 
   useEffect(() => {
     setHasPasswordInput(password.length > 0);
@@ -89,25 +83,19 @@ function LoginContent() {
   // Auto-fill email if biometric is enabled
   useEffect(() => {
     if (savedEmail) {
-      console.log(
-        "[LoginScreen] 📧 Auto-filling email from biometric:",
-        savedEmail
-      );
-      setValue("email", savedEmail);
+      console.log('[LoginScreen] 📧 Auto-filling email from biometric:', savedEmail);
+      setValue('email', savedEmail);
     }
   }, [savedEmail, setValue]);
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      console.log("[LoginScreen] 🔐 Submitting login form:", {
+      console.log('[LoginScreen] 🔐 Submitting login form:', {
         email: data.email,
       });
       // Get device fingerprint
       const deviceInfo = await getDeviceFingerprint();
-      console.log(
-        "[LoginScreen] 📱 Device fingerprint obtained:",
-        deviceInfo.deviceId
-      );
+      console.log('[LoginScreen] 📱 Device fingerprint obtained:', deviceInfo.deviceId);
 
       // Transform email to identifier for API and include device info
       const response = await login({
@@ -115,7 +103,7 @@ function LoginContent() {
         password: data.password,
         deviceInfo,
       });
-      console.log("[LoginScreen] ✅ Login API call completed");
+      console.log('[LoginScreen] ✅ Login API call completed');
 
       // Check if device verification is required
       // if (response?.requiresDeviceVerification) {
@@ -136,47 +124,36 @@ function LoginContent() {
 
       // Enable biometric automatically on first successful login if available
       if (isBiometricAvailable && !isBiometricEnabled) {
-        console.log("[LoginScreen] 👆 Attempting to enable biometric auth");
+        console.log('[LoginScreen] 👆 Attempting to enable biometric auth');
         try {
           await enableBiometric(data.email, data.password);
-          console.log("[LoginScreen] ✅ Biometric auth enabled successfully");
+          console.log('[LoginScreen] ✅ Biometric auth enabled successfully');
           toast.auth.biometricEnabled();
         } catch (error) {
           // Silently fail - biometric is optional
-          console.log(
-            "[LoginScreen] ⚠️ Failed to enable biometric (non-critical)"
-          );
-          errorLogger.warn("Failed to enable biometric", { error });
+          console.log('[LoginScreen] ⚠️ Failed to enable biometric (non-critical)');
+          errorLogger.warn('Failed to enable biometric', { error });
         }
       }
 
-      console.log(
-        "[LoginScreen] 🎯 Login successful - navigating based on verification status"
-      );
+      console.log('[LoginScreen] 🎯 Login successful - navigating based on verification status');
 
       // Navigate based on verification status
       if (!response.user.emailVerified) {
-        console.log(
-          "[LoginScreen] 📧 Email not verified - redirecting to verify-email"
-        );
-        router.replace("/(auth)/verify-email");
+        console.log('[LoginScreen] 📧 Email not verified - redirecting to verify-email');
+        router.replace('/(auth)/verify-email');
       } else {
-        console.log(
-          "[LoginScreen] ✅ All verifications complete - redirecting to tabs"
-        );
-        router.replace("/(tabs)");
+        console.log('[LoginScreen] ✅ All verifications complete - redirecting to tabs');
+        router.replace('/(tabs)');
       }
     } catch (error: any) {
       // Handle locked account error specially
-      if (
-        error?.message?.includes("locked") ||
-        error?.message?.includes("Locked")
-      ) {
+      if (error?.message?.includes('locked') || error?.message?.includes('Locked')) {
         toast.error({
-          title: "Account Locked",
+          title: 'Account Locked',
           message:
             error.message ||
-            "Your account is temporarily locked due to multiple failed login attempts.",
+            'Your account is temporarily locked due to multiple failed login attempts.',
         });
       }
       // Other errors are already logged and toasted in useAuth hook
@@ -185,18 +162,18 @@ function LoginContent() {
 
   const handleBiometricLogin = async () => {
     try {
-      console.log("[LoginScreen] 👆 Biometric login initiated");
+      console.log('[LoginScreen] 👆 Biometric login initiated');
       setIsBiometricLoading(true);
 
       const result = await authenticateWithBiometric();
-      console.log("[LoginScreen] 👆 Biometric result:", {
+      console.log('[LoginScreen] 👆 Biometric result:', {
         success: result.success,
         hasEmail: !!result.email,
       });
 
       if (result.success && result.email && result.password) {
         console.log(
-          "[LoginScreen] ✅ Biometric auth successful - logging in with saved credentials"
+          '[LoginScreen] ✅ Biometric auth successful - logging in with saved credentials',
         );
         // Auto-login with saved credentials
         const response = await login({
@@ -206,35 +183,31 @@ function LoginContent() {
 
         // Navigate based on verification status
         if (response?.requiresDeviceVerification) {
-          console.log("[LoginScreen] 🔐 Device verification required");
+          console.log('[LoginScreen] 🔐 Device verification required');
           // Device verification navigation will be handled above
           return;
         }
 
         if (!response?.user.emailVerified) {
-          console.log(
-            "[LoginScreen] 📧 Email not verified - redirecting to verify-email"
-          );
-          router.replace("/(auth)/verify-email");
+          console.log('[LoginScreen] 📧 Email not verified - redirecting to verify-email');
+          router.replace('/(auth)/verify-email');
         } else {
-          console.log(
-            "[LoginScreen] ✅ All verifications complete - redirecting to tabs"
-          );
-          router.replace("/(tabs)");
+          console.log('[LoginScreen] ✅ All verifications complete - redirecting to tabs');
+          router.replace('/(tabs)');
         }
       } else {
-        console.log("[LoginScreen] ❌ Biometric auth failed:", result.error);
+        console.log('[LoginScreen] ❌ Biometric auth failed:', result.error);
         toast.error({
-          title: "Authentication Failed",
-          message: result.error || "Please try again with your password",
+          title: 'Authentication Failed',
+          message: result.error || 'Please try again with your password',
         });
       }
     } catch (error) {
-      console.log("[LoginScreen] ❌ Biometric error:", error);
-      errorLogger.logAuthError(error as Error, "biometric_login");
+      console.log('[LoginScreen] ❌ Biometric error:', error);
+      errorLogger.logAuthError(error as Error, 'biometric_login');
       toast.error({
-        title: "Biometric Error",
-        message: "Failed to authenticate. Please use your password.",
+        title: 'Biometric Error',
+        message: 'Failed to authenticate. Please use your password.',
       });
     } finally {
       setIsBiometricLoading(false);
@@ -243,10 +216,10 @@ function LoginContent() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1 bg-gray-50 dark:bg-gray-900"
     >
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <ScrollView
         className="flex-1"
         contentContainerClassName="p-5"
@@ -264,9 +237,7 @@ function LoginContent() {
           </TouchableOpacity> */}
 
           <Text variant="h3" className="mb-2 mt-12">
-            {user?.firstName
-              ? `Welcome back, ${user.firstName}!`
-              : "Welcome Back"}
+            {user?.firstName ? `Welcome back, ${user.firstName}!` : 'Welcome Back'}
           </Text>
           {/* {user?.firstName && (
             <TouchableOpacity
@@ -334,13 +305,10 @@ function LoginContent() {
           />
 
           <TouchableOpacity
-            onPress={() => router.push("/(auth)/forgot-password")}
+            onPress={() => router.push('/(auth)/forgot-password')}
             className="self-end"
           >
-            <Text
-              variant="bodyMedium"
-              className="text-[#5B55F6] dark:text-[#5B55F6]"
-            >
+            <Text variant="bodyMedium" className="text-[#5B55F6] dark:text-[#5B55F6]">
               Forgot Password?
             </Text>
           </TouchableOpacity>
@@ -380,7 +348,7 @@ function LoginContent() {
               className="mb-8"
               showLoadingIndicator={false}
             >
-              {biometricType === "Face ID" ? (
+              {biometricType === 'Face ID' ? (
                 // <Ionicons
                 //   name="  ios-face-id"
                 //   size={24}
@@ -391,17 +359,13 @@ function LoginContent() {
                 <MaterialCommunityIcons
                   name="face-recognition"
                   size={24}
-                  color={
-                    hasPasswordInput || isLoggingIn ? "#9CA3AF" : "#5B55F6"
-                  }
+                  color={hasPasswordInput || isLoggingIn ? '#9CA3AF' : '#5B55F6'}
                 />
               ) : (
                 <Ionicons
                   name="finger-print"
                   size={24}
-                  color={
-                    hasPasswordInput || isLoggingIn ? "#9CA3AF" : "#C4B5FD"
-                  }
+                  color={hasPasswordInput || isLoggingIn ? '#9CA3AF' : '#C4B5FD'}
                 />
               )}
 
@@ -413,13 +377,10 @@ function LoginContent() {
         {/* Footer */}
         <View className="flex-row justify-center items-center">
           <Text variant="body" color="secondary">
-            Don&apos;t have an account?{" "}
+            Don&apos;t have an account?{' '}
           </Text>
-          <TouchableOpacity onPress={() => router.push("/(auth)/register")}>
-            <Text
-              variant="bodyMedium"
-              className="text-[#5B55F6] dark:text-[#5B55F6]"
-            >
+          <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
+            <Text variant="bodyMedium" className="text-[#5B55F6] dark:text-[#5B55F6]">
               Sign Up
             </Text>
           </TouchableOpacity>

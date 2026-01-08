@@ -26,14 +26,14 @@ This document provides a complete implementation plan for integrating SQLite int
 
 ### Current Pain Points (Poor Network Scenarios)
 
-| Problem | Impact | SQLite Solution |
-|---------|--------|-----------------|
-| Transaction history loads slowly (2-5s on 3G) | User frustration | Instant load from local DB (< 100ms) |
-| Search/filter requires API calls | Doesn't work offline | Local SQL queries, instant results |
-| Failed transactions lost on network drop | Lost money, support tickets | Persisted in pending_mutations table |
-| VTU order status requires polling | Battery drain, data usage | Local tracking with background sync |
-| Wallet balance unavailable offline | Can't check balance | Cached locally, synced when online |
-| Repeated data fetches | Expensive data usage | Fetch once, query locally forever |
+| Problem                                       | Impact                      | SQLite Solution                      |
+| --------------------------------------------- | --------------------------- | ------------------------------------ |
+| Transaction history loads slowly (2-5s on 3G) | User frustration            | Instant load from local DB (< 100ms) |
+| Search/filter requires API calls              | Doesn't work offline        | Local SQL queries, instant results   |
+| Failed transactions lost on network drop      | Lost money, support tickets | Persisted in pending_mutations table |
+| VTU order status requires polling             | Battery drain, data usage   | Local tracking with background sync  |
+| Wallet balance unavailable offline            | Can't check balance         | Cached locally, synced when online   |
+| Repeated data fetches                         | Expensive data usage        | Fetch once, query locally forever    |
 
 ### Expected Benefits
 
@@ -59,18 +59,21 @@ This document provides a complete implementation plan for integrating SQLite int
 Based on your Prisma schema, we'll implement these tables in SQLite:
 
 #### Phase 1: Essential Data (Week 1-2)
+
 - ✅ `transactions` - Transaction history
 - ✅ `wallet` - Wallet balance and limits
 - ✅ `vtu_orders` - VTU purchase history
 - ✅ `pending_mutations` - Offline operation queue
 
 #### Phase 2: Extended Data (Week 3-4)
+
 - ✅ `p2p_transfers` - P2P transfer history
 - ✅ `circle_transactions` - Circle/USDC transactions
 - ✅ `circle_wallets` - Circle wallet info
 - ✅ `saved_recipients` - Saved VTU recipients
 
 #### Phase 3: Supporting Data (Week 5-6)
+
 - ✅ `notifications` - In-app notifications
 - ✅ `bank_accounts` - Saved bank accounts
 - ✅ `virtual_accounts` - Virtual account details
@@ -397,7 +400,7 @@ export function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_pending_mutations_priority ON pending_mutations(priority DESC, createdAt ASC);
     CREATE INDEX IF NOT EXISTS idx_pending_mutations_retryCount ON pending_mutations(retryCount);
   `);
-  
+
   console.log('✅ Database initialized successfully');
 }
 ```
@@ -411,6 +414,7 @@ export function initializeDatabase() {
 **Goal:** Basic offline functionality for most-used features
 
 #### Tasks:
+
 1. ✅ Set up expo-sqlite
 2. ✅ Create database schema
 3. ✅ Implement transaction history sync
@@ -419,11 +423,13 @@ export function initializeDatabase() {
 6. ✅ Test basic offline→online flow
 
 **Deliverables:**
+
 - Transaction history loads instantly
 - Wallet balance available offline
 - Failed operations queued automatically
 
 **Success Metrics:**
+
 - Transaction history load time: < 100ms
 - Search/filter works offline
 - Zero lost transactions
@@ -435,6 +441,7 @@ export function initializeDatabase() {
 **Goal:** Full offline support for all transaction types
 
 #### Tasks:
+
 1. ✅ Add VTU orders sync
 2. ✅ Add P2P transfers sync
 3. ✅ Add Circle transactions sync
@@ -443,11 +450,13 @@ export function initializeDatabase() {
 6. ✅ Test sync with poor network
 
 **Deliverables:**
+
 - All transaction types available offline
 - Background sync every 5 minutes
 - Conflict resolution for concurrent edits
 
 **Success Metrics:**
+
 - 90% reduction in API calls
 - Sync completes in < 5 seconds
 - No data conflicts
@@ -459,6 +468,7 @@ export function initializeDatabase() {
 **Goal:** Production-ready with monitoring
 
 #### Tasks:
+
 1. ✅ Add saved recipients sync
 2. ✅ Add notifications sync
 3. ✅ Implement database migration system
@@ -467,12 +477,14 @@ export function initializeDatabase() {
 6. ✅ Performance optimization
 
 **Deliverables:**
+
 - Complete offline experience
 - Database migration system
 - Sync status indicators
 - Performance monitoring
 
 **Success Metrics:**
+
 - Database size < 50MB
 - Sync success rate > 99%
 - User satisfaction > 90%
@@ -491,7 +503,7 @@ let isInitialized = false;
 
 export async function initDB() {
   if (isInitialized) return;
-  
+
   try {
     initializeDatabase();
     isInitialized = true;
@@ -506,6 +518,7 @@ export { db };
 ```
 
 **Usage in App:**
+
 ```typescript
 // app/_layout.tsx
 import { useEffect } from 'react';
@@ -515,7 +528,7 @@ export default function RootLayout() {
   useEffect(() => {
     initDB();
   }, []);
-  
+
   return <Slot />;
 }
 ```
@@ -561,9 +574,9 @@ export function useTransactionHistory(userId: string) {
          WHERE userId = ? 
          ORDER BY createdAt DESC 
          LIMIT 100`,
-        [userId]
+        [userId],
       );
-      
+
       setTransactions(localTxs);
       setIsLoading(false);
 
@@ -587,7 +600,7 @@ export function useTransactionHistory(userId: string) {
         `SELECT MAX(updatedAt) as lastSyncedAt 
          FROM transactions 
          WHERE userId = ? AND syncStatus = 'synced'`,
-        [userId]
+        [userId],
       );
 
       // Fetch only new/updated transactions
@@ -600,7 +613,7 @@ export function useTransactionHistory(userId: string) {
 
       // Upsert into SQLite
       db.runSync('BEGIN TRANSACTION');
-      
+
       for (const tx of data.transactions) {
         db.runSync(
           `INSERT OR REPLACE INTO transactions 
@@ -625,10 +638,10 @@ export function useTransactionHistory(userId: string) {
             tx.description,
             new Date(tx.createdAt).getTime(),
             Date.now(),
-          ]
+          ],
         );
       }
-      
+
       db.runSync('COMMIT');
 
       // Update sync metadata
@@ -636,20 +649,20 @@ export function useTransactionHistory(userId: string) {
         `INSERT OR REPLACE INTO sync_metadata 
          (id, tableName, lastSyncedAt, lastSyncStatus, recordCount, updatedAt)
          VALUES (?, 'transactions', ?, 'success', ?, ?)`,
-        ['transactions', Date.now(), data.transactions.length, Date.now()]
+        ['transactions', Date.now(), data.transactions.length, Date.now()],
       );
 
       // Reload from DB
       loadTransactions();
     } catch (error) {
       console.error('Sync failed:', error);
-      
+
       // Update sync metadata with error
       db.runSync(
         `INSERT OR REPLACE INTO sync_metadata 
          (id, tableName, lastSyncedAt, lastSyncStatus, lastSyncError, updatedAt)
          VALUES (?, 'transactions', ?, 'failed', ?, ?)`,
-        ['transactions', Date.now(), error.message, Date.now()]
+        ['transactions', Date.now(), error.message, Date.now()],
       );
     } finally {
       setIsSyncing(false);
@@ -663,7 +676,7 @@ export function useTransactionHistory(userId: string) {
        AND (description LIKE ? OR reference LIKE ? OR provider LIKE ?)
        ORDER BY createdAt DESC
        LIMIT 100`,
-      [userId, `%${query}%`, `%${query}%`, `%${query}%`]
+      [userId, `%${query}%`, `%${query}%`, `%${query}%`],
     );
     setTransactions(results);
   };
@@ -674,7 +687,7 @@ export function useTransactionHistory(userId: string) {
        WHERE userId = ? AND type = ?
        ORDER BY createdAt DESC
        LIMIT 100`,
-      [userId, type]
+      [userId, type],
     );
     setTransactions(results);
   };
@@ -685,7 +698,7 @@ export function useTransactionHistory(userId: string) {
        WHERE userId = ? AND status = ?
        ORDER BY createdAt DESC
        LIMIT 100`,
-      [userId, status]
+      [userId, status],
     );
     setTransactions(results);
   };
@@ -703,16 +716,17 @@ export function useTransactionHistory(userId: string) {
 ```
 
 **Usage:**
+
 ```typescript
 // app/transaction-history.tsx
 export default function TransactionHistoryScreen() {
   const { user } = useAuth();
-  const { 
-    transactions, 
-    isLoading, 
+  const {
+    transactions,
+    isLoading,
     isSyncing,
     searchTransactions,
-    filterByType 
+    filterByType
   } = useTransactionHistory(user.id);
 
   return (
@@ -720,7 +734,7 @@ export default function TransactionHistoryScreen() {
       {isSyncing && <SyncIndicator />}
       <SearchBar onSearch={searchTransactions} />
       <FilterButtons onFilter={filterByType} />
-      
+
       {isLoading ? (
         <TransactionSkeleton />
       ) : (
@@ -767,10 +781,10 @@ class OfflineQueue {
       priority?: 1 | 2 | 3;
       headers?: Record<string, string>;
       maxRetries?: number;
-    } = {}
+    } = {},
   ) {
     const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
+
     db.runSync(
       `INSERT INTO pending_mutations 
        (id, endpoint, method, payload, headers, priority, retryCount, maxRetries, createdAt)
@@ -784,7 +798,7 @@ class OfflineQueue {
         options.priority || 2,
         options.maxRetries || 3,
         Date.now(),
-      ]
+      ],
     );
 
     console.log(`✅ Queued ${method} ${endpoint} for offline processing`);
@@ -808,7 +822,7 @@ class OfflineQueue {
       const pending = db.getAllSync<PendingMutation>(
         `SELECT * FROM pending_mutations 
          ORDER BY priority DESC, createdAt ASC 
-         LIMIT 10`
+         LIMIT 10`,
       );
 
       for (const mutation of pending) {
@@ -826,10 +840,9 @@ class OfflineQueue {
           });
 
           // Success - remove from queue
-          db.runSync(
-            `DELETE FROM pending_mutations WHERE id = ?`,
-            [mutation.id]
-          );
+          db.runSync(`DELETE FROM pending_mutations WHERE id = ?`, [
+            mutation.id,
+          ]);
 
           console.log(`✅ Processed ${mutation.method} ${mutation.endpoint}`);
         } catch (error) {
@@ -840,20 +853,19 @@ class OfflineQueue {
             // Max retries reached - remove and log
             console.error(
               `❌ Max retries reached for ${mutation.method} ${mutation.endpoint}`,
-              error
+              error,
             );
-            
-            db.runSync(
-              `DELETE FROM pending_mutations WHERE id = ?`,
-              [mutation.id]
-            );
+
+            db.runSync(`DELETE FROM pending_mutations WHERE id = ?`, [
+              mutation.id,
+            ]);
           } else {
             // Update retry count and error
             db.runSync(
               `UPDATE pending_mutations 
                SET retryCount = ?, lastError = ?, lastRetryAt = ?
                WHERE id = ?`,
-              [newRetryCount, error.message, Date.now(), mutation.id]
+              [newRetryCount, error.message, Date.now(), mutation.id],
             );
           }
         }
@@ -865,7 +877,7 @@ class OfflineQueue {
 
   getQueueLength(): number {
     const result = db.getFirstSync<{ count: number }>(
-      `SELECT COUNT(*) as count FROM pending_mutations`
+      `SELECT COUNT(*) as count FROM pending_mutations`,
     );
     return result?.count || 0;
   }
@@ -879,24 +891,25 @@ export const offlineQueue = new OfflineQueue();
 ```
 
 **Usage in Mutations:**
+
 ```typescript
 // Example: Airtime purchase with offline support
 const purchaseAirtimeMutation = useMutation({
   mutationFn: async (data: PurchaseAirtimeDto) => {
     const { isConnected } = useNetworkStore.getState();
-    
+
     if (!isConnected) {
       // Queue for later with high priority (financial operation)
       await offlineQueue.addToQueue(
         '/vtu/airtime/purchase',
         'POST',
         data,
-        { priority: 3 } // High priority
+        { priority: 3 }, // High priority
       );
-      
+
       throw new Error('QUEUED_OFFLINE');
     }
-    
+
     return apiClient.post('/vtu/airtime/purchase', data);
   },
   onError: (error) => {
@@ -926,12 +939,15 @@ class SyncService {
 
   startAutoSync() {
     // Sync every 5 minutes when online
-    this.syncInterval = setInterval(() => {
-      const { isConnected } = useNetworkStore.getState();
-      if (isConnected && !this.isSyncing) {
-        this.syncAll();
-      }
-    }, 5 * 60 * 1000);
+    this.syncInterval = setInterval(
+      () => {
+        const { isConnected } = useNetworkStore.getState();
+        if (isConnected && !this.isSyncing) {
+          this.syncAll();
+        }
+      },
+      5 * 60 * 1000,
+    );
 
     console.log('✅ Auto-sync started (every 5 minutes)');
   }
@@ -980,7 +996,7 @@ class SyncService {
   private async syncWallet() {
     try {
       const { data } = await apiClient.get('/wallet');
-      
+
       db.runSync(
         `INSERT OR REPLACE INTO wallet 
          (id, userId, balance, ledgerBalance, currency, dailySpent, 
@@ -1001,7 +1017,7 @@ class SyncService {
           data.type,
           Date.now(),
           Date.now(),
-        ]
+        ],
       );
     } catch (error) {
       console.error('Failed to sync wallet:', error);
@@ -1015,6 +1031,7 @@ export const syncService = new SyncService();
 ```
 
 **Initialize in App:**
+
 ```typescript
 // app/_layout.tsx
 import { syncService } from '@/src/lib/database/sync-service';
@@ -1023,7 +1040,7 @@ export default function RootLayout() {
   useEffect(() => {
     // Start auto-sync
     syncService.startAutoSync();
-    
+
     return () => {
       syncService.stopAutoSync();
     };
@@ -1042,7 +1059,7 @@ export default function RootLayout() {
 ```typescript
 // Fetch only new/updated records since last sync
 const lastSync = db.getFirstSync<{ lastSyncedAt: number }>(
-  `SELECT MAX(updatedAt) as lastSyncedAt FROM transactions WHERE syncStatus = 'synced'`
+  `SELECT MAX(updatedAt) as lastSyncedAt FROM transactions WHERE syncStatus = 'synced'`,
 );
 
 const { data } = await apiClient.get('/wallet/transactions', {
@@ -1053,6 +1070,7 @@ const { data } = await apiClient.get('/wallet/transactions', {
 ```
 
 **Benefits:**
+
 - Minimal data transfer
 - Fast sync (< 5 seconds)
 - Works on poor networks
@@ -1065,18 +1083,18 @@ const { data } = await apiClient.get('/wallet/transactions', {
 
 ```typescript
 // High priority: Financial operations
-await offlineQueue.addToQueue('/transactions/send', 'POST', data, { 
-  priority: 3 
+await offlineQueue.addToQueue('/transactions/send', 'POST', data, {
+  priority: 3,
 });
 
 // Normal priority: Profile updates
-await offlineQueue.addToQueue('/users/profile', 'PUT', data, { 
-  priority: 2 
+await offlineQueue.addToQueue('/users/profile', 'PUT', data, {
+  priority: 2,
 });
 
 // Low priority: Analytics
-await offlineQueue.addToQueue('/analytics/track', 'POST', data, { 
-  priority: 1 
+await offlineQueue.addToQueue('/analytics/track', 'POST', data, {
+  priority: 1,
 });
 ```
 
@@ -1088,10 +1106,9 @@ await offlineQueue.addToQueue('/analytics/track', 'POST', data, {
 
 ```typescript
 // When syncing, server data always overwrites local
-db.runSync(
-  `INSERT OR REPLACE INTO transactions (...) VALUES (...)`,
-  [serverData]
-);
+db.runSync(`INSERT OR REPLACE INTO transactions (...) VALUES (...)`, [
+  serverData,
+]);
 ```
 
 **Why:** Financial data must be authoritative from backend
@@ -1187,7 +1204,7 @@ Result:
   Backend Balance: ₦1,000 (unchanged)
   Local Balance:   ₦500 (unchanged)
   Pending Queue:   [Airtime ₦500]
-  
+
 Transaction NOT queued!
 ```
 
@@ -1264,7 +1281,7 @@ Result:
   Backend Balance: ₦700 ✅
   Local Balance:   ₦700 ✅ (synced!)
   Pending Queue:   Empty ✅
-  
+
 Failed transaction was rolled back!
 ```
 
@@ -1300,17 +1317,20 @@ Else:
 #### **3. Update on Queue/Process**
 
 When queuing:
+
 ```
 pendingDeductions += transaction amount
 ```
 
 When processing (success):
+
 ```
 balance = backend balance
 pendingDeductions -= transaction amount
 ```
 
 When processing (failure):
+
 ```
 pendingDeductions -= transaction amount
 (balance unchanged - never deducted)
@@ -1339,14 +1359,14 @@ TIME     EVENT                    LOCAL BALANCE    PENDING    BACKEND
 
 ### Edge Cases Handled
 
-| Scenario | Handling |
-|----------|----------|
-| User queues ₦500, tries ₦1,000 | ❌ Rejected (insufficient available balance) |
-| User queues ₦500, backend has ₦400 | ❌ Backend rejects, ₦500 restored to local |
+| Scenario                           | Handling                                            |
+| ---------------------------------- | --------------------------------------------------- |
+| User queues ₦500, tries ₦1,000     | ❌ Rejected (insufficient available balance)        |
+| User queues ₦500, backend has ₦400 | ❌ Backend rejects, ₦500 restored to local          |
 | User queues 2 transactions offline | ✅ Both deducted from local, processed sequentially |
-| User closes app with pending queue | ✅ Queue persisted in SQLite, processed on reopen |
-| Backend is down when online | 🔄 Retries 3 times, then shows error |
-| User queues, then receives money | ✅ Backend balance is authoritative |
+| User closes app with pending queue | ✅ Queue persisted in SQLite, processed on reopen   |
+| Backend is down when online        | 🔄 Retries 3 times, then shows error                |
+| User queues, then receives money   | ✅ Backend balance is authoritative                 |
 
 ---
 
@@ -1541,6 +1561,7 @@ Sync Process (CRITICAL ORDER):
 ```
 
 **Why PULL before PUSH?**
+
 - Ensures local balance is current
 - Better UX (user knows balance changed)
 - Backend will reject anyway, but clearer error
@@ -1660,16 +1681,17 @@ TIME     DEVICE A (OFFLINE)         DEVICE B (ONLINE)      BACKEND
 09:30:10 - Transaction fails
            ❌ "Transfer failed: Insufficient balance.
                Your balance was updated on another device.
-               
+
                Original balance: ₦1,000
                Current balance: ₦0
                Failed transfer: ₦800
-               
+
                Tip: Check transaction history for
                recent activity on all devices."
 ```
 
 **User understands:**
+
 - Balance was spent on another device
 - Queued transaction couldn't complete
 - No money lost (transaction didn't go through)
@@ -1732,6 +1754,7 @@ Result: Backend rejects Device A's transaction
 ```
 
 **Why this is safe:**
+
 - Backend validates **every** transaction
 - Local balance is for **UX only** (instant feedback)
 - Backend balance is **authoritative**
@@ -1742,6 +1765,7 @@ Result: Backend rejects Device A's transaction
 #### **3. Clear Error Messages**
 
 **Good Error Message:**
+
 ```
 ❌ Transfer failed: Insufficient balance
 
@@ -1759,6 +1783,7 @@ recent activity on all your devices.
 ```
 
 **Bad Error Message:**
+
 ```
 ❌ "Transfer failed: Insufficient balance"
 (User thinks: "But I had ₦1,000!")
@@ -1797,6 +1822,7 @@ Always PULL before PUSH in sync logic
 #### **2. Multi-Device Indicators**
 
 Show when balance changed on another device:
+
 - Device name/type
 - Timestamp
 - Transaction details
@@ -1804,6 +1830,7 @@ Show when balance changed on another device:
 #### **3. Enhanced Error Messages**
 
 Include:
+
 - What happened
 - Why it happened
 - Current state
@@ -1813,6 +1840,7 @@ Include:
 #### **4. Sentry Monitoring**
 
 Track:
+
 - Multi-device conflicts
 - Rejected transactions due to stale balance
 - Sync failures
@@ -1821,6 +1849,7 @@ Track:
 #### **5. Transaction History Metadata**
 
 Store:
+
 - Device type (iPhone, Android, Web)
 - Device name (user's device name)
 - Timestamp
@@ -1830,13 +1859,13 @@ Store:
 
 ### Edge Cases
 
-| Scenario | Handling |
-|----------|----------|
-| User on 3+ devices | ✅ Same logic applies, backend is authority |
-| Both devices offline, both queue | ✅ First to sync succeeds, second fails |
-| Device A queues, Device B receives money | ✅ Device A transaction may succeed |
-| Network drops during sync | 🔄 Retry sync on reconnect |
-| User deletes app on Device B | ✅ Device A still syncs correctly |
+| Scenario                                 | Handling                                    |
+| ---------------------------------------- | ------------------------------------------- |
+| User on 3+ devices                       | ✅ Same logic applies, backend is authority |
+| Both devices offline, both queue         | ✅ First to sync succeeds, second fails     |
+| Device A queues, Device B receives money | ✅ Device A transaction may succeed         |
+| Network drops during sync                | 🔄 Retry sync on reconnect                  |
+| User deletes app on Device B             | ✅ Device A still syncs correctly           |
 
 ---
 
@@ -1848,7 +1877,7 @@ Store:
 Sentry Event:
   Type: Multi-Device Conflict
   Level: Warning
-  
+
   Context:
     - User ID: user-123
     - Device A: iPhone 14 (offline)
@@ -1856,7 +1885,7 @@ Sentry Event:
     - Queued amount: ₦800
     - Backend balance: ₦0
     - Conflict reason: Stale balance
-    
+
   Breadcrumbs:
     1. Device A queued ₦800 (offline)
     2. Device B transferred ₦1,000 (online)
@@ -1865,6 +1894,7 @@ Sentry Event:
 ```
 
 **Dashboard Metrics:**
+
 - Multi-device conflict rate
 - Average time between queue and sync
 - Rejection rate due to stale balance
@@ -1875,11 +1905,13 @@ Sentry Event:
 ### Summary
 
 **Scenario:** User with ₦1,000 on two devices:
+
 - Device A (offline): Queues ₦800 transfer
 - Device B (online): Completes ₦1,000 transfer (balance → ₦0)
 - Device A comes online
 
 **What Happens:**
+
 1. ✅ Device A syncs balance (PULL: ₦200 → ₦0)
 2. ✅ Device A tries to process ₦800 transfer (PUSH)
 3. ❌ Backend rejects (insufficient balance: ₦0 < ₦800)
@@ -1887,13 +1919,15 @@ Sentry Event:
 5. ✅ User understands what happened
 6. ✅ No money lost
 
-**Key Protection:** 
+**Key Protection:**
+
 - Backend **always validates** against real balance
 - PULL before PUSH ensures current state
 - Clear error messages prevent confusion
 - Sentry monitoring tracks conflicts
 
-**User Experience:** 
+**User Experience:**
+
 - Transparent
 - Clear
 - No confusion
@@ -1994,6 +2028,7 @@ Monitor network transitions and sync behavior for UX insights.
 ### 6. Custom Sentry Dashboards
 
 Create metrics for:
+
 - Offline duration
 - Queued operations count
 - Sync duration
@@ -2002,6 +2037,7 @@ Create metrics for:
 ### 7. Error Alerting Rules
 
 Set up alerts for:
+
 - **Critical:** Database corruption, sync failure > 10%, queue > 50
 - **Performance:** Sync > 30s, DB > 100MB, query > 1s
 - **Security:** Data integrity failures, unusual queue activity
@@ -2013,6 +2049,7 @@ Set up alerts for:
 ### Overview
 
 **Problem:** SQLite database grows indefinitely, eventually causing:
+
 - App crashes (out of storage)
 - Slow queries (too much data)
 - User device storage full
@@ -2032,6 +2069,7 @@ Critical Threshold: 45MB
 ```
 
 **Why 50MB?**
+
 - Typical user: ~1-2MB (1 year of data)
 - Heavy user: ~10-20MB (3 years of data)
 - 50MB = comfortable buffer for 5+ years
@@ -2042,15 +2080,15 @@ Critical Threshold: 45MB
 
 #### **Automatic Cleanup Rules**
 
-| Data Type | Retention Period | Cleanup Frequency |
-|-----------|------------------|-------------------|
-| Transactions | 12 months | Monthly |
-| VTU Orders | 12 months | Monthly |
-| P2P Transfers | 12 months | Monthly |
-| Circle Transactions | 12 months | Monthly |
-| Notifications | 100 most recent | Weekly |
-| Pending Mutations | 7 days (failed) | Daily |
-| Sync Metadata | 30 days | Weekly |
+| Data Type           | Retention Period | Cleanup Frequency |
+| ------------------- | ---------------- | ----------------- |
+| Transactions        | 12 months        | Monthly           |
+| VTU Orders          | 12 months        | Monthly           |
+| P2P Transfers       | 12 months        | Monthly           |
+| Circle Transactions | 12 months        | Monthly           |
+| Notifications       | 100 most recent  | Weekly            |
+| Pending Mutations   | 7 days (failed)  | Daily             |
+| Sync Metadata       | 30 days          | Weekly            |
 
 ---
 
@@ -2077,11 +2115,12 @@ On App Launch:
 #### **2. Cleanup Logic**
 
 **Delete Old Transactions:**
+
 ```
 Delete transactions older than 12 months:
   - Keep last 100 transactions (always)
   - Delete rest if > 12 months old
-  
+
 Example:
   User has 2000 transactions
   500 are > 12 months old
@@ -2089,6 +2128,7 @@ Example:
 ```
 
 **Delete Old Notifications:**
+
 ```
 Keep only 100 most recent notifications:
   - Sort by createdAt DESC
@@ -2097,6 +2137,7 @@ Keep only 100 most recent notifications:
 ```
 
 **Delete Failed Pending Mutations:**
+
 ```
 Delete failed mutations > 7 days old:
   - If retryCount >= maxRetries
@@ -2112,7 +2153,7 @@ Delete failed mutations > 7 days old:
 
 ```
 Settings > Storage & Data:
-  
+
   ┌─────────────────────────────────────────┐
   │ Database Size: 15.2 MB / 50 MB          │
   │ [████████░░░░░░░░░░░░░░░░░░░░] 30%     │
@@ -2136,13 +2177,13 @@ Settings > Storage & Data:
 
 ```
 Before Cleanup Dialog:
-  
+
   ⚠️  About to delete 500 old transactions
-  
+
   Would you like to export them first?
-  
+
   [Export as PDF]  [Export as CSV]  [Skip]
-  
+
   Note: Exported data will be saved to your
   device and can be imported later.
 ```
@@ -2161,7 +2202,7 @@ On App Launch:
      - Record count per table
      - Oldest record date
      - User ID
-  
+
   3. Alert if:
      - Size > 40MB (warning)
      - Size > 50MB (critical)
@@ -2185,13 +2226,13 @@ Track cleanup operations:
 
 ### Edge Cases
 
-| Scenario | Handling |
-|----------|----------|
-| User has 100+ transactions in last month | Keep all recent, delete old only |
-| Database corrupted during cleanup | Rollback, restore from backup |
-| User wants to keep all data | Increase limit to 100MB, warn about performance |
-| Device low on storage | Force cleanup immediately |
-| Cleanup fails | Retry on next launch, log to Sentry |
+| Scenario                                 | Handling                                        |
+| ---------------------------------------- | ----------------------------------------------- |
+| User has 100+ transactions in last month | Keep all recent, delete old only                |
+| Database corrupted during cleanup        | Rollback, restore from backup                   |
+| User wants to keep all data              | Increase limit to 100MB, warn about performance |
+| Device low on storage                    | Force cleanup immediately                       |
+| Cleanup fails                            | Retry on next launch, log to Sentry             |
 
 ---
 
@@ -2219,6 +2260,7 @@ Cleanup Process:
 ### Overview
 
 **Problem:** App updates may require SQLite schema changes:
+
 - New columns
 - New tables
 - Changed data types
@@ -2282,16 +2324,16 @@ migrations = [
 On App Launch:
   1. Get current database version:
      PRAGMA user_version
-     
+
   2. Get target version:
      Latest migration version
-     
+
   3. If current < target:
      - Create backup
      - Run migrations (current+1 to target)
      - Update PRAGMA user_version
      - Verify integrity
-     
+
   4. If migration fails:
      - Restore from backup
      - Log to Sentry
@@ -2303,48 +2345,51 @@ On App Launch:
 #### **3. Migration Examples**
 
 **Add New Column:**
+
 ```
 Migration v2:
   Description: "Add channel column"
-  
+
   Up:
-    ALTER TABLE transactions 
+    ALTER TABLE transactions
     ADD COLUMN channel TEXT DEFAULT 'APP'
-  
+
   Down:
-    ALTER TABLE transactions 
+    ALTER TABLE transactions
     DROP COLUMN channel
 ```
 
 **Add New Table:**
+
 ```
 Migration v3:
   Description: "Add saved_recipients table"
-  
+
   Up:
     CREATE TABLE saved_recipients (
       id TEXT PRIMARY KEY,
       userId TEXT NOT NULL,
       ...
     )
-  
+
   Down:
     DROP TABLE saved_recipients
 ```
 
 **Migrate Data:**
+
 ```
 Migration v4:
   Description: "Split name into firstName/lastName"
-  
+
   Up:
     1. ALTER TABLE users ADD COLUMN firstName TEXT
     2. ALTER TABLE users ADD COLUMN lastName TEXT
-    3. UPDATE users SET 
+    3. UPDATE users SET
        firstName = SUBSTR(name, 1, INSTR(name, ' ')-1),
        lastName = SUBSTR(name, INSTR(name, ' ')+1)
     4. ALTER TABLE users DROP COLUMN name
-  
+
   Down:
     1. ALTER TABLE users ADD COLUMN name TEXT
     2. UPDATE users SET name = firstName || ' ' || lastName
@@ -2362,19 +2407,19 @@ Migration v4:
 Backup Process:
   1. Get database path:
      /path/to/raverpay.db
-     
+
   2. Create backup:
      Copy to: /path/to/raverpay.db.backup.v{currentVersion}
-     
+
   3. Verify backup:
      Check file exists and size > 0
-     
+
   4. Run migration
-  
+
   5. If success:
      - Keep backup for 7 days
      - Delete after 7 days
-     
+
   6. If failure:
      - Restore from backup
      - Delete failed database
@@ -2445,13 +2490,13 @@ During Migration:
 
 ### Edge Cases
 
-| Scenario | Handling |
-|----------|----------|
-| Migration takes > 30 seconds | Show progress, don't timeout |
-| User closes app during migration | Resume on next launch |
-| Backup fails | Don't run migration, show error |
-| Database corrupted | Restore from backup or reset |
-| Multiple migrations pending | Run sequentially, not parallel |
+| Scenario                         | Handling                        |
+| -------------------------------- | ------------------------------- |
+| Migration takes > 30 seconds     | Show progress, don't timeout    |
+| User closes app during migration | Resume on next launch           |
+| Backup fails                     | Don't run migration, show error |
+| Database corrupted               | Restore from backup or reset    |
+| Multiple migrations pending      | Run sequentially, not parallel  |
 
 ---
 
@@ -2460,6 +2505,7 @@ During Migration:
 ### Overview
 
 **Problem:** Network drops during sync, leaving database in inconsistent state:
+
 - Some data synced, some not
 - Pending queue partially processed
 - Balance out of sync
@@ -2567,7 +2613,7 @@ Sync Process:
   3. Write to SQLite
   4. Update sync_metadata
   5. COMMIT
-  
+
 If network drops:
   - ROLLBACK
   - No partial data written
@@ -2585,17 +2631,17 @@ PULL Sync with Checkpoints:
 
   1. Get last checkpoint:
      lastSyncedAt = sync_metadata.lastSyncedAt
-     
+
   2. Fetch data since checkpoint:
      GET /wallet/transactions?since={lastSyncedAt}&limit=100
-     
+
   3. Process in batches:
      For each batch of 10 transactions:
        - BEGIN TRANSACTION
        - Insert 10 transactions
        - Update checkpoint
        - COMMIT
-       
+
   4. If network drops:
      - Last checkpoint saved
      - Resume from there on retry
@@ -2610,7 +2656,7 @@ PUSH Sync with Checkpoints:
 
   1. Get pending queue:
      SELECT * FROM pending_mutations ORDER BY priority, createdAt
-     
+
   2. Process one at a time:
      For each mutation:
        - Send to backend
@@ -2621,7 +2667,7 @@ PUSH Sync with Checkpoints:
          - Keep in queue
          - Update retry count
          - Move to next
-         
+
   3. If network drops:
      - Processed mutations removed
      - Remaining mutations still in queue
@@ -2638,15 +2684,15 @@ PUSH Sync with Checkpoints:
 After Sync:
   1. Verify record counts:
      Local count vs expected count
-     
+
   2. Verify checksums:
      Calculate checksum of synced data
      Compare with backend checksum
-     
+
   3. Verify relationships:
      All transaction IDs exist
      All user IDs match
-     
+
   4. If corruption detected:
      - Rollback sync
      - Clear corrupted data
@@ -2663,17 +2709,17 @@ Recovery Process:
      - Checksum mismatch
      - Missing records
      - Invalid data
-     
+
   2. Identify scope:
      - Which table?
      - Which records?
      - When did it happen?
-     
+
   3. Recovery options:
      a. Rollback to last checkpoint
      b. Delete corrupted records, re-sync
      c. Full database reset (last resort)
-     
+
   4. Log to Sentry:
      - Corruption type
      - Affected records
@@ -2693,7 +2739,7 @@ Retry Logic:
   Attempt 3: Wait 15 seconds
   Attempt 4: Wait 45 seconds
   Attempt 5: Wait 2 minutes
-  
+
   After 5 attempts:
     - Give up
     - Show error to user
@@ -2729,12 +2775,12 @@ During Sync:
 If Sync Fails:
 
   ⚠️  Sync incomplete
-  
+
   75 of 100 transactions synced.
   Network connection lost.
-  
+
   Will retry automatically when online.
-  
+
   [Retry Now]  [Dismiss]
 ```
 
@@ -2750,7 +2796,7 @@ Track sync failures:
   - Retry count
   - User ID
   - Network quality
-  
+
 Alert if:
   - Sync failure rate > 5%
   - Same user fails > 3 times
@@ -2761,13 +2807,13 @@ Alert if:
 
 ### Edge Cases
 
-| Scenario | Handling |
-|----------|----------|
-| Sync interrupted 5 times | Give up, show manual retry button |
-| Checkpoint corrupted | Reset checkpoint, start from beginning |
-| Backend returns duplicate data | Deduplicate using unique IDs |
-| Clock skew (device time wrong) | Use server timestamps, not device |
-| Database locked during sync | Wait and retry, max 3 attempts |
+| Scenario                       | Handling                               |
+| ------------------------------ | -------------------------------------- |
+| Sync interrupted 5 times       | Give up, show manual retry button      |
+| Checkpoint corrupted           | Reset checkpoint, start from beginning |
+| Backend returns duplicate data | Deduplicate using unique IDs           |
+| Clock skew (device time wrong) | Use server timestamps, not device      |
+| Database locked during sync    | Wait and retry, max 3 attempts         |
 
 ---
 
@@ -2783,6 +2829,7 @@ Alert if:
 6. **User Feedback:** Show progress and errors clearly
 
 **Benefits:**
+
 - ✅ No data loss on network drops
 - ✅ Fast recovery (resume, don't restart)
 - ✅ Corruption detection and recovery
@@ -2806,9 +2853,9 @@ describe('OfflineQueue', () => {
   it('should process queue when online', async () => {
     // Mock network as online
     useNetworkStore.setState({ isConnected: true });
-    
+
     await offlineQueue.processQueue();
-    
+
     expect(offlineQueue.getQueueLength()).toBe(0);
   });
 });
@@ -2822,22 +2869,22 @@ describe('Transaction Sync', () => {
   it('should load transactions from SQLite instantly', async () => {
     const start = Date.now();
     const { result } = renderHook(() => useTransactionHistory('user-123'));
-    
+
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
-    
+
     const duration = Date.now() - start;
     expect(duration).toBeLessThan(200); // < 200ms
   });
 
   it('should sync with backend when online', async () => {
     const { result } = renderHook(() => useTransactionHistory('user-123'));
-    
+
     await waitFor(() => {
       expect(result.current.isSyncing).toBe(true);
     });
-    
+
     await waitFor(() => {
       expect(result.current.isSyncing).toBe(false);
     });
@@ -2861,14 +2908,14 @@ describe('Transaction Sync', () => {
 
 ## Success Metrics
 
-| Metric | Before SQLite | After SQLite | Target |
-|--------|---------------|--------------|--------|
-| Transaction history load time | 2-5s (3G) | < 100ms | ✅ 20-50x faster |
-| Search response time | 2-3s | < 50ms | ✅ 40-60x faster |
-| Failed transaction rate | ~5% | < 0.1% | ✅ 50x reduction |
-| Data usage per session | ~5MB | < 500KB | ✅ 90% reduction |
-| Offline feature availability | 0% | 80%+ | ✅ Full offline support |
-| User satisfaction (poor network) | ~60% | > 90% | ✅ Improved UX |
+| Metric                           | Before SQLite | After SQLite | Target                  |
+| -------------------------------- | ------------- | ------------ | ----------------------- |
+| Transaction history load time    | 2-5s (3G)     | < 100ms      | ✅ 20-50x faster        |
+| Search response time             | 2-3s          | < 50ms       | ✅ 40-60x faster        |
+| Failed transaction rate          | ~5%           | < 0.1%       | ✅ 50x reduction        |
+| Data usage per session           | ~5MB          | < 500KB      | ✅ 90% reduction        |
+| Offline feature availability     | 0%            | 80%+         | ✅ Full offline support |
+| User satisfaction (poor network) | ~60%          | > 90%        | ✅ Improved UX          |
 
 ---
 
@@ -2896,9 +2943,8 @@ const MIGRATIONS = [
 ];
 
 export function runMigrations() {
-  const currentVersion = db.getFirstSync<{ version: number }>(
-    `PRAGMA user_version`
-  )?.version || 0;
+  const currentVersion =
+    db.getFirstSync<{ version: number }>(`PRAGMA user_version`)?.version || 0;
 
   for (const migration of MIGRATIONS) {
     if (migration.version > currentVersion) {
@@ -2947,18 +2993,21 @@ analytics.track('database_size', {
 ## Next Steps
 
 ### Week 1-2: Foundation
+
 1. Install expo-sqlite
 2. Create schema
 3. Implement transaction history
 4. Test offline→online flow
 
 ### Week 3-4: Extended Features
+
 1. Add VTU orders sync
 2. Add P2P transfers sync
 3. Implement background sync
 4. Test with poor network
 
 ### Week 5-6: Production Ready
+
 1. Add remaining tables
 2. Implement migrations
 3. Add monitoring

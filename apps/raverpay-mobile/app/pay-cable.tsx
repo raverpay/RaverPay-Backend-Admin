@@ -188,8 +188,8 @@ export default function PayCableScreen() {
     setShowConfirmationModal(true);
   };
 
-  const handleConfirmTransaction = (cashbackDecision: { use: boolean; amount: number }) => {
-    setPendingCashback(cashbackDecision);
+  const handleConfirmTransaction = (useCashback: boolean, cashbackAmount: number) => {
+    setPendingCashback({ use: useCashback, amount: cashbackAmount });
     setShowConfirmationModal(false);
     setShowPINModal(true);
   };

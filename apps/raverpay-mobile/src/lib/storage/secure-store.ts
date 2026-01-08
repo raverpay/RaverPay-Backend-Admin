@@ -1,5 +1,5 @@
 // lib/storage/secure-store.ts
-import * as SecureStore from "expo-secure-store";
+import * as SecureStore from 'expo-secure-store';
 
 export const secureStorage = {
   async setItem(key: string, value: string): Promise<void> {
@@ -16,10 +16,7 @@ export const secureStorage = {
       }
     } catch (error) {
       if (key === SECURE_KEYS.BIOMETRIC_TRANSACTION_PIN) {
-        console.error(
-          `[SecureStore] ❌ Error saving biometric transaction PIN:`,
-          error
-        );
+        console.error(`[SecureStore] ❌ Error saving biometric transaction PIN:`, error);
       }
       throw error;
     }
@@ -84,11 +81,11 @@ export const secureStorage = {
 
 // Secure storage keys
 export const SECURE_KEYS = {
-  ACCESS_TOKEN: "access_token",
-  REFRESH_TOKEN: "refresh_token",
-  PIN: "transaction_pin",
-  BIOMETRIC_PUBLIC_KEY: "biometric_key",
-  BIOMETRIC_EMAIL: "biometric_email",
-  BIOMETRIC_PASSWORD: "biometric_password",
-  BIOMETRIC_TRANSACTION_PIN: "biometric_transaction_pin",
+  ACCESS_TOKEN: 'access_token',
+  REFRESH_TOKEN: 'refresh_token',
+  PIN: 'transaction_pin',
+  BIOMETRIC_PUBLIC_KEY: 'biometric_key',
+  BIOMETRIC_EMAIL: 'biometric_email',
+  BIOMETRIC_PASSWORD: 'biometric_password',
+  BIOMETRIC_TRANSACTION_PIN: 'biometric_transaction_pin',
 } as const;

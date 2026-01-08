@@ -9,27 +9,24 @@ import {
   ScreenHeader,
   Skeleton,
   Text,
-} from "@/src/components/ui";
-import {
-  useCalculateCashback,
-  useCashbackWallet,
-} from "@/src/hooks/useCashback";
+} from '@/src/components/ui';
+import { useCalculateCashback, useCashbackWallet } from '@/src/hooks/useCashback';
 import {
   useJAMBVariations,
   usePurchaseJAMBPin,
   useVerifyJAMBProfile,
-} from "@/src/hooks/useEducation";
-import { useTheme } from "@/src/hooks/useTheme";
-import { formatCurrency } from "@/src/lib/utils/formatters";
-import { checkPinSetOrPrompt } from "@/src/lib/utils/pin-helper";
-import { handleSuccessfulTransaction } from "@/src/lib/utils/rating-helper";
-import { useUserStore } from "@/src/store/user.store";
-import { useWalletStore } from "@/src/store/wallet.store";
-import { Ionicons } from "@expo/vector-icons";
-import { useQueryClient } from "@tanstack/react-query";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+} from '@/src/hooks/useEducation';
+import { useTheme } from '@/src/hooks/useTheme';
+import { formatCurrency } from '@/src/lib/utils/formatters';
+import { checkPinSetOrPrompt } from '@/src/lib/utils/pin-helper';
+import { handleSuccessfulTransaction } from '@/src/lib/utils/rating-helper';
+import { useUserStore } from '@/src/store/user.store';
+import { useWalletStore } from '@/src/store/wallet.store';
+import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -37,9 +34,9 @@ import {
   ScrollView,
   TouchableOpacity,
   View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { TransactionDetail } from "./transaction-success";
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { TransactionDetail } from './transaction-success';
 
 export default function BuyJAMBPinScreen() {
   const { isDark } = useTheme();
@@ -48,10 +45,8 @@ export default function BuyJAMBPinScreen() {
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
 
-  const [profileId, setProfileId] = useState("");
-  const [selectedVariation, setSelectedVariation] = useState<string | null>(
-    null
-  );
+  const [profileId, setProfileId] = useState('');
+  const [selectedVariation, setSelectedVariation] = useState<string | null>(null);
   const [customerInfo, setCustomerInfo] = useState<any>(null);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [showPINModal, setShowPINModal] = useState(false);
@@ -60,10 +55,8 @@ export default function BuyJAMBPinScreen() {
     amount: number;
   }>({ use: false, amount: 0 });
 
-  const { data: variationsData, isPending: loadingVariations } =
-    useJAMBVariations();
-  const { mutate: verifyProfile, isPending: isVerifying } =
-    useVerifyJAMBProfile();
+  const { data: variationsData, isPending: loadingVariations } = useJAMBVariations();
+  const { mutate: verifyProfile, isPending: isVerifying } = useVerifyJAMBProfile();
   const { mutate: purchasePin, isPending: isPurchasing } = usePurchaseJAMBPin();
 
   const variations = variationsData || [];
@@ -75,20 +68,16 @@ export default function BuyJAMBPinScreen() {
   const [cashbackToEarn, setCashbackToEarn] = React.useState(0);
 
   // Get selected variation details
-  const selectedVariationData = variations.find(
-    (v: any) => v.variation_code === selectedVariation
-  );
-  const amount = selectedVariationData
-    ? parseFloat(selectedVariationData.variation_amount)
-    : 0;
+  const selectedVariationData = variations.find((v: any) => v.variation_code === selectedVariation);
+  const amount = selectedVariationData ? parseFloat(selectedVariationData.variation_amount) : 0;
 
   // Calculate cashback when variation changes
   React.useEffect(() => {
     if (selectedVariation && amount > 0) {
       calculateCashback(
         {
-          serviceType: "JAMB",
-          provider: "JAMB",
+          serviceType: 'JAMB',
+          provider: 'JAMB',
           amount: amount,
         },
         {
@@ -102,7 +91,7 @@ export default function BuyJAMBPinScreen() {
           onError: () => {
             setCashbackToEarn(0);
           },
-        }
+        },
       );
     } else {
       setCashbackToEarn(0);
@@ -111,7 +100,7 @@ export default function BuyJAMBPinScreen() {
 
   const handleProfileIdChange = (value: string) => {
     // Only allow numbers and max 10 digits
-    const numericValue = value.replace(/[^0-9]/g, "").slice(0, 10);
+    const numericValue = value.replace(/[^0-9]/g, '').slice(0, 10);
     const previousLength = profileId.length;
     setProfileId(numericValue);
 
@@ -146,15 +135,12 @@ export default function BuyJAMBPinScreen() {
     const codeToVerify = variationCode || selectedVariation;
 
     if (idToVerify.length !== 10) {
-      Alert.alert(
-        "Invalid Profile ID",
-        "JAMB Profile ID must be exactly 10 digits"
-      );
+      Alert.alert('Invalid Profile ID', 'JAMB Profile ID must be exactly 10 digits');
       return;
     }
 
     if (!codeToVerify) {
-      Alert.alert("Select Plan", "Please select a JAMB plan first");
+      Alert.alert('Select Plan', 'Please select a JAMB plan first');
       return;
     }
 
@@ -170,21 +156,16 @@ export default function BuyJAMBPinScreen() {
             profileId: data.profileId,
           });
         },
-      }
+      },
     );
   };
 
   const handlePayment = () => {
     // Calculate amount after cashback discount
-    const amountToPay = pendingCashback.use
-      ? amount - pendingCashback.amount
-      : amount;
+    const amountToPay = pendingCashback.use ? amount - pendingCashback.amount : amount;
 
     if (amountToPay > balance) {
-      Alert.alert(
-        "Insufficient Balance",
-        "Please fund your wallet to continue"
-      );
+      Alert.alert('Insufficient Balance', 'Please fund your wallet to continue');
       return;
     }
 
@@ -210,15 +191,15 @@ export default function BuyJAMBPinScreen() {
       {
         onSuccess: async (data: any) => {
           setShowPINModal(false);
-          setPurchasedPin(data.pin);
+          //setPurchasedPin(data.pin);
 
           // Refresh wallet and transactions
-          queryClient.invalidateQueries({ queryKey: ["wallet"] });
-          queryClient.invalidateQueries({ queryKey: ["transactions"] });
-          queryClient.invalidateQueries({ queryKey: ["vtu-orders"] });
-          queryClient.invalidateQueries({ queryKey: ["cashback-wallet"] });
-          queryClient.invalidateQueries({ queryKey: ["cashback", "wallet"] });
-          queryClient.invalidateQueries({ queryKey: ["cashback", "history"] });
+          queryClient.invalidateQueries({ queryKey: ['wallet'] });
+          queryClient.invalidateQueries({ queryKey: ['transactions'] });
+          queryClient.invalidateQueries({ queryKey: ['vtu-orders'] });
+          queryClient.invalidateQueries({ queryKey: ['cashback-wallet'] });
+          queryClient.invalidateQueries({ queryKey: ['cashback', 'wallet'] });
+          queryClient.invalidateQueries({ queryKey: ['cashback', 'history'] });
 
           // Handle rating prompt
           await handleSuccessfulTransaction();
@@ -226,66 +207,60 @@ export default function BuyJAMBPinScreen() {
           // Navigate to success screen with transaction data
           const successDetails: TransactionDetail[] = [
             {
-              label: "Plan",
-              value: selectedVariationData?.name || "",
+              label: 'Plan',
+              value: selectedVariationData?.name || '',
             },
             {
-              label: "Profile ID",
+              label: 'Profile ID',
               value: profileId,
             },
             {
-              label: "Customer Name",
-              value: customerInfo?.name || "-",
+              label: 'Customer Name',
+              value: customerInfo?.name || '-',
             },
             {
-              label: "Amount",
+              label: 'Amount',
               value: formatCurrency(amount),
               highlight: true,
             },
           ];
 
           router.push({
-            pathname: "/transaction-success",
+            pathname: '/transaction-success',
             params: {
-              serviceType: "JAMB PIN Purchase",
+              serviceType: 'JAMB PIN Purchase',
               amount: amount.toString(),
-              reference: data.reference || "",
+              reference: data.reference || '',
               cashbackEarned: (data.cashbackEarned || 0).toString(),
-              cashbackRedeemed: pendingCashback.use
-                ? pendingCashback.amount.toString()
-                : "0",
+              cashbackRedeemed: pendingCashback.use ? pendingCashback.amount.toString() : '0',
               details: JSON.stringify(successDetails),
-              jambPin: data.pin || "",
+              jambPin: data.pin || '',
             },
           });
         },
         onError: () => {
           setShowPINModal(false);
         },
-      }
+      },
     );
   };
 
-  const isFormValid =
-    selectedVariation &&
-    profileId.length === 10 &&
-    customerInfo &&
-    !isPurchasing;
+  const isFormValid = selectedVariation && profileId.length === 10 && customerInfo && !isPurchasing;
 
   return (
     <View
       style={{
         flex: 1,
-        backgroundColor: isDark ? "#000000" : "#FFFFFF",
+        backgroundColor: isDark ? '#000000' : '#FFFFFF',
       }}
     >
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <ScreenHeader title="Buy JAMB PIN" subtitle={balance} />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <ScrollView
           style={{ flex: 1 }}
@@ -308,13 +283,11 @@ export default function BuyJAMBPinScreen() {
                 {variations.map((variation: any) => (
                   <TouchableOpacity
                     key={variation.variation_code}
-                    onPress={() =>
-                      handleVariationChange(variation.variation_code)
-                    }
+                    onPress={() => handleVariationChange(variation.variation_code)}
                     className={`p-4 mb-4 rounded-lg border-2 ${
                       selectedVariation === variation.variation_code
-                        ? "border-2 border-[#5B55F6]"
-                        : "border-gray-200 dark:border-gray-700"
+                        ? 'border-2 border-[#5B55F6]'
+                        : 'border-gray-200 dark:border-gray-700'
                     }`}
                   >
                     <View className="flex-row justify-between items-center">
@@ -351,11 +324,9 @@ export default function BuyJAMBPinScreen() {
                   <Ionicons
                     name="hourglass-outline"
                     size={16}
-                    color={isDark ? "#9ca3af" : "#6b7280"}
+                    color={isDark ? '#9ca3af' : '#6b7280'}
                   />
-                  <Text className="ml-2 text-sm text-gray-500">
-                    Verifying profile...
-                  </Text>
+                  <Text className="ml-2 text-sm text-gray-500">Verifying profile...</Text>
                 </View>
               )}
             </Card>
@@ -372,10 +343,7 @@ export default function BuyJAMBPinScreen() {
               </View>
               <View className="space-y-1">
                 <View className="flex-row justify-between">
-                  <Text
-                    className=" text-gray-600 dark:text-gray-400"
-                    variant="h5"
-                  >
+                  <Text className=" text-gray-600 dark:text-gray-400" variant="h5">
                     Name:
                   </Text>
                   <Text className=" font-medium" variant="h5">
@@ -383,10 +351,7 @@ export default function BuyJAMBPinScreen() {
                   </Text>
                 </View>
                 <View className="flex-row justify-between">
-                  <Text
-                    className=" text-gray-600 dark:text-gray-400"
-                    variant="h5"
-                  >
+                  <Text className=" text-gray-600 dark:text-gray-400" variant="h5">
                     Profile ID:
                   </Text>
                   <Text className=" font-medium" variant="h5">
@@ -505,10 +470,10 @@ export default function BuyJAMBPinScreen() {
         }}
         serviceType="JAMB PIN Purchase"
         details={[
-          { label: "Plan", value: selectedVariationData?.name || "" },
-          { label: "Profile ID", value: profileId },
-          { label: "Customer Name", value: customerInfo?.name || "-" },
-          { label: "Amount", value: formatCurrency(amount), highlight: true },
+          { label: 'Plan', value: selectedVariationData?.name || '' },
+          { label: 'Profile ID', value: profileId },
+          { label: 'Customer Name', value: customerInfo?.name || '-' },
+          { label: 'Amount', value: formatCurrency(amount), highlight: true },
         ]}
         amount={amount}
         currentBalance={balance}

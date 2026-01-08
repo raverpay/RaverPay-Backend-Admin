@@ -3,25 +3,22 @@ import {
   ActiveVirtualAccount,
   RequestVirtualAccount,
   VirtualAccountLoading,
-} from "@/components/fund-wallet";
-import { SentryErrorBoundary } from "@/src/components/SentryErrorBoundary";
-import { Button, Card, Input, ScreenHeader, Text } from "@/src/components/ui";
-import { config } from "@/src/constants/config";
-import { useTheme } from "@/src/hooks/useTheme";
-import { apiClient } from "@/src/lib/api/client";
-import { API_ENDPOINTS } from "@/src/lib/api/endpoints";
-import { formatCurrency } from "@/src/lib/utils/formatters";
-import { toast } from "@/src/lib/utils/toast";
-import {
-  getMyVirtualAccount,
-  requeryVirtualAccount,
-} from "@/src/services/virtual-account.service";
-import { useWalletStore } from "@/src/store/wallet.store";
-import { Ionicons } from "@expo/vector-icons";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+} from '@/components/fund-wallet';
+import { SentryErrorBoundary } from '@/src/components/SentryErrorBoundary';
+import { Button, Card, Input, ScreenHeader, Text } from '@/src/components/ui';
+import { config } from '@/src/constants/config';
+import { useTheme } from '@/src/hooks/useTheme';
+import { apiClient } from '@/src/lib/api/client';
+import { API_ENDPOINTS } from '@/src/lib/api/endpoints';
+import { formatCurrency } from '@/src/lib/utils/formatters';
+import { toast } from '@/src/lib/utils/toast';
+import { getMyVirtualAccount, requeryVirtualAccount } from '@/src/services/virtual-account.service';
+import { useWalletStore } from '@/src/store/wallet.store';
+import { Ionicons } from '@expo/vector-icons';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -32,10 +29,10 @@ import {
   Share,
   TouchableOpacity,
   View,
-} from "react-native";
-import { WebView } from "react-native-webview";
+} from 'react-native';
+import { WebView } from 'react-native-webview';
 
-const API_BASE_URL = config.API_BASE_URL?.replace("/api", "") || "";
+const API_BASE_URL = config.API_BASE_URL?.replace('/api', '') || '';
 
 // Helper function to get quick amounts based on limit
 const getQuickAmounts = (singleTransactionLimit: number): number[] => {
@@ -48,7 +45,7 @@ const getQuickAmounts = (singleTransactionLimit: number): number[] => {
   }
 };
 
-type PaymentTab = "card" | "transfer";
+type PaymentTab = 'card' | 'transfer';
 
 interface FundCardResponse {
   reference: string;
@@ -66,25 +63,22 @@ export default function FundWalletScreen() {
 
 function FundWalletContent() {
   const { isDark } = useTheme();
-  const { balance, dailyRemaining, singleTransactionLimit, kycTier } =
-    useWalletStore();
+  const { balance, dailyRemaining, singleTransactionLimit, kycTier } = useWalletStore();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<PaymentTab>("card");
-  const [amount, setAmount] = useState("");
+  const [activeTab, setActiveTab] = useState<PaymentTab>('card');
+  const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [showWebView, setShowWebView] = useState(false);
-  const [authUrl, setAuthUrl] = useState("");
-  const [paymentReference, setPaymentReference] = useState("");
+  const [authUrl, setAuthUrl] = useState('');
+  const [paymentReference, setPaymentReference] = useState('');
 
   // Fetch virtual account
-  const { data: virtualAccount, isPending: isLoadingVirtualAccount } = useQuery(
-    {
-      queryKey: ["virtual-account"],
-      queryFn: getMyVirtualAccount,
-      enabled: activeTab === "transfer",
-    }
-  );
+  const { data: virtualAccount, isPending: isLoadingVirtualAccount } = useQuery({
+    queryKey: ['virtual-account'],
+    queryFn: getMyVirtualAccount,
+    enabled: activeTab === 'transfer',
+  });
 
   const handleQuickAmount = (value: number) => {
     setAmount(value.toString());
@@ -95,12 +89,12 @@ function FundWalletContent() {
 
     // Validation
     if (!amount || amountValue <= 0) {
-      Alert.alert("Invalid Amount", "Please enter a valid amount");
+      Alert.alert('Invalid Amount', 'Please enter a valid amount');
       return;
     }
 
     if (amountValue < 100) {
-      Alert.alert("Invalid Amount", "Minimum funding amount is ₦100");
+      Alert.alert('Invalid Amount', 'Minimum funding amount is ₦100');
       return;
     }
 
@@ -108,8 +102,8 @@ function FundWalletContent() {
     const maxAmount = parseFloat(singleTransactionLimit.toString());
     if (amountValue > maxAmount) {
       Alert.alert(
-        "Amount Exceeds Limit",
-        `Maximum funding amount for your account (${kycTier}) is ${formatCurrency(maxAmount)}.\n\nUpgrade your KYC tier to increase limits.`
+        'Amount Exceeds Limit',
+        `Maximum funding amount for your account (${kycTier}) is ${formatCurrency(maxAmount)}.\n\nUpgrade your KYC tier to increase limits.`,
       );
       return;
     }
@@ -118,8 +112,8 @@ function FundWalletContent() {
     const dailyRemainingValue = parseFloat(dailyRemaining.toString());
     if (amountValue > dailyRemainingValue) {
       Alert.alert(
-        "Daily Limit Exceeded",
-        `You have ${formatCurrency(dailyRemainingValue)} remaining in your daily limit.\n\nTry again tomorrow or upgrade your KYC tier.`
+        'Daily Limit Exceeded',
+        `You have ${formatCurrency(dailyRemainingValue)} remaining in your daily limit.\n\nTry again tomorrow or upgrade your KYC tier.`,
       );
       return;
     }
@@ -137,7 +131,7 @@ function FundWalletContent() {
         {
           amount: amountValue,
           callbackUrl,
-        }
+        },
       );
 
       setPaymentReference(response.data.reference);
@@ -145,8 +139,8 @@ function FundWalletContent() {
       setShowWebView(true);
     } catch (error: any) {
       Alert.alert(
-        "Payment Error",
-        error?.response?.data?.message || "Failed to initialize payment"
+        'Payment Error',
+        error?.response?.data?.message || 'Failed to initialize payment',
       );
     } finally {
       setIsLoading(false);
@@ -157,12 +151,12 @@ function FundWalletContent() {
     const { url } = navState;
 
     // Detect callback URL (works for both ngrok and deep link)
-    if (url.includes("funding/callback")) {
+    if (url.includes('funding/callback')) {
       // Extract reference from URL
       const urlObj = new URL(url);
       const reference =
-        urlObj.searchParams.get("reference") ||
-        urlObj.searchParams.get("trxref") || // Paystack uses 'trxref'
+        urlObj.searchParams.get('reference') ||
+        urlObj.searchParams.get('trxref') || // Paystack uses 'trxref'
         paymentReference;
 
       if (reference) {
@@ -176,35 +170,33 @@ function FundWalletContent() {
     setIsVerifying(true);
 
     try {
-      const response = await apiClient.get(
-        API_ENDPOINTS.TRANSACTIONS.VERIFY(reference)
-      );
+      const response = await apiClient.get(API_ENDPOINTS.TRANSACTIONS.VERIFY(reference));
 
       // Invalidate wallet and transaction queries
-      await queryClient.invalidateQueries({ queryKey: ["wallet"] });
-      await queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      await queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      await queryClient.invalidateQueries({ queryKey: ['transactions'] });
 
       Alert.alert(
-        "Payment Successful!",
+        'Payment Successful!',
         `Your wallet has been funded with ${formatCurrency(parseFloat(response.data.amount))}`,
         [
           {
-            text: "Done",
+            text: 'Done',
             onPress: () => router.back(),
           },
-        ]
+        ],
       );
     } catch (error: any) {
       Alert.alert(
-        "Verification Failed",
+        'Verification Failed',
         error?.response?.data?.message ||
-          "Failed to verify payment. Please contact support if money was deducted."
+          'Failed to verify payment. Please contact support if money was deducted.',
       );
     } finally {
       setIsVerifying(false);
-      setAmount("");
-      setPaymentReference("");
-      setAuthUrl("");
+      setAmount('');
+      setPaymentReference('');
+      setAuthUrl('');
     }
   };
 
@@ -212,8 +204,8 @@ function FundWalletContent() {
     if (virtualAccount) {
       await Clipboard.setString(virtualAccount.accountNumber);
       toast.success({
-        title: "Copied!",
-        message: "Account number copied to clipboard",
+        title: 'Copied!',
+        message: 'Account number copied to clipboard',
       });
     }
   };
@@ -234,63 +226,56 @@ function FundWalletContent() {
     try {
       await requeryVirtualAccount();
       toast.success({
-        title: "Checking...",
-        message: "Checking for pending transactions",
+        title: 'Checking...',
+        message: 'Checking for pending transactions',
       });
       // Refetch wallet to show updated balance
       setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["wallet"] });
+        queryClient.invalidateQueries({ queryKey: ['wallet'] });
       }, 3000);
     } catch (error: any) {
       toast.error({
-        title: "Failed",
-        message:
-          error.response?.data?.message || "Failed to check for transactions",
+        title: 'Failed',
+        message: error.response?.data?.message || 'Failed to check for transactions',
       });
     }
   };
 
   const handleRequestVirtualAccount = () => {
-    router.push("/virtual-account/consent");
+    router.push('/virtual-account/consent');
   };
 
   const handleCancelPayment = async () => {
-    Alert.alert(
-      "Cancel Payment",
-      "Are you sure you want to cancel this payment?",
-      [
-        {
-          text: "No",
-          style: "cancel",
-        },
-        {
-          text: "Yes, Cancel",
-          style: "destructive",
-          onPress: async () => {
-            if (paymentReference) {
-              try {
-                await apiClient.post(
-                  API_ENDPOINTS.TRANSACTIONS.CANCEL(paymentReference)
-                );
-              } catch (error) {
-                // Silently fail - transaction will be cancelled or verified later
-                console.log("Failed to cancel transaction:", error);
-              }
+    Alert.alert('Cancel Payment', 'Are you sure you want to cancel this payment?', [
+      {
+        text: 'No',
+        style: 'cancel',
+      },
+      {
+        text: 'Yes, Cancel',
+        style: 'destructive',
+        onPress: async () => {
+          if (paymentReference) {
+            try {
+              await apiClient.post(API_ENDPOINTS.TRANSACTIONS.CANCEL(paymentReference));
+            } catch (error) {
+              // Silently fail - transaction will be cancelled or verified later
+              console.log('Failed to cancel transaction:', error);
             }
-            setShowWebView(false);
-            setAuthUrl("");
-            setPaymentReference("");
-          },
+          }
+          setShowWebView(false);
+          setAuthUrl('');
+          setPaymentReference('');
         },
-      ]
-    );
+      },
+    ]);
   };
 
   // Show WebView for payment
   if (showWebView && authUrl) {
     return (
       <View className="flex-1 bg-white dark:bg-gray-800">
-        <StatusBar style={isDark ? "light" : "dark"} />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
 
         {/* Header */}
         <ScreenHeader
@@ -320,17 +305,13 @@ function FundWalletContent() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1 bg-gray-50 dark:bg-gray-900"
     >
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* Header */}
-      <ScreenHeader
-        title="Fund Wallet"
-        disabled={isLoading || isVerifying}
-        subtitle={balance}
-      />
+      <ScreenHeader title="Fund Wallet" disabled={isLoading || isVerifying} subtitle={balance} />
 
       <ScrollView
         className="flex-1 px-5 pt-6"
@@ -354,16 +335,16 @@ function FundWalletContent() {
         {/* Tabs */}
         <View className="flex-row mb-6 bg-gray-200 dark:bg-gray-700 rounded-xl p-1">
           <TouchableOpacity
-            className={`flex-1 py-3 rounded-lg ${activeTab === "card" ? "bg-white dark:bg-gray-800" : ""}`}
-            onPress={() => setActiveTab("card")}
+            className={`flex-1 py-3 rounded-lg ${activeTab === 'card' ? 'bg-white dark:bg-gray-800' : ''}`}
+            onPress={() => setActiveTab('card')}
           >
             <Text
               variant="bodyMedium"
               align="center"
               className={
-                activeTab === "card"
-                  ? "text-[#5B55F6] dark:text-[#5B55F6]"
-                  : "text-gray-600 dark:text-gray-400"
+                activeTab === 'card'
+                  ? 'text-[#5B55F6] dark:text-[#5B55F6]'
+                  : 'text-gray-600 dark:text-gray-400'
               }
             >
               Pay with Card
@@ -371,16 +352,16 @@ function FundWalletContent() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            className={`flex-1 py-3 rounded-lg ${activeTab === "transfer" ? "bg-white dark:bg-gray-800" : ""}`}
-            onPress={() => setActiveTab("transfer")}
+            className={`flex-1 py-3 rounded-lg ${activeTab === 'transfer' ? 'bg-white dark:bg-gray-800' : ''}`}
+            onPress={() => setActiveTab('transfer')}
           >
             <Text
               variant="bodyMedium"
               align="center"
               className={
-                activeTab === "transfer"
-                  ? "text-[#5B55F6] dark:text-[#5B55F6]"
-                  : "text-gray-600 dark:text-gray-400"
+                activeTab === 'transfer'
+                  ? 'text-[#5B55F6] dark:text-[#5B55F6]'
+                  : 'text-gray-600 dark:text-gray-400'
               }
             >
               Bank Transfer
@@ -389,7 +370,7 @@ function FundWalletContent() {
         </View>
 
         {/* Card Tab Content */}
-        {activeTab === "card" && (
+        {activeTab === 'card' && (
           <>
             {/* Amount Input */}
             <Card variant="elevated" className="p-5 mb-4">
@@ -406,22 +387,16 @@ function FundWalletContent() {
 
               {/* Quick Amounts */}
               <View className="flex-row justify-between mt-4 gap-2">
-                {getQuickAmounts(
-                  parseFloat(singleTransactionLimit.toString())
-                ).map((value) => (
+                {getQuickAmounts(parseFloat(singleTransactionLimit.toString())).map((value) => (
                   <TouchableOpacity
                     key={value}
                     onPress={() => handleQuickAmount(value)}
                     className="flex-1 min-w-[30%]"
                   >
                     <Card
-                      variant={
-                        amount === value.toString() ? "filled" : "elevated"
-                      }
+                      variant={amount === value.toString() ? 'filled' : 'elevated'}
                       className={`p-3 items-center ${
-                        amount === value.toString()
-                          ? "bg-purple-100 border-2 border-[#5B55F6]"
-                          : ""
+                        amount === value.toString() ? 'bg-purple-100 border-2 border-[#5B55F6]' : ''
                       }`}
                     >
                       <Text variant="caption" weight="semibold">
@@ -436,24 +411,17 @@ function FundWalletContent() {
             {/* Limit Info */}
             <Card variant="elevated" className="p-4 mb-4 bg-purple-50">
               <View className="flex-row items-start">
-                <Ionicons
-                  name="shield-checkmark-outline"
-                  size={20}
-                  color="#5B55F6"
-                />
+                <Ionicons name="shield-checkmark-outline" size={20} color="#5B55F6" />
                 <View className="ml-3 flex-1">
                   <Text variant="bodyMedium" className="text-purple-800 mb-1">
                     Your Limits ({kycTier})
                   </Text>
                   <Text variant="caption" className="text-purple-700">
-                    Max per transaction:{" "}
-                    {formatCurrency(
-                      parseFloat(singleTransactionLimit.toString())
-                    )}
+                    Max per transaction:{' '}
+                    {formatCurrency(parseFloat(singleTransactionLimit.toString()))}
                   </Text>
                   <Text variant="caption" className="text-purple-700">
-                    Daily remaining:{" "}
-                    {formatCurrency(parseFloat(dailyRemaining.toString()))}
+                    Daily remaining: {formatCurrency(parseFloat(dailyRemaining.toString()))}
                   </Text>
                 </View>
               </View>
@@ -537,7 +505,7 @@ function FundWalletContent() {
         )}
 
         {/* Bank Transfer Tab Content */}
-        {activeTab === "transfer" && (
+        {activeTab === 'transfer' && (
           <>
             {isLoadingVirtualAccount ? (
               <VirtualAccountLoading />
@@ -549,9 +517,7 @@ function FundWalletContent() {
                 onRequeryAccount={handleRequeryAccount}
               />
             ) : (
-              <RequestVirtualAccount
-                onRequestAccount={handleRequestVirtualAccount}
-              />
+              <RequestVirtualAccount onRequestAccount={handleRequestVirtualAccount} />
             )}
           </>
         )}

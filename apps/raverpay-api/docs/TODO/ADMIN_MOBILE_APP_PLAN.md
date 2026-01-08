@@ -32,7 +32,7 @@ This document outlines the complete plan to convert the RaverPay Admin Dashboard
 ✅ **Different User Base** - Admins vs regular users  
 ✅ **Different Permissions** - Admin-level access  
 ✅ **Different App Store** - Internal distribution or TestFlight only  
-✅ **Security Isolation** - Separate from customer-facing app  
+✅ **Security Isolation** - Separate from customer-facing app
 
 ### **Current Admin Dashboard Features**
 
@@ -172,36 +172,36 @@ apps/
 
 ### **Web Dashboard → Mobile App Mapping**
 
-| Web Feature | Mobile Implementation | Complexity |
-|-------------|----------------------|------------|
-| **Dashboard** | Tab 1: Dashboard | Medium |
-| - Overview stats | ScrollView with stat cards | Low |
-| - Quick actions | Grid of action buttons | Low |
-| - Charts | Victory Native charts | Medium |
-| **Users** | Tab 2: Users + Detail screens | High |
-| - User list | FlashList with search/filter | Medium |
-| - User detail | Scrollable detail screen | Medium |
-| - Status updates | Bottom sheet modals | Medium |
-| - KYC management | Dedicated KYC screens | High |
-| **Transactions** | Tab 3: Transactions + Details | High |
-| - Transaction list | FlashList with filters | Medium |
-| - Transaction detail | Scrollable detail screen | Medium |
-| - Search/filter | Filter modal | Medium |
-| **Support** | Tab 4: Support + Tickets | High |
-| - Ticket list | FlashList | Medium |
-| - Ticket detail | Chat-like interface | High |
-| - Canned responses | Bottom sheet picker | Medium |
-| - Ticket assignment | User picker modal | Medium |
-| **More** | Tab 5: More (all other features) | Medium |
-| - Wallets | List → Detail screens | Medium |
-| - VTU | List → Detail screens | Medium |
-| - Crypto | List → Detail screens | Medium |
-| - Circle Wallets | List → Detail screens | High |
-| - Analytics | Charts + stats screens | High |
-| - Notifications | List → Send screen | Medium |
-| - Audit Logs | List with filters | Medium |
-| - Settings | Form screens | Medium |
-| - Admin Management | List → Detail screens | Medium |
+| Web Feature          | Mobile Implementation            | Complexity |
+| -------------------- | -------------------------------- | ---------- |
+| **Dashboard**        | Tab 1: Dashboard                 | Medium     |
+| - Overview stats     | ScrollView with stat cards       | Low        |
+| - Quick actions      | Grid of action buttons           | Low        |
+| - Charts             | Victory Native charts            | Medium     |
+| **Users**            | Tab 2: Users + Detail screens    | High       |
+| - User list          | FlashList with search/filter     | Medium     |
+| - User detail        | Scrollable detail screen         | Medium     |
+| - Status updates     | Bottom sheet modals              | Medium     |
+| - KYC management     | Dedicated KYC screens            | High       |
+| **Transactions**     | Tab 3: Transactions + Details    | High       |
+| - Transaction list   | FlashList with filters           | Medium     |
+| - Transaction detail | Scrollable detail screen         | Medium     |
+| - Search/filter      | Filter modal                     | Medium     |
+| **Support**          | Tab 4: Support + Tickets         | High       |
+| - Ticket list        | FlashList                        | Medium     |
+| - Ticket detail      | Chat-like interface              | High       |
+| - Canned responses   | Bottom sheet picker              | Medium     |
+| - Ticket assignment  | User picker modal                | Medium     |
+| **More**             | Tab 5: More (all other features) | Medium     |
+| - Wallets            | List → Detail screens            | Medium     |
+| - VTU                | List → Detail screens            | Medium     |
+| - Crypto             | List → Detail screens            | Medium     |
+| - Circle Wallets     | List → Detail screens            | High       |
+| - Analytics          | Charts + stats screens           | High       |
+| - Notifications      | List → Send screen               | Medium     |
+| - Audit Logs         | List with filters                | Medium     |
+| - Settings           | Form screens                     | Medium     |
+| - Admin Management   | List → Detail screens            | Medium     |
 
 ---
 
@@ -210,15 +210,18 @@ apps/
 ### **1. Dashboard (Tab 1)**
 
 **Screens:**
+
 - `app/(tabs)/dashboard.tsx`
 
 **Components:**
+
 - `StatCard` - Reusable stat display
 - `QuickActionButton` - Action button grid
 - `MiniChart` - Small chart component
 - `PendingItemCard` - Pending items display
 
 **Features:**
+
 - ✅ Total users, balance, transactions, revenue
 - ✅ VTPass balance
 - ✅ Pending KYC, failed transactions, deletion requests
@@ -228,6 +231,7 @@ apps/
 - ✅ Real-time updates (React Query refetch)
 
 **API Endpoints:**
+
 - `GET /admin/analytics/dashboard`
 - `GET /admin/vtu/balance`
 - `GET /admin/notifications/queue-stats`
@@ -237,11 +241,13 @@ apps/
 ### **2. Users Management (Tab 2)**
 
 **Screens:**
+
 - `app/(tabs)/users.tsx` - User list
 - `app/users/[userId].tsx` - User detail
 - `app/users/kyc/[userId].tsx` - KYC verification
 
 **Components:**
+
 - `UserListItem` - User row component
 - `UserDetailCard` - User info card
 - `KYCDocumentViewer` - Document viewer
@@ -249,6 +255,7 @@ apps/
 - `RoleUpdateModal` - Role change modal
 
 **Features:**
+
 - ✅ User list with search
 - ✅ Filter by status, role, KYC tier
 - ✅ User detail view
@@ -262,6 +269,7 @@ apps/
 - ✅ View user wallets
 
 **API Endpoints:**
+
 - `GET /admin/users`
 - `GET /admin/users/:userId`
 - `PATCH /admin/users/:userId/status`
@@ -276,16 +284,19 @@ apps/
 ### **3. Transactions (Tab 3)**
 
 **Screens:**
+
 - `app/(tabs)/transactions.tsx` - Transaction list
 - `app/transactions/[transactionId].tsx` - Transaction detail
 
 **Components:**
+
 - `TransactionListItem` - Transaction row
 - `TransactionDetailCard` - Transaction info
 - `TransactionFilterModal` - Filter modal
 - `TransactionStatusBadge` - Status badge
 
 **Features:**
+
 - ✅ Transaction list with pagination
 - ✅ Filter by type, status, date range
 - ✅ Search by reference, user
@@ -294,6 +305,7 @@ apps/
 - ✅ Export transaction data
 
 **API Endpoints:**
+
 - `GET /admin/transactions`
 - `GET /admin/transactions/:transactionId`
 
@@ -302,11 +314,13 @@ apps/
 ### **4. Support (Tab 4)**
 
 **Screens:**
+
 - `app/(tabs)/support.tsx` - Ticket list
 - `app/support/[ticketId].tsx` - Ticket detail
 - `app/support/canned-responses.tsx` - Canned responses
 
 **Components:**
+
 - `TicketListItem` - Ticket row
 - `TicketDetailCard` - Ticket info
 - `MessageBubble` - Chat message
@@ -314,6 +328,7 @@ apps/
 - `TicketAssignmentModal` - Assignment modal
 
 **Features:**
+
 - ✅ Ticket list with filters
 - ✅ Filter by status, priority, category
 - ✅ Ticket detail with messages
@@ -325,6 +340,7 @@ apps/
 - ✅ View ticket history
 
 **API Endpoints:**
+
 - `GET /admin/support/tickets`
 - `GET /admin/support/tickets/:ticketId`
 - `POST /admin/support/tickets/:ticketId/reply`
@@ -337,6 +353,7 @@ apps/
 ### **5. More (Tab 5)**
 
 **Screens:**
+
 - `app/(tabs)/more.tsx` - Menu list
 - `app/wallets/index.tsx` - Wallet list
 - `app/wallets/[walletId].tsx` - Wallet detail
@@ -352,12 +369,14 @@ apps/
 - `app/admins/index.tsx` - Admin management
 
 **Components:**
+
 - `MenuListItem` - Menu row
 - `SettingsSection` - Settings group
 - `ChartCard` - Chart container
 - `FilterSheet` - Filter bottom sheet
 
 **Features:**
+
 - ✅ All remaining admin features
 - ✅ Organized in categories
 - ✅ Quick access to common features
@@ -408,62 +427,58 @@ apps/
 ```typescript
 // components/ui/
 
-- Button.tsx              // Primary, secondary, destructive
-- Card.tsx                // Container card
-- Badge.tsx               // Status badges
-- Input.tsx               // Text input
-- Select.tsx              // Picker/select
-- Switch.tsx              // Toggle switch
-- Checkbox.tsx            // Checkbox
-- Radio.tsx               // Radio button
-- Modal.tsx               // Full-screen modal
-- BottomSheet.tsx         // Bottom sheet modal
-- ActionSheet.tsx         // Action sheet
-- Alert.tsx               // Alert dialog
-- Toast.tsx               // Toast notification
-- Skeleton.tsx            // Loading skeleton
-- EmptyState.tsx          // Empty state
-- ErrorState.tsx          // Error state
-- LoadingSpinner.tsx      // Loading indicator
-- Avatar.tsx              // User avatar
-- Divider.tsx             // Separator
-- SearchBar.tsx           // Search input
-- FilterButton.tsx        // Filter trigger
-- RefreshControl.tsx      // Pull-to-refresh
+-Button.tsx - // Primary, secondary, destructive
+  Card.tsx - // Container card
+  Badge.tsx - // Status badges
+  Input.tsx - // Text input
+  Select.tsx - // Picker/select
+  Switch.tsx - // Toggle switch
+  Checkbox.tsx - // Checkbox
+  Radio.tsx - // Radio button
+  Modal.tsx - // Full-screen modal
+  BottomSheet.tsx - // Bottom sheet modal
+  ActionSheet.tsx - // Action sheet
+  Alert.tsx - // Alert dialog
+  Toast.tsx - // Toast notification
+  Skeleton.tsx - // Loading skeleton
+  EmptyState.tsx - // Empty state
+  ErrorState.tsx - // Error state
+  LoadingSpinner.tsx - // Loading indicator
+  Avatar.tsx - // User avatar
+  Divider.tsx - // Separator
+  SearchBar.tsx - // Search input
+  FilterButton.tsx - // Filter trigger
+  RefreshControl.tsx; // Pull-to-refresh
 ```
 
 ### **Domain Components**
 
 ```typescript
 // components/dashboard/
-- StatCard.tsx
-- QuickActionButton.tsx
-- MiniChart.tsx
-- PendingItemCard.tsx
-
-// components/users/
-- UserListItem.tsx
-- UserDetailCard.tsx
-- UserStatusBadge.tsx
-- KYCBadge.tsx
-
-// components/transactions/
-- TransactionListItem.tsx
-- TransactionDetailCard.tsx
-- TransactionStatusBadge.tsx
-- TransactionTypeIcon.tsx
-
-// components/support/
-- TicketListItem.tsx
-- MessageBubble.tsx
-- CannedResponsePicker.tsx
-- TicketStatusBadge.tsx
-
-// components/charts/
-- LineChart.tsx
-- BarChart.tsx
-- PieChart.tsx
-- AreaChart.tsx
+-StatCard.tsx -
+  QuickActionButton.tsx -
+  MiniChart.tsx -
+  PendingItemCard.tsx -
+  // components/users/
+  UserListItem.tsx -
+  UserDetailCard.tsx -
+  UserStatusBadge.tsx -
+  KYCBadge.tsx -
+  // components/transactions/
+  TransactionListItem.tsx -
+  TransactionDetailCard.tsx -
+  TransactionStatusBadge.tsx -
+  TransactionTypeIcon.tsx -
+  // components/support/
+  TicketListItem.tsx -
+  MessageBubble.tsx -
+  CannedResponsePicker.tsx -
+  TicketStatusBadge.tsx -
+  // components/charts/
+  LineChart.tsx -
+  BarChart.tsx -
+  PieChart.tsx -
+  AreaChart.tsx;
 ```
 
 ---
@@ -506,7 +521,7 @@ apiClient.interceptors.response.use(
       // Navigate to login
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default apiClient;
@@ -619,6 +634,7 @@ interface UserFilterStore {
 ### **Phase 1: Project Setup (Week 1)**
 
 **Tasks:**
+
 1. Create new Expo project `raverpay-admin-mobile`
 2. Configure app.json with iOS bundle ID `com.raverpay.admin`
 3. Set up project structure
@@ -629,6 +645,7 @@ interface UserFilterStore {
 8. Set up environment variables
 
 **Deliverables:**
+
 - ✅ Project initialized
 - ✅ Dependencies installed
 - ✅ Project structure created
@@ -639,6 +656,7 @@ interface UserFilterStore {
 ### **Phase 2: Authentication & Base UI (Week 2)**
 
 **Tasks:**
+
 1. Create login screen
 2. Implement authentication flow
 3. Set up Zustand stores
@@ -648,6 +666,7 @@ interface UserFilterStore {
 7. Implement theme support
 
 **Deliverables:**
+
 - ✅ Login working
 - ✅ Biometric auth working
 - ✅ Base UI components ready
@@ -658,6 +677,7 @@ interface UserFilterStore {
 ### **Phase 3: Dashboard & Users (Week 3-4)**
 
 **Tasks:**
+
 1. Implement dashboard screen
 2. Create stat cards
 3. Implement quick actions
@@ -668,6 +688,7 @@ interface UserFilterStore {
 8. Create KYC verification screens
 
 **Deliverables:**
+
 - ✅ Dashboard fully functional
 - ✅ User management complete
 - ✅ KYC verification working
@@ -677,6 +698,7 @@ interface UserFilterStore {
 ### **Phase 4: Transactions & Support (Week 5-6)**
 
 **Tasks:**
+
 1. Create transaction list screen
 2. Implement transaction filters
 3. Create transaction detail screen
@@ -687,6 +709,7 @@ interface UserFilterStore {
 8. Implement ticket status updates
 
 **Deliverables:**
+
 - ✅ Transaction management complete
 - ✅ Support ticket system complete
 
@@ -695,6 +718,7 @@ interface UserFilterStore {
 ### **Phase 5: Wallets & VTU (Week 7)**
 
 **Tasks:**
+
 1. Create wallet list screen
 2. Create wallet detail screen
 3. Create VTU orders screen
@@ -702,6 +726,7 @@ interface UserFilterStore {
 5. Implement wallet actions
 
 **Deliverables:**
+
 - ✅ Wallet management complete
 - ✅ VTU management complete
 
@@ -710,6 +735,7 @@ interface UserFilterStore {
 ### **Phase 6: Crypto & Circle (Week 8)**
 
 **Tasks:**
+
 1. Create crypto orders screen
 2. Create crypto conversions screen
 3. Create Circle wallet list
@@ -717,6 +743,7 @@ interface UserFilterStore {
 5. Implement Circle wallet actions
 
 **Deliverables:**
+
 - ✅ Crypto management complete
 - ✅ Circle wallet management complete
 
@@ -725,6 +752,7 @@ interface UserFilterStore {
 ### **Phase 7: Analytics & Notifications (Week 9)**
 
 **Tasks:**
+
 1. Create analytics screen with charts
 2. Implement Victory Native charts
 3. Create notifications screen
@@ -732,6 +760,7 @@ interface UserFilterStore {
 5. Create notification templates
 
 **Deliverables:**
+
 - ✅ Analytics complete
 - ✅ Notification system complete
 
@@ -740,6 +769,7 @@ interface UserFilterStore {
 ### **Phase 8: Admin Features (Week 10)**
 
 **Tasks:**
+
 1. Create audit logs screen
 2. Create KYC requests screen
 3. Create deletion requests screen
@@ -749,6 +779,7 @@ interface UserFilterStore {
 7. Create withdrawal config screen
 
 **Deliverables:**
+
 - ✅ All admin features complete
 
 ---
@@ -756,6 +787,7 @@ interface UserFilterStore {
 ### **Phase 9: Testing & Polish (Week 11)**
 
 **Tasks:**
+
 1. Write unit tests
 2. Write integration tests
 3. Perform manual testing
@@ -766,6 +798,7 @@ interface UserFilterStore {
 8. Add empty states
 
 **Deliverables:**
+
 - ✅ All tests passing
 - ✅ Bugs fixed
 - ✅ Performance optimized
@@ -775,6 +808,7 @@ interface UserFilterStore {
 ### **Phase 10: Deployment (Week 12)**
 
 **Tasks:**
+
 1. Configure EAS Build
 2. Create iOS build
 3. Set up TestFlight
@@ -784,6 +818,7 @@ interface UserFilterStore {
 7. Iterate
 
 **Deliverables:**
+
 - ✅ App deployed to TestFlight
 - ✅ Internal testing complete
 
@@ -993,7 +1028,7 @@ Sentry.init({
 ✅ **100% feature parity** - All web features available  
 ✅ **Native performance** - Fast and responsive  
 ✅ **Secure** - Biometric auth, secure storage  
-✅ **Reusable code** - Share API clients with web  
+✅ **Reusable code** - Share API clients with web
 
 ---
 

@@ -16,7 +16,7 @@ interface TierInfo {
   name: string;
   dailyLimit: string;
   monthlyLimit: string;
-  requirements: { label: string; key: keyof typeof user | string }[];
+  requirements: { label: string; key: string }[];
   benefits: string[];
   verifyRoute?: string;
 }

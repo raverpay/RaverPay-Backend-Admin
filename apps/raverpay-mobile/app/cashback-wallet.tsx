@@ -1,15 +1,15 @@
 // app/cashback-wallet.tsx
-import { Card, ScreenHeader, Skeleton, Text } from "@/src/components/ui";
-import { useCashbackHistory, useCashbackWallet } from "@/src/hooks/useCashback";
-import { formatCurrency } from "@/src/lib/utils/formatters";
-import { Ionicons } from "@expo/vector-icons";
-import { FlashList } from "@shopify/flash-list";
-import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
-import { RefreshControl, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Card, ScreenHeader, Skeleton, Text } from '@/src/components/ui';
+import { useCashbackHistory, useCashbackWallet } from '@/src/hooks/useCashback';
+import { formatCurrency } from '@/src/lib/utils/formatters';
+import { Ionicons } from '@expo/vector-icons';
+import { FlashList } from '@shopify/flash-list';
+import { StatusBar } from 'expo-status-bar';
+import React, { useState } from 'react';
+import { RefreshControl, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type TransactionType = "EARNED" | "REDEEMED" | "EXPIRED" | "REVERSED";
+type TransactionType = 'EARNED' | 'REDEEMED' | 'EXPIRED' | 'REVERSED';
 
 interface CashbackTransaction {
   id: string;
@@ -46,25 +46,25 @@ export default function CashbackWalletScreen() {
 
   const getTransactionIcon = (type: TransactionType) => {
     switch (type) {
-      case "EARNED":
-        return { name: "arrow-down-circle" as const, color: "#22C55E" };
-      case "REDEEMED":
-        return { name: "arrow-up-circle" as const, color: "#EF4444" };
-      case "EXPIRED":
-        return { name: "time-outline" as const, color: "#F59E0B" };
-      case "REVERSED":
-        return { name: "arrow-undo-circle" as const, color: "#6B7280" };
+      case 'EARNED':
+        return { name: 'arrow-down-circle' as const, color: '#22C55E' };
+      case 'REDEEMED':
+        return { name: 'arrow-up-circle' as const, color: '#EF4444' };
+      case 'EXPIRED':
+        return { name: 'time-outline' as const, color: '#F59E0B' };
+      case 'REVERSED':
+        return { name: 'arrow-undo-circle' as const, color: '#6B7280' };
     }
   };
 
   const getTransactionSign = (type: TransactionType) => {
     switch (type) {
-      case "EARNED":
-      case "REVERSED":
-        return "+";
-      case "REDEEMED":
-      case "EXPIRED":
-        return "-";
+      case 'EARNED':
+      case 'REVERSED':
+        return '+';
+      case 'REDEEMED':
+      case 'EXPIRED':
+        return '-';
     }
   };
 
@@ -75,20 +75,20 @@ export default function CashbackWalletScreen() {
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
     if (diffInDays === 0) {
-      return `Today, ${date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+      return `Today, ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
     } else if (diffInDays === 1) {
-      return `Yesterday, ${date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+      return `Yesterday, ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
     } else if (diffInDays < 7) {
-      return date.toLocaleDateString("en-US", {
-        weekday: "short",
-        hour: "numeric",
-        minute: "2-digit",
+      return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        hour: 'numeric',
+        minute: '2-digit',
       });
     } else {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
       });
     }
   };
@@ -104,17 +104,13 @@ export default function CashbackWalletScreen() {
             className="w-12 h-12 rounded-full items-center justify-center mr-4"
             style={{ backgroundColor: `${iconConfig.color}20` }}
           >
-            <Ionicons
-              name={iconConfig.name}
-              size={24}
-              color={iconConfig.color}
-            />
+            <Ionicons name={iconConfig.name} size={24} color={iconConfig.color} />
           </View>
 
           <View className="flex-1">
             <Text variant="bodyMedium" weight="semibold">
               {item.description.length > 25
-                ? item.description.substring(0, 25) + "......"
+                ? item.description.substring(0, 25) + '......'
                 : item.description}
             </Text>
             <Text variant="caption" color="secondary" className="mt-1">
@@ -127,10 +123,7 @@ export default function CashbackWalletScreen() {
               variant="bodyMedium"
               weight="semibold"
               style={{
-                color:
-                  item.type === "EARNED" || item.type === "REVERSED"
-                    ? "#22C55E"
-                    : "#EF4444",
+                color: item.type === 'EARNED' || item.type === 'REVERSED' ? '#22C55E' : '#EF4444',
               }}
             >
               {sign}
@@ -154,8 +147,7 @@ export default function CashbackWalletScreen() {
         No Transactions Yet
       </Text>
       <Text variant="body" color="secondary" align="center" className="mb-6">
-        Your cashback transactions will appear here once you start earning
-        rewards
+        Your cashback transactions will appear here once you start earning rewards
       </Text>
     </View>
   );
@@ -165,12 +157,7 @@ export default function CashbackWalletScreen() {
       {[1, 2, 3, 4, 5].map((i) => (
         <Card key={i} variant="elevated" className="p-4 mb-3">
           <View className="flex-row items-center">
-            <Skeleton
-              width={48}
-              height={48}
-              borderRadius={24}
-              className="mr-4"
-            />
+            <Skeleton width={48} height={48} borderRadius={24} className="mr-4" />
             <View className="flex-1">
               <Skeleton width="60%" height={16} className="mb-2" />
               <Skeleton width="40%" height={14} />
@@ -223,11 +210,7 @@ export default function CashbackWalletScreen() {
                 <Text variant="caption" color="secondary" className="mb-1">
                   Total Earned
                 </Text>
-                <Text
-                  variant="bodyMedium"
-                  weight="semibold"
-                  className="text-green-600"
-                >
+                <Text variant="bodyMedium" weight="semibold" className="text-green-600">
                   {formatCurrency(cashbackWallet?.totalEarned || 0)}
                 </Text>
               </View>
@@ -238,11 +221,7 @@ export default function CashbackWalletScreen() {
                 <Text variant="caption" color="secondary" className="mb-1">
                   Total Redeemed
                 </Text>
-                <Text
-                  variant="bodyMedium"
-                  weight="semibold"
-                  className="text-gray-700"
-                >
+                <Text variant="bodyMedium" weight="semibold" className="text-gray-700">
                   {formatCurrency(cashbackWallet?.totalRedeemed || 0)}
                 </Text>
               </View>
@@ -265,12 +244,7 @@ export default function CashbackWalletScreen() {
             renderItem={renderTransaction}
             keyExtractor={(item) => item.id}
             contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
-            refreshControl={
-              <RefreshControl
-                refreshing={isRefreshing}
-                onRefresh={handleRefresh}
-              />
-            }
+            refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
           />
         ) : (
           renderEmptyState()
@@ -282,21 +256,13 @@ export default function CashbackWalletScreen() {
         className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-5 pt-4"
         style={{ paddingBottom: Math.max(insets.bottom, 24) }}
       >
-        <Card
-          variant="elevated"
-          className="p-4 bg-purple-50 dark:bg-purple-900/20"
-        >
+        <Card variant="elevated" className="p-4 bg-purple-50 dark:bg-purple-900/20">
           <View className="flex-row items-start">
-            <Ionicons
-              name="information-circle-outline"
-              size={20}
-              color="#5B55F6"
-            />
+            <Ionicons name="information-circle-outline" size={20} color="#5B55F6" />
             <View className="ml-3 flex-1">
               <Text variant="caption" color="secondary">
-                • Earn cashback on data, airtime, and bill payments{"\n"}• Use
-                your cashback balance to reducecosts{"\n"}• Cashback expires
-                after 90 days of inactivity
+                • Earn cashback on data, airtime, and bill payments{'\n'}• Use your cashback balance
+                to reducecosts{'\n'}• Cashback expires after 90 days of inactivity
               </Text>
             </View>
           </View>

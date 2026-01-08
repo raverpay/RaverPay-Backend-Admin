@@ -5,10 +5,10 @@
  * Integrated with Sentry for production error tracking
  */
 
-import * as Sentry from "@sentry/react-native";
-import Constants from "expo-constants";
+import * as Sentry from '@sentry/react-native';
+import Constants from 'expo-constants';
 
-type ErrorSeverity = "info" | "warning" | "error" | "fatal";
+type ErrorSeverity = 'info' | 'warning' | 'error' | 'fatal';
 
 interface ErrorContext {
   [key: string]: any;
@@ -33,7 +33,7 @@ class ErrorLogger {
    * Log an error with context
    */
   log(error: Error | string, options: ErrorLogOptions = {}) {
-    const { severity = "error", context = {}, tags = {} } = options;
+    const { severity = 'error', context = {}, tags = {} } = options;
 
     // In development, log to console
     if (this.isDevelopment) {
@@ -53,25 +53,25 @@ class ErrorLogger {
     error: Error | string,
     severity: ErrorSeverity,
     context: ErrorContext,
-    tags: Record<string, string>
+    tags: Record<string, string>,
   ) {
     const timestamp = new Date().toISOString();
-    const errorMessage = typeof error === "string" ? error : error.message;
-    const errorStack = typeof error === "string" ? undefined : error.stack;
+    const errorMessage = typeof error === 'string' ? error : error.message;
+    const errorStack = typeof error === 'string' ? undefined : error.stack;
 
     console.group(`[${severity.toUpperCase()}] ${timestamp}`);
-    console.error("Message:", errorMessage);
+    console.error('Message:', errorMessage);
 
     if (errorStack) {
-      console.error("Stack:", errorStack);
+      console.error('Stack:', errorStack);
     }
 
     if (Object.keys(context).length > 0) {
-      console.log("Context:", context);
+      console.log('Context:', context);
     }
 
     if (Object.keys(tags).length > 0) {
-      console.log("Tags:", tags);
+      console.log('Tags:', tags);
     }
 
     console.groupEnd();
@@ -84,7 +84,7 @@ class ErrorLogger {
     error: Error | string,
     severity: ErrorSeverity,
     context: ErrorContext,
-    tags: Record<string, string>
+    tags: Record<string, string>,
   ) {
     try {
       Sentry.withScope((scope) => {
@@ -102,11 +102,11 @@ class ErrorLogger {
         });
 
         // Add app metadata
-        scope.setTag("app.version", Constants.expoConfig?.version || "unknown");
-        scope.setTag("app.environment", __DEV__ ? "development" : "production");
+        scope.setTag('app.version', Constants.expoConfig?.version || 'unknown');
+        scope.setTag('app.environment', __DEV__ ? 'development' : 'production');
 
         // Capture exception or message
-        if (typeof error === "string") {
+        if (typeof error === 'string') {
           Sentry.captureMessage(error);
         } else {
           Sentry.captureException(error);
@@ -114,21 +114,19 @@ class ErrorLogger {
       });
     } catch (sentryError) {
       // Fallback to console if Sentry fails
-      console.error("[ErrorLogger] Failed to send to Sentry:", sentryError);
+      console.error('[ErrorLogger] Failed to send to Sentry:', sentryError);
     }
   }
 
   /**
    * Map error severity to Sentry level
    */
-  private mapSeverityToSentryLevel(
-    severity: ErrorSeverity
-  ): Sentry.SeverityLevel {
+  private mapSeverityToSentryLevel(severity: ErrorSeverity): Sentry.SeverityLevel {
     const mapping: Record<ErrorSeverity, Sentry.SeverityLevel> = {
-      info: "info",
-      warning: "warning",
-      error: "error",
-      fatal: "fatal",
+      info: 'info',
+      warning: 'warning',
+      error: 'error',
+      fatal: 'fatal',
     };
     return mapping[severity];
   }
@@ -137,28 +135,28 @@ class ErrorLogger {
    * Log info level message
    */
   info(message: string, context?: ErrorContext) {
-    this.log(message, { severity: "info", context });
+    this.log(message, { severity: 'info', context });
   }
 
   /**
    * Log warning
    */
   warn(message: string, context?: ErrorContext) {
-    this.log(message, { severity: "warning", context });
+    this.log(message, { severity: 'warning', context });
   }
 
   /**
    * Log error
    */
   error(error: Error | string, context?: ErrorContext) {
-    this.log(error, { severity: "error", context });
+    this.log(error, { severity: 'error', context });
   }
 
   /**
    * Log fatal error
    */
   fatal(error: Error | string, context?: ErrorContext) {
-    this.log(error, { severity: "fatal", context });
+    this.log(error, { severity: 'fatal', context });
   }
 
   /**
@@ -166,7 +164,7 @@ class ErrorLogger {
    */
   logAuthError(error: Error | string, action: string) {
     this.error(error, {
-      category: "authentication",
+      category: 'authentication',
       action,
       timestamp: new Date().toISOString(),
     });
@@ -177,7 +175,7 @@ class ErrorLogger {
    */
   logApiError(error: Error | string, endpoint: string, method: string) {
     this.error(error, {
-      category: "api",
+      category: 'api',
       endpoint,
       method,
       timestamp: new Date().toISOString(),
@@ -189,7 +187,7 @@ class ErrorLogger {
    */
   logNavigationError(error: Error | string, route: string) {
     this.error(error, {
-      category: "navigation",
+      category: 'navigation',
       route,
       timestamp: new Date().toISOString(),
     });
@@ -200,7 +198,7 @@ class ErrorLogger {
    */
   logTransactionError(error: Error | string, transactionType: string) {
     this.error(error, {
-      category: "transaction",
+      category: 'transaction',
       transactionType,
       timestamp: new Date().toISOString(),
     });

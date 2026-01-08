@@ -1,30 +1,20 @@
 // app/notifications.tsx
 
-import {
-  Button,
-  Card,
-  ScreenHeader,
-  Skeleton,
-  SkeletonCircle,
-  Text,
-} from "@/src/components/ui";
+import { Button, Card, ScreenHeader, Skeleton, SkeletonCircle, Text } from '@/src/components/ui';
 import {
   useDeleteNotification,
   useMarkAllAsRead,
   useMarkAsRead,
   useNotifications,
-} from "@/src/hooks/useNotifications";
-import { useTheme } from "@/src/hooks/useTheme";
-import {
-  getRelativeTimeLabel,
-  groupItemsByDate,
-} from "@/src/lib/utils/dateGrouping";
-import type { Notification } from "@/src/types/notification";
-import { Ionicons } from "@expo/vector-icons";
-import { FlashList } from "@shopify/flash-list";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useMemo, useState } from "react";
+} from '@/src/hooks/useNotifications';
+import { useTheme } from '@/src/hooks/useTheme';
+import { getRelativeTimeLabel, groupItemsByDate } from '@/src/lib/utils/dateGrouping';
+import type { Notification } from '@/src/types/notification';
+import { Ionicons } from '@expo/vector-icons';
+import { FlashList } from '@shopify/flash-list';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useMemo, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -33,25 +23,17 @@ import {
   TouchableWithoutFeedback,
   View,
   useWindowDimensions,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function NotificationsScreen() {
   const { isDark } = useTheme();
   const { width } = useWindowDimensions();
   const drawerWidth = Math.min(width * 1.0, 420);
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
-  const [selectedNotification, setSelectedNotification] =
-    useState<Notification | null>(null);
-  const {
-    data,
-    isLoading,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage,
-    refetch,
-    isRefetching,
-  } = useNotifications({ unreadOnly: showUnreadOnly });
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, refetch, isRefetching } =
+    useNotifications({ unreadOnly: showUnreadOnly });
   const markAsRead = useMarkAsRead();
   const markAllAsRead = useMarkAllAsRead();
   const deleteNotification = useDeleteNotification();
@@ -61,9 +43,8 @@ export default function NotificationsScreen() {
 
   // Group notifications by date
   const groupedNotifications = useMemo(() => {
-    const notificationsList =
-      data?.pages.flatMap((page) => page.notifications) || [];
-    return groupItemsByDate(notificationsList, "createdAt");
+    const notificationsList = data?.pages.flatMap((page) => page.notifications) || [];
+    return groupItemsByDate(notificationsList, 'createdAt');
   }, [data]);
 
   const handleNotificationPress = async (notification: Notification) => {
@@ -77,26 +58,22 @@ export default function NotificationsScreen() {
   };
 
   const handleDeleteNotification = (notificationId: string) => {
-    Alert.alert(
-      "Delete Notification",
-      "Are you sure you want to delete this notification?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => deleteNotification.mutate(notificationId),
-        },
-      ]
-    );
+    Alert.alert('Delete Notification', 'Are you sure you want to delete this notification?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => deleteNotification.mutate(notificationId),
+      },
+    ]);
   };
 
   const handleMarkAllAsRead = () => {
     // console.log("First marking all notifications as read");
-    Alert.alert("Mark All as Read", "Mark all notifications as read?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert('Mark All as Read', 'Mark all notifications as read?', [
+      { text: 'Cancel', style: 'cancel' },
       {
-        text: "Mark All",
+        text: 'Mark All',
         onPress: () => markAllAsRead.mutate(),
       },
     ]);
@@ -104,7 +81,7 @@ export default function NotificationsScreen() {
 
   return (
     <View className="flex-1 bg-black-900">
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <TouchableWithoutFeedback onPress={() => router.back()}>
         <View className="flex-1" />
       </TouchableWithoutFeedback>
@@ -120,7 +97,7 @@ export default function NotificationsScreen() {
           title="Notifications"
           backIcon="close"
           rightIcon="settings-outline"
-          onRightIconPress={() => router.push("/notification-preferences")}
+          onRightIconPress={() => router.push('/notification-preferences')}
           variant="transparent"
         />
 
@@ -129,32 +106,24 @@ export default function NotificationsScreen() {
           <View className="flex-row gap-2 mt-4">
             <TouchableOpacity
               onPress={() => setShowUnreadOnly(false)}
-              className={`px-4 py-2 rounded-full ${!showUnreadOnly ? "bg-[#5B55F6]" : "bg-gray-200 dark:bg-gray-700"}`}
+              className={`px-4 py-2 rounded-full ${!showUnreadOnly ? 'bg-[#5B55F6]' : 'bg-gray-200 dark:bg-gray-700'}`}
             >
               <Text
                 variant="caption"
                 weight="semibold"
-                className={
-                  !showUnreadOnly
-                    ? "text-white"
-                    : "text-gray-600 dark:text-gray-300"
-                }
+                className={!showUnreadOnly ? 'text-white' : 'text-gray-600 dark:text-gray-300'}
               >
                 All
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowUnreadOnly(true)}
-              className={`px-4 py-2 rounded-full ${showUnreadOnly ? "bg-[#5B55F6]" : "bg-gray-200 dark:bg-gray-700"}`}
+              className={`px-4 py-2 rounded-full ${showUnreadOnly ? 'bg-[#5B55F6]' : 'bg-gray-200 dark:bg-gray-700'}`}
             >
               <Text
                 variant="caption"
                 weight="semibold"
-                className={
-                  showUnreadOnly
-                    ? "text-white"
-                    : "text-gray-600 dark:text-gray-300"
-                }
+                className={showUnreadOnly ? 'text-white' : 'text-gray-600 dark:text-gray-300'}
               >
                 Unread {unreadCount > 0 && `(${unreadCount})`}
               </Text>
@@ -170,11 +139,7 @@ export default function NotificationsScreen() {
               <View>
                 {/* Section Header */}
                 <View className="py-3 mt-4">
-                  <Text
-                    variant="bodyMedium"
-                    weight="semibold"
-                    color="secondary"
-                  >
+                  <Text variant="bodyMedium" weight="semibold" color="secondary">
                     {section.title}
                   </Text>
                 </View>
@@ -225,23 +190,14 @@ export default function NotificationsScreen() {
                 ) : (
                   <View className="items-center mb-4">
                     <View className="w-20 h-20 rounded-full bg-gray-200 items-center justify-center mb-4">
-                      <Ionicons
-                        name="notifications-outline"
-                        size={32}
-                        color="#9CA3AF"
-                      />
+                      <Ionicons name="notifications-outline" size={32} color="#9CA3AF" />
                     </View>
                     <Text variant="h3" align="center">
                       No Notifications
                     </Text>
-                    <Text
-                      variant="body"
-                      color="secondary"
-                      align="center"
-                      className="mt-2"
-                    >
+                    <Text variant="body" color="secondary" align="center" className="mt-2">
                       {showUnreadOnly
-                        ? "You have no unread notifications"
+                        ? 'You have no unread notifications'
                         : "You're all caught up!"}
                     </Text>
                   </View>
@@ -284,11 +240,7 @@ interface NotificationCardProps {
   onDelete: () => void;
 }
 
-function NotificationCard({
-  notification,
-  onPress,
-  onDelete,
-}: NotificationCardProps) {
+function NotificationCard({ notification, onPress, onDelete }: NotificationCardProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handlePress = async () => {
@@ -299,20 +251,20 @@ function NotificationCard({
 
   const getIconForCategory = (category: string) => {
     switch (category) {
-      case "TRANSACTION":
-        return { name: "cash-outline" as const, color: "#10B981" };
-      case "SECURITY":
-        return { name: "shield-checkmark-outline" as const, color: "#EF4444" };
-      case "KYC":
-        return { name: "checkmark-circle-outline" as const, color: "#3B82F6" };
-      case "ACCOUNT":
-        return { name: "person-outline" as const, color: "#7C3AED" };
-      case "PROMOTIONAL":
-        return { name: "gift-outline" as const, color: "#F59E0B" };
+      case 'TRANSACTION':
+        return { name: 'cash-outline' as const, color: '#10B981' };
+      case 'SECURITY':
+        return { name: 'shield-checkmark-outline' as const, color: '#EF4444' };
+      case 'KYC':
+        return { name: 'checkmark-circle-outline' as const, color: '#3B82F6' };
+      case 'ACCOUNT':
+        return { name: 'person-outline' as const, color: '#7C3AED' };
+      case 'PROMOTIONAL':
+        return { name: 'gift-outline' as const, color: '#F59E0B' };
       default:
         return {
-          name: "information-circle-outline" as const,
-          color: "#6B7280",
+          name: 'information-circle-outline' as const,
+          color: '#6B7280',
         };
     }
   };
@@ -320,14 +272,10 @@ function NotificationCard({
   const icon = getIconForCategory(notification.category);
 
   return (
-    <TouchableOpacity
-      onPress={handlePress}
-      disabled={isLoading}
-      className="mb-3"
-    >
+    <TouchableOpacity onPress={handlePress} disabled={isLoading} className="mb-3">
       <Card
         variant="elevated"
-        className={`p-4 ${!notification.isRead ? "border-l-4 border-l-[#5B55F6]" : ""} `}
+        className={`p-4 ${!notification.isRead ? 'border-l-4 border-l-[#5B55F6]' : ''} `}
       >
         <View className="flex-row">
           {/* Icon */}
@@ -347,17 +295,15 @@ function NotificationCard({
             <View className="flex-row items-start justify-between mb-1">
               <Text variant="body" weight="semibold" className="flex-1 mr-2">
                 {notification.title.length > 25
-                  ? notification.title.substring(0, 25) + "..."
+                  ? notification.title.substring(0, 25) + '...'
                   : notification.title}
               </Text>
-              {!notification.isRead && (
-                <View className="w-2 h-2 rounded-full bg-[#5B55F6] mt-1" />
-              )}
+              {!notification.isRead && <View className="w-2 h-2 rounded-full bg-[#5B55F6] mt-1" />}
             </View>
 
             <Text variant="body" color="secondary" className="">
               {notification.message.length > 35
-                ? notification.message.substring(0, 35) + "..."
+                ? notification.message.substring(0, 35) + '...'
                 : notification.message}
             </Text>
 
@@ -383,29 +329,26 @@ interface NotificationDetailsModalProps {
   onClose: () => void;
 }
 
-function NotificationDetailsModal({
-  notification,
-  onClose,
-}: NotificationDetailsModalProps) {
+function NotificationDetailsModal({ notification, onClose }: NotificationDetailsModalProps) {
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
 
   const getIconForCategory = (category: string) => {
     switch (category) {
-      case "TRANSACTION":
-        return { name: "cash-outline" as const, color: "#10B981" };
-      case "SECURITY":
-        return { name: "shield-checkmark-outline" as const, color: "#EF4444" };
-      case "KYC":
-        return { name: "checkmark-circle-outline" as const, color: "#3B82F6" };
-      case "ACCOUNT":
-        return { name: "person-outline" as const, color: "#7C3AED" };
-      case "PROMOTIONAL":
-        return { name: "gift-outline" as const, color: "#F59E0B" };
+      case 'TRANSACTION':
+        return { name: 'cash-outline' as const, color: '#10B981' };
+      case 'SECURITY':
+        return { name: 'shield-checkmark-outline' as const, color: '#EF4444' };
+      case 'KYC':
+        return { name: 'checkmark-circle-outline' as const, color: '#3B82F6' };
+      case 'ACCOUNT':
+        return { name: 'person-outline' as const, color: '#7C3AED' };
+      case 'PROMOTIONAL':
+        return { name: 'gift-outline' as const, color: '#F59E0B' };
       default:
         return {
-          name: "information-circle-outline" as const,
-          color: "#6B7280",
+          name: 'information-circle-outline' as const,
+          color: '#6B7280',
         };
     }
   };
@@ -443,11 +386,7 @@ function NotificationDetailsModal({
           <View className="flex-row items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
             <Text variant="h3">Notification Details</Text>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons
-                name="close"
-                size={24}
-                color={isDark ? "#FFF" : "#000"}
-              />
+              <Ionicons name="close" size={24} color={isDark ? '#FFF' : '#000'} />
             </TouchableOpacity>
           </View>
 
@@ -475,12 +414,7 @@ function NotificationDetailsModal({
               </Text>
 
               {/* Message */}
-              <Text
-                variant="body"
-                color="secondary"
-                align="center"
-                className="mb-6"
-              >
+              <Text variant="body" color="secondary" align="center" className="mb-6">
                 {notification.message}
               </Text>
 
@@ -488,20 +422,14 @@ function NotificationDetailsModal({
               <View className="flex-row items-center justify-center mb-6">
                 <Ionicons name="time-outline" size={16} color="#9CA3AF" />
                 <Text variant="caption" color="secondary" className="ml-2">
-                  {getRelativeTimeLabel(new Date(notification.createdAt))} •{" "}
+                  {getRelativeTimeLabel(new Date(notification.createdAt))} •{' '}
                   {new Date(notification.createdAt).toLocaleString()}
                 </Text>
               </View>
 
               {/* Action Button - Only show if notification has associated data */}
-              {(notification.data?.transactionId ||
-                notification.data?.orderId) && (
-                <Button
-                  variant="primary"
-                  size="lg"
-                  fullWidth
-                  onPress={handleActionPress}
-                >
+              {(notification.data?.transactionId || notification.data?.orderId) && (
+                <Button variant="primary" size="lg" fullWidth onPress={handleActionPress}>
                   View Details
                 </Button>
               )}

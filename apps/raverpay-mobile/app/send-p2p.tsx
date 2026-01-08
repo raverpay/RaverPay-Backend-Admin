@@ -1,6 +1,6 @@
 // app/send-p2p.tsx
 
-import { SentryErrorBoundary } from "@/src/components/SentryErrorBoundary";
+import { SentryErrorBoundary } from '@/src/components/SentryErrorBoundary';
 import {
   Button,
   Card,
@@ -9,19 +9,19 @@ import {
   ScreenHeader,
   Text,
   TransactionDetail,
-} from "@/src/components/ui";
-import { useDebounce } from "@/src/hooks/useDebounce";
-import { useP2PPermissions, useSendP2P } from "@/src/hooks/useP2P";
-import { useTheme } from "@/src/hooks/useTheme";
-import { formatCurrency } from "@/src/lib/utils/formatters";
-import { lookupUserByTag } from "@/src/services/p2p.service";
-import { useWalletStore } from "@/src/store/wallet.store";
-import type { LookupUserResponse } from "@/src/types/api.types";
-import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
+} from '@/src/components/ui';
+import { useDebounce } from '@/src/hooks/useDebounce';
+import { useP2PPermissions, useSendP2P } from '@/src/hooks/useP2P';
+import { useTheme } from '@/src/hooks/useTheme';
+import { formatCurrency } from '@/src/lib/utils/formatters';
+import { lookupUserByTag } from '@/src/services/p2p.service';
+import { useWalletStore } from '@/src/store/wallet.store';
+import type { LookupUserResponse } from '@/src/types/api.types';
+import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -29,10 +29,9 @@ import {
   Platform,
   ScrollView,
   View,
-} from "react-native";
+} from 'react-native';
 
-const DEFAULT_AVATAR =
-  "https://ui-avatars.com/api/?name=User&background=5B55F6&color=fff";
+const DEFAULT_AVATAR = 'https://ui-avatars.com/api/?name=User&background=5B55F6&color=fff';
 
 export default function SendP2PScreen() {
   return (
@@ -48,13 +47,13 @@ function SendP2PContent() {
   const { transactionLimit } = useP2PPermissions();
   const { sendP2P, isSending } = useSendP2P();
 
-  const [recipientTag, setRecipientTag] = useState("");
+  const [recipientTag, setRecipientTag] = useState('');
   const [recipient, setRecipient] = useState<LookupUserResponse | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState("");
+  const [searchError, setSearchError] = useState('');
 
-  const [amount, setAmount] = useState("");
-  const [message, setMessage] = useState("");
+  const [amount, setAmount] = useState('');
+  const [message, setMessage] = useState('');
   const [showPinModal, setShowPinModal] = useState(false);
 
   const debouncedTag = useDebounce(recipientTag.toLowerCase().trim(), 500);
@@ -64,23 +63,23 @@ function SendP2PContent() {
     const searchUser = async () => {
       if (!debouncedTag || debouncedTag.length < 3) {
         setRecipient(null);
-        setSearchError("");
+        setSearchError('');
         return;
       }
 
       setIsSearching(true);
-      setSearchError("");
+      setSearchError('');
 
       try {
         const user = await lookupUserByTag(debouncedTag);
         setRecipient(user);
-        setSearchError("");
+        setSearchError('');
       } catch (err: any) {
         setRecipient(null);
         if (err?.response?.status === 404) {
-          setSearchError(" Unable to find user with that username.");
+          setSearchError(' Unable to find user with that username.');
         } else {
-          setSearchError("Unable to search. Try again.");
+          setSearchError('Unable to search. Try again.');
         }
       } finally {
         setIsSearching(false);
@@ -115,29 +114,29 @@ function SendP2PContent() {
 
     // Validation
     if (!recipient) {
-      Alert.alert("Error", "Please select a recipient");
+      Alert.alert('Error', 'Please select a recipient');
       return;
     }
 
     if (!amount || amountValue <= 0) {
-      Alert.alert("Invalid Amount", "Please enter a valid amount");
+      Alert.alert('Invalid Amount', 'Please enter a valid amount');
       return;
     }
 
     if (amountValue < 100) {
-      Alert.alert("Invalid Amount", "Minimum transfer amount is ₦100");
+      Alert.alert('Invalid Amount', 'Minimum transfer amount is ₦100');
       return;
     }
 
     if (amountValue > balance) {
-      Alert.alert("Insufficient Balance", "You don't have enough funds");
+      Alert.alert('Insufficient Balance', "You don't have enough funds");
       return;
     }
 
     if (amountValue > transactionLimit) {
       Alert.alert(
-        "Amount Exceeds Limit",
-        `Maximum transfer amount for your account is ${formatCurrency(transactionLimit)}.\n\nUpgrade your KYC tier to increase limits.`
+        'Amount Exceeds Limit',
+        `Maximum transfer amount for your account is ${formatCurrency(transactionLimit)}.\n\nUpgrade your KYC tier to increase limits.`,
       );
       return;
     }
@@ -162,36 +161,36 @@ function SendP2PContent() {
       // Navigate to success screen with transaction data
       const successDetails: TransactionDetail[] = [
         {
-          label: "Recipient",
+          label: 'Recipient',
           value: recipient.name,
         },
         {
-          label: "Username",
+          label: 'Username',
           value: `@${recipient.tag}`,
         },
       ];
 
       if (message) {
         successDetails.push({
-          label: "Message",
+          label: 'Message',
           value: message,
         });
       }
 
       successDetails.push({
-        label: "Amount Sent",
+        label: 'Amount Sent',
         value: formatCurrency(parseFloat(amount)),
         highlight: true,
       });
 
       router.push({
-        pathname: "/transaction-success",
+        pathname: '/transaction-success',
         params: {
-          serviceType: "P2P Transfer",
+          serviceType: 'P2P Transfer',
           amount: parseFloat(amount).toString(),
-          reference: result.reference || "",
-          cashbackEarned: "0",
-          cashbackRedeemed: "0",
+          reference: result.reference || '',
+          cashbackEarned: '0',
+          cashbackRedeemed: '0',
           details: JSON.stringify(successDetails),
         },
       });
@@ -203,17 +202,17 @@ function SendP2PContent() {
 
   const handleTagChange = (value: string) => {
     // Auto-convert to lowercase and remove spaces/@ symbol
-    const cleaned = value.toLowerCase().replace(/[@\s]/g, "");
+    const cleaned = value.toLowerCase().replace(/[@\s]/g, '');
     setRecipientTag(cleaned);
     setRecipient(null);
   };
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1 bg-gray-50 dark:bg-gray-900"
     >
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* Header */}
       <ScreenHeader title="Send to @username" disabled={isSending} />
@@ -255,10 +254,7 @@ function SendP2PContent() {
                 <Text variant="bodyMedium" weight="bold">
                   {recipient.name}
                 </Text>
-                <Text
-                  variant="caption"
-                  className="text-[#5B55F6] dark:text-[#5B55F6]"
-                >
+                <Text variant="caption" className="text-[#5B55F6] dark:text-[#5B55F6]">
                   @{recipient.tag}
                 </Text>
               </View>
@@ -270,10 +266,7 @@ function SendP2PContent() {
           {searchError && !isSearching && (
             <View className="flex-row items-start p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800">
               <Ionicons name="alert-circle" size={20} color="#EF4444" />
-              <Text
-                variant="caption"
-                className="text-red-600 dark:text-red-400 ml-2 flex-1"
-              >
+              <Text variant="caption" className="text-red-600 dark:text-red-400 ml-2 flex-1">
                 {searchError}
               </Text>
             </View>
@@ -322,20 +315,10 @@ function SendP2PContent() {
             </Card>
 
             {/* Summary Card */}
-            <Card
-              variant="elevated"
-              className="p-5 mb-4 bg-purple-50 dark:bg-purple-900/20"
-            >
+            <Card variant="elevated" className="p-5 mb-4 bg-purple-50 dark:bg-purple-900/20">
               <View className="flex-row items-start mb-3">
-                <Ionicons
-                  name="information-circle-outline"
-                  size={20}
-                  color="#5B55F6"
-                />
-                <Text
-                  variant="bodyMedium"
-                  className="ml-3 flex-1 text-purple-800"
-                >
+                <Ionicons name="information-circle-outline" size={20} color="#5B55F6" />
+                <Text variant="bodyMedium" className="ml-3 flex-1 text-purple-800">
                   Transfer Summary
                 </Text>
               </View>
@@ -345,12 +328,8 @@ function SendP2PContent() {
                   <Text variant="body" className="text-purple-700">
                     Amount
                   </Text>
-                  <Text
-                    variant="bodyMedium"
-                    weight="bold"
-                    className="text-purple-900"
-                  >
-                    {amount ? formatCurrency(parseFloat(amount)) : "₦0.00"}
+                  <Text variant="bodyMedium" weight="bold" className="text-purple-900">
+                    {amount ? formatCurrency(parseFloat(amount)) : '₦0.00'}
                   </Text>
                 </View>
 
@@ -365,15 +344,11 @@ function SendP2PContent() {
 
                 <View className="border-t border-purple-200 pt-2">
                   <View className="flex-row justify-between">
-                    <Text
-                      variant="bodyMedium"
-                      weight="bold"
-                      className="text-purple-900"
-                    >
+                    <Text variant="bodyMedium" weight="bold" className="text-purple-900">
                       Total
                     </Text>
                     <Text variant="h3" className="text-purple-900">
-                      {amount ? formatCurrency(parseFloat(amount)) : "₦0.00"}
+                      {amount ? formatCurrency(parseFloat(amount)) : '₦0.00'}
                     </Text>
                   </View>
                 </View>
@@ -404,7 +379,7 @@ function SendP2PContent() {
         onSubmit={handleSendP2P}
         loading={isSending}
         title="Confirm Transfer"
-        subtitle={`Enter your PIN to send ${amount ? formatCurrency(parseFloat(amount)) : "money"} to @${recipient?.tag}`}
+        subtitle={`Enter your PIN to send ${amount ? formatCurrency(parseFloat(amount)) : 'money'} to @${recipient?.tag}`}
       />
     </KeyboardAvoidingView>
   );

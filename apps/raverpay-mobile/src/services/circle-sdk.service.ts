@@ -11,8 +11,8 @@
  * This file maintains the same interface for backward compatibility.
  */
 
-import type { ChallengeResult } from "./circle-web-sdk.service";
-import { circleWebSDKService } from "./circle-web-sdk.service";
+import type { ChallengeResult } from './circle-web-sdk.service';
+import { circleWebSDKService } from './circle-web-sdk.service';
 
 export interface CircleSDKConfig {
   appId: string;
@@ -21,7 +21,7 @@ export interface CircleSDKConfig {
 
 export interface ExecuteResult {
   result: {
-    resultType: "success" | "error";
+    resultType: 'success' | 'error';
     data?: any;
     error?: { message: string };
   };
@@ -31,7 +31,7 @@ export interface ExecuteResult {
 function toLegacyResult(result: ChallengeResult): ExecuteResult {
   return {
     result: {
-      resultType: result.success ? "success" : "error",
+      resultType: result.success ? 'success' : 'error',
       data: result.result,
       error: result.error ? { message: result.error } : undefined,
     },
@@ -47,7 +47,7 @@ class CircleSDKService {
   async initialize(config: CircleSDKConfig): Promise<void> {
     circleWebSDKService.initialize(config);
     this.initialized = true;
-    console.log("[CircleSDK] Initialized (using Web SDK via WebView)");
+    console.log('[CircleSDK] Initialized (using Web SDK via WebView)');
   }
 
   /**
@@ -63,14 +63,14 @@ class CircleSDKService {
   async executeChallenge(
     userToken: string,
     encryptionKey: string,
-    challengeIds: string[]
+    challengeIds: string[],
   ): Promise<ExecuteResult> {
-    console.log("[CircleSDK] Executing challenges via WebView:", challengeIds);
+    console.log('[CircleSDK] Executing challenges via WebView:', challengeIds);
 
     const result = await circleWebSDKService.executeChallenges(
       userToken,
       encryptionKey,
-      challengeIds
+      challengeIds,
     );
 
     return toLegacyResult(result);
@@ -84,9 +84,9 @@ class CircleSDKService {
     userToken: string,
     encryptionKey: string,
     challengeId: string,
-    _questions: { question: string; answer: string }[]
+    _questions: { question: string; answer: string }[],
   ): Promise<ExecuteResult> {
-    console.log("[CircleSDK] Setting security questions via WebView");
+    console.log('[CircleSDK] Setting security questions via WebView');
 
     // Web SDK handles security questions through the challenge UI
     const result = await circleWebSDKService.executeChallenge({
@@ -105,9 +105,9 @@ class CircleSDKService {
   async setBiometrics(
     userToken: string,
     encryptionKey: string,
-    challengeId: string
+    challengeId: string,
   ): Promise<ExecuteResult> {
-    console.log("[CircleSDK] Setting biometrics via WebView");
+    console.log('[CircleSDK] Setting biometrics via WebView');
 
     const result = await circleWebSDKService.executeChallenge({
       userToken,
@@ -124,9 +124,9 @@ class CircleSDKService {
   async performTransaction(
     userToken: string,
     encryptionKey: string,
-    challengeId: string
+    challengeId: string,
   ): Promise<ExecuteResult> {
-    console.log("[CircleSDK] Performing transaction via WebView");
+    console.log('[CircleSDK] Performing transaction via WebView');
 
     const result = await circleWebSDKService.executeChallenge({
       userToken,
@@ -150,7 +150,7 @@ class CircleSDKService {
    * Note: Not applicable to WebView approach
    */
   setLayoutProvider(_provider: any): void {
-    console.log("[CircleSDK] setLayoutProvider not available in WebView mode");
+    console.log('[CircleSDK] setLayoutProvider not available in WebView mode');
   }
 
   /**
@@ -158,7 +158,7 @@ class CircleSDKService {
    * Note: Not applicable to WebView approach
    */
   setErrorStringMap(_errorMap: Record<string, string>): void {
-    console.log("[CircleSDK] setErrorStringMap not available in WebView mode");
+    console.log('[CircleSDK] setErrorStringMap not available in WebView mode');
   }
 }
 

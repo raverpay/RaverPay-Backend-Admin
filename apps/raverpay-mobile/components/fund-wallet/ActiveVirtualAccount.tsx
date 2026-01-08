@@ -1,7 +1,7 @@
 // components/fund-wallet/ActiveVirtualAccount.tsx
-import { Card, Text } from "@/src/components/ui";
-import { Ionicons } from "@expo/vector-icons";
-import { TouchableOpacity, View } from "react-native";
+import { Card, Text } from '@/src/components/ui';
+import { Ionicons } from '@expo/vector-icons';
+import { TouchableOpacity, View } from 'react-native';
 
 interface VirtualAccountData {
   accountNumber: string;
@@ -27,10 +27,7 @@ export function ActiveVirtualAccount({
   return (
     <>
       {/* Virtual Account Card */}
-      <Card
-        variant="elevated"
-        className="p-6 mb-4 bg-gradient-to-br from-[#5B55F6] to-purple-800"
-      >
+      <Card variant="elevated" className="p-6 mb-4 bg-gradient-to-br from-[#5B55F6] to-purple-800">
         <Text variant="caption" className="text-neutral-500 mb-4">
           Your Virtual Account
         </Text>

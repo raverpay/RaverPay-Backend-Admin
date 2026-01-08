@@ -1,5 +1,5 @@
 // app/buy-airtime.tsx
-import { SentryErrorBoundary } from "@/src/components/SentryErrorBoundary";
+import { SentryErrorBoundary } from '@/src/components/SentryErrorBoundary';
 import {
   BottomSheet,
   Button,
@@ -11,29 +11,22 @@ import {
   ScreenHeader,
   Text,
   TransactionDetail,
-} from "@/src/components/ui";
-import { detectNetwork } from "@/src/constants/network-prefixes";
-import { NETWORK_PROVIDERS } from "@/src/constants/vtu";
-import {
-  useCalculateCashback,
-  useCashbackWallet,
-} from "@/src/hooks/useCashback";
-import { useTheme } from "@/src/hooks/useTheme";
-import {
-  usePurchaseAirtime,
-  useSavedRecipients,
-  type SavedRecipient,
-} from "@/src/hooks/useVTU";
-import { formatCurrency } from "@/src/lib/utils/formatters";
-import { checkPinSetOrPrompt } from "@/src/lib/utils/pin-helper";
-import { handleSuccessfulTransaction } from "@/src/lib/utils/rating-helper";
-import { useUserStore } from "@/src/store/user.store";
-import { useWalletStore } from "@/src/store/wallet.store";
-import { Ionicons } from "@expo/vector-icons";
-import { useQueryClient } from "@tanstack/react-query";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useRef, useState } from "react";
+} from '@/src/components/ui';
+import { detectNetwork } from '@/src/constants/network-prefixes';
+import { NETWORK_PROVIDERS } from '@/src/constants/vtu';
+import { useCalculateCashback, useCashbackWallet } from '@/src/hooks/useCashback';
+import { useTheme } from '@/src/hooks/useTheme';
+import { usePurchaseAirtime, useSavedRecipients, type SavedRecipient } from '@/src/hooks/useVTU';
+import { formatCurrency } from '@/src/lib/utils/formatters';
+import { checkPinSetOrPrompt } from '@/src/lib/utils/pin-helper';
+import { handleSuccessfulTransaction } from '@/src/lib/utils/rating-helper';
+import { useUserStore } from '@/src/store/user.store';
+import { useWalletStore } from '@/src/store/wallet.store';
+import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useRef, useState } from 'react';
 import {
   Alert,
   Animated,
@@ -43,8 +36,8 @@ import {
   ScrollView,
   TouchableOpacity,
   View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const QUICK_AMOUNTS = [100, 500, 1000, 2000, 5000];
 
@@ -63,15 +56,13 @@ function BuyAirtimeContent() {
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const [selectedNetwork, setSelectedNetwork] = useState<string | null>(null);
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [amount, setAmount] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [amount, setAmount] = useState('');
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [showPINModal, setShowPINModal] = useState(false);
   const [showRecipientsSheet, setShowRecipientsSheet] = useState(false);
   const [showContactsSheet, setShowContactsSheet] = useState(false);
-  const [autoDetectedNetwork, setAutoDetectedNetwork] = useState<string | null>(
-    null
-  );
+  const [autoDetectedNetwork, setAutoDetectedNetwork] = useState<string | null>(null);
 
   const [isAutoDetected, setIsAutoDetected] = useState(false);
   const [pendingCashback, setPendingCashback] = useState<{
@@ -83,10 +74,9 @@ function BuyAirtimeContent() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const { mutate: purchaseAirtime, isPending: isPurchasing } =
-    usePurchaseAirtime();
+  const { mutate: purchaseAirtime, isPending: isPurchasing } = usePurchaseAirtime();
 
-  const { data: savedRecipients = [] } = useSavedRecipients("AIRTIME");
+  const { data: savedRecipients = [] } = useSavedRecipients('AIRTIME');
 
   // Cashback hooks
   const { data: cashbackWallet } = useCashbackWallet();
@@ -181,7 +171,7 @@ function BuyAirtimeContent() {
 
       calculateCashback(
         {
-          serviceType: "AIRTIME",
+          serviceType: 'AIRTIME',
           provider: selectedNetwork.toUpperCase(),
           amount: amountValue,
         },
@@ -196,7 +186,7 @@ function BuyAirtimeContent() {
           onError: () => {
             setCashbackToEarn(0);
           },
-        }
+        },
       );
     } else {
       setCashbackToEarn(0);
@@ -208,25 +198,20 @@ function BuyAirtimeContent() {
 
     // Validation
     if (amountValue < 50) {
-      Alert.alert("Invalid Amount", "Minimum amount is ₦50");
+      Alert.alert('Invalid Amount', 'Minimum amount is ₦50');
       return;
     }
 
     if (amountValue > 50000) {
-      Alert.alert("Invalid Amount", "Maximum amount is ₦50,000");
+      Alert.alert('Invalid Amount', 'Maximum amount is ₦50,000');
       return;
     }
 
     // Calculate amount after cashback discount
-    const amountToPay = pendingCashback.use
-      ? amountValue - pendingCashback.amount
-      : amountValue;
+    const amountToPay = pendingCashback.use ? amountValue - pendingCashback.amount : amountValue;
 
     if (amountToPay > balance) {
-      Alert.alert(
-        "Insufficient Balance",
-        "Please fund your wallet to continue"
-      );
+      Alert.alert('Insufficient Balance', 'Please fund your wallet to continue');
       return;
     }
 
@@ -239,10 +224,7 @@ function BuyAirtimeContent() {
     setShowConfirmationModal(true);
   };
 
-  const handleConfirmTransaction = (
-    useCashback: boolean,
-    cashbackAmount: number
-  ) => {
+  const handleConfirmTransaction = (useCashback: boolean, cashbackAmount: number) => {
     setPendingCashback({ use: useCashback, amount: cashbackAmount });
     setShowConfirmationModal(false);
     setShowPINModal(true);
@@ -256,18 +238,16 @@ function BuyAirtimeContent() {
         amount: parseFloat(amount),
         pin,
         useCashback: pendingCashback.use,
-        cashbackAmount: pendingCashback.use
-          ? pendingCashback.amount
-          : undefined,
+        cashbackAmount: pendingCashback.use ? pendingCashback.amount : undefined,
       },
       {
         onSuccess: async (data) => {
           setShowPINModal(false);
           // Invalidate wallet and transactions queries
-          queryClient.invalidateQueries({ queryKey: ["wallet"] });
-          queryClient.invalidateQueries({ queryKey: ["transactions"] });
-          queryClient.invalidateQueries({ queryKey: ["cashback", "wallet"] });
-          queryClient.invalidateQueries({ queryKey: ["cashback", "history"] });
+          queryClient.invalidateQueries({ queryKey: ['wallet'] });
+          queryClient.invalidateQueries({ queryKey: ['transactions'] });
+          queryClient.invalidateQueries({ queryKey: ['cashback', 'wallet'] });
+          queryClient.invalidateQueries({ queryKey: ['cashback', 'history'] });
 
           // Check if user is eligible for rating prompt
           await handleSuccessfulTransaction();
@@ -275,35 +255,31 @@ function BuyAirtimeContent() {
           // Navigate to success screen with transaction data
           const successDetails: TransactionDetail[] = [
             {
-              label: "Network",
+              label: 'Network',
               value:
-                NETWORK_PROVIDERS.find(
-                  (p) => p.code === selectedNetwork?.toLowerCase()
-                )?.name ||
+                NETWORK_PROVIDERS.find((p) => p.code === selectedNetwork?.toLowerCase())?.name ||
                 selectedNetwork ||
-                "",
+                '',
             },
             {
-              label: "Phone Number",
+              label: 'Phone Number',
               value: phoneNumber,
             },
             {
-              label: "Amount",
+              label: 'Amount',
               value: formatCurrency(parseFloat(amount)),
               highlight: true,
             },
           ];
 
           router.push({
-            pathname: "/transaction-success",
+            pathname: '/transaction-success',
             params: {
-              serviceType: "Airtime Purchase",
+              serviceType: 'Airtime Purchase',
               amount: parseFloat(amount).toString(),
-              reference: data.reference || "",
+              reference: data.reference || '',
               cashbackEarned: cashbackToEarn.toString(),
-              cashbackRedeemed: pendingCashback.use
-                ? pendingCashback.amount.toString()
-                : "0",
+              cashbackRedeemed: pendingCashback.use ? pendingCashback.amount.toString() : '0',
               details: JSON.stringify(successDetails),
             },
           });
@@ -311,28 +287,25 @@ function BuyAirtimeContent() {
         onError: () => {
           setShowPINModal(false);
         },
-      }
+      },
     );
   };
 
-  const isFormValid =
-    selectedNetwork && phoneNumber.length === 11 && parseFloat(amount) >= 50;
+  const isFormValid = selectedNetwork && phoneNumber.length === 11 && parseFloat(amount) >= 50;
 
   // Prepare transaction details for confirmation modal
   const transactionDetails: TransactionDetail[] = [
     {
-      label: "Network",
+      label: 'Network',
       value:
-        NETWORK_PROVIDERS.find((p) => p.code === selectedNetwork)?.name ||
-        selectedNetwork ||
-        "",
+        NETWORK_PROVIDERS.find((p) => p.code === selectedNetwork)?.name || selectedNetwork || '',
     },
     {
-      label: "Phone Number",
+      label: 'Phone Number',
       value: phoneNumber,
     },
     {
-      label: "Airtime Amount",
+      label: 'Airtime Amount',
       value: formatCurrency(parseFloat(amount) || 0),
       highlight: true,
     },
@@ -340,10 +313,10 @@ function BuyAirtimeContent() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1 bg-gray-50 dark:bg-gray-900"
     >
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* Header */}
 
@@ -399,8 +372,7 @@ function BuyAirtimeContent() {
           >
             {NETWORK_PROVIDERS.map((provider) => {
               const isSelected = selectedNetwork === provider.code;
-              const isAutoSelected =
-                isAutoDetected && autoDetectedNetwork === provider.code;
+              const isAutoSelected = isAutoDetected && autoDetectedNetwork === provider.code;
 
               return (
                 <TouchableOpacity
@@ -422,11 +394,11 @@ function BuyAirtimeContent() {
                       </Animated.View>
                     )}
                     <Card
-                      variant={isSelected ? "filled" : "elevated"}
+                      variant={isSelected ? 'filled' : 'elevated'}
                       className={`p-4 items-center relative ${
                         isSelected
-                          ? "bg-purple-100 dark:bg-purple-900/30 border-2 border-[#5B55F6]"
-                          : ""
+                          ? 'bg-purple-100 dark:bg-purple-900/30 border-2 border-[#5B55F6]'
+                          : ''
                       }`}
                     >
                       <Image
@@ -462,18 +434,14 @@ function BuyAirtimeContent() {
               <TouchableOpacity
                 key={value}
                 className={`px-4 py-2 w-[18%]  rounded-lg ${
-                  amount === value.toString()
-                    ? "bg-[#5B55F6]"
-                    : "bg-gray-100 dark:bg-gray-700"
+                  amount === value.toString() ? 'bg-[#5B55F6]' : 'bg-gray-100 dark:bg-gray-700'
                 }`}
                 onPress={() => handleQuickAmount(value)}
               >
                 <Text
                   variant="caption"
                   weight="semibold"
-                  className={
-                    amount === value.toString() ? "text-white" : "text-gray-700"
-                  }
+                  className={amount === value.toString() ? 'text-white' : 'text-gray-700'}
                 >
                   ₦{value}
                 </Text>
@@ -483,20 +451,13 @@ function BuyAirtimeContent() {
         </View>
 
         {/* Info Card */}
-        <Card
-          variant="elevated"
-          className="p-4 mb-6 bg-purple-50 dark:bg-purple-900/20"
-        >
+        <Card variant="elevated" className="p-4 mb-6 bg-purple-50 dark:bg-purple-900/20">
           <View className="flex-row items-start">
-            <Ionicons
-              name="information-circle-outline"
-              size={20}
-              color="#8B5CF6"
-            />
+            <Ionicons name="information-circle-outline" size={20} color="#8B5CF6" />
             <View className="ml-3 flex-1">
               <Text variant="caption" color="secondary">
-                • Minimum amount: ₦50{"\n"}• Maximum amount: ₦50,000{"\n"}•
-                Airtime will be sent instantly
+                • Minimum amount: ₦50{'\n'}• Maximum amount: ₦50,000{'\n'}• Airtime will be sent
+                instantly
               </Text>
             </View>
           </View>
@@ -550,10 +511,7 @@ function BuyAirtimeContent() {
       />
 
       {/* Saved Recipients Bottom Sheet */}
-      <BottomSheet
-        visible={showRecipientsSheet}
-        onClose={() => setShowRecipientsSheet(false)}
-      >
+      <BottomSheet visible={showRecipientsSheet} onClose={() => setShowRecipientsSheet(false)}>
         <View className="flex-row justify-between items-start mb-4">
           <View className="flex-1">
             <Text variant="h4" className="mb-1">
@@ -568,11 +526,7 @@ function BuyAirtimeContent() {
             onPress={() => setShowRecipientsSheet(false)}
             className="bg-gray-100 dark:bg-gray-700 p-1 rounded-lg"
           >
-            <Ionicons
-              name="close"
-              size={24}
-              color={isDark ? "#9CA3AF" : "#6B7280"}
-            />
+            <Ionicons name="close" size={24} color={isDark ? '#9CA3AF' : '#6B7280'} />
           </TouchableOpacity>
         </View>
 
@@ -585,17 +539,10 @@ function BuyAirtimeContent() {
         ) : (
           <View className="gap-3">
             {savedRecipients.map((recipient: SavedRecipient) => (
-              <TouchableOpacity
-                key={recipient.id}
-                onPress={() => handleRecipientSelect(recipient)}
-              >
+              <TouchableOpacity key={recipient.id} onPress={() => handleRecipientSelect(recipient)}>
                 <Card variant="elevated" className="p-4">
                   <View className="flex-row items-center">
-                    <Ionicons
-                      name="person-circle-outline"
-                      size={32}
-                      color="#6B7280"
-                    />
+                    <Ionicons name="person-circle-outline" size={32} color="#6B7280" />
                     <View className="ml-3 flex-1">
                       {recipient.recipientName && (
                         <Text
@@ -610,15 +557,10 @@ function BuyAirtimeContent() {
                       <Text variant="body" className="text-gray-700">
                         {recipient.recipient}
                       </Text>
-                      <Text
-                        variant="caption"
-                        color="secondary"
-                        className="mt-1"
-                      >
+                      <Text variant="caption" color="secondary" className="mt-1">
                         {
-                          NETWORK_PROVIDERS.find(
-                            (p) => p.code === recipient.provider.toLowerCase()
-                          )?.name
+                          NETWORK_PROVIDERS.find((p) => p.code === recipient.provider.toLowerCase())
+                            ?.name
                         }
                       </Text>
                     </View>

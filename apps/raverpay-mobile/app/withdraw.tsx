@@ -1,5 +1,5 @@
 // app/withdraw.tsx
-import { SentryErrorBoundary } from "@/src/components/SentryErrorBoundary";
+import { SentryErrorBoundary } from '@/src/components/SentryErrorBoundary';
 import {
   Button,
   Card,
@@ -10,8 +10,8 @@ import {
   Skeleton,
   Text,
   TransactionDetail,
-} from "@/src/components/ui";
-import { useTheme } from "@/src/hooks/useTheme";
+} from '@/src/components/ui';
+import { useTheme } from '@/src/hooks/useTheme';
 import {
   useBanks,
   useResolveAccount,
@@ -19,15 +19,15 @@ import {
   useWithdrawalConfig,
   useWithdrawalPreview,
   type Bank,
-} from "@/src/hooks/useWithdrawal";
-import { formatCurrency } from "@/src/lib/utils/formatters";
-import { checkPinSetOrPrompt } from "@/src/lib/utils/pin-helper";
-import { useUserStore } from "@/src/store/user.store";
-import { useWalletStore } from "@/src/store/wallet.store";
-import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+} from '@/src/hooks/useWithdrawal';
+import { formatCurrency } from '@/src/lib/utils/formatters';
+import { checkPinSetOrPrompt } from '@/src/lib/utils/pin-helper';
+import { useUserStore } from '@/src/store/user.store';
+import { useWalletStore } from '@/src/store/wallet.store';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -37,8 +37,8 @@ import {
   ScrollView,
   TouchableOpacity,
   View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const QUICK_AMOUNTS = [1000, 5000, 10000];
 
@@ -55,23 +55,21 @@ function WithdrawContent() {
   const insets = useSafeAreaInsets();
   const { balance = 0 } = useWalletStore();
   const { hasPinSet, user } = useUserStore(); // Bank withdrawal form state
-  const [amount, setAmount] = useState("");
-  const [accountNumber, setAccountNumber] = useState("");
+  const [amount, setAmount] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
   const [selectedBank, setSelectedBank] = useState<Bank | null>(null);
-  const [accountName, setAccountName] = useState("");
+  const [accountName, setAccountName] = useState('');
   const [showBankModal, setShowBankModal] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [showPINModal, setShowPINModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
 
   // API hooks - Bank Withdrawal
   const { data: config, isPending: loadingConfig } = useWithdrawalConfig();
   const { data: banksData, isLoading: loadingBanks } = useBanks();
   const { mutate: previewFee, data: preview } = useWithdrawalPreview();
-  const { mutate: resolveAccount, isPending: isResolving } =
-    useResolveAccount();
-  const { mutate: withdrawFunds, isPending: isWithdrawing } =
-    useWithdrawFunds();
+  const { mutate: resolveAccount, isPending: isResolving } = useResolveAccount();
+  const { mutate: withdrawFunds, isPending: isWithdrawing } = useWithdrawFunds();
 
   const banks = banksData?.banks || [];
 
@@ -79,10 +77,7 @@ function WithdrawContent() {
   React.useEffect(() => {
     const amountValue = parseFloat(amount);
     if (amountValue && config) {
-      if (
-        amountValue >= config.minWithdrawal &&
-        amountValue <= config.maxWithdrawal
-      ) {
+      if (amountValue >= config.minWithdrawal && amountValue <= config.maxWithdrawal) {
         previewFee(amountValue);
       }
     }
@@ -102,12 +97,12 @@ function WithdrawContent() {
             setAccountName(data.accountName);
           },
           onError: () => {
-            setAccountName("");
+            setAccountName('');
           },
-        }
+        },
       );
     } else {
-      setAccountName("");
+      setAccountName('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountNumber, selectedBank]);
@@ -119,7 +114,7 @@ function WithdrawContent() {
   const handleBankSelect = (bank: Bank) => {
     setSelectedBank(bank);
     setShowBankModal(false);
-    setSearchQuery("");
+    setSearchQuery('');
   };
 
   const handleWithdraw = () => {
@@ -127,51 +122,51 @@ function WithdrawContent() {
 
     // Validations
     if (!config) {
-      Alert.alert("Error", "Unable to load withdrawal configuration");
+      Alert.alert('Error', 'Unable to load withdrawal configuration');
       return;
     }
 
     if (!amountValue || amountValue < config.minWithdrawal) {
       Alert.alert(
-        "Invalid Amount",
-        `Minimum withdrawal is ${formatCurrency(config.minWithdrawal)}`
+        'Invalid Amount',
+        `Minimum withdrawal is ${formatCurrency(config.minWithdrawal)}`,
       );
       return;
     }
 
     if (amountValue > config.maxWithdrawal) {
       Alert.alert(
-        "Invalid Amount",
-        `Maximum withdrawal is ${formatCurrency(config.maxWithdrawal)}`
+        'Invalid Amount',
+        `Maximum withdrawal is ${formatCurrency(config.maxWithdrawal)}`,
       );
       return;
     }
 
     if (!preview) {
-      Alert.alert("Error", "Please wait for fee calculation");
+      Alert.alert('Error', 'Please wait for fee calculation');
       return;
     }
 
     if (preview.totalDebit > balance) {
       Alert.alert(
-        "Insufficient Balance",
-        `You need ${formatCurrency(preview.totalDebit)} (including fee) but have ${formatCurrency(balance)}`
+        'Insufficient Balance',
+        `You need ${formatCurrency(preview.totalDebit)} (including fee) but have ${formatCurrency(balance)}`,
       );
       return;
     }
 
     if (!selectedBank) {
-      Alert.alert("Error", "Please select a bank");
+      Alert.alert('Error', 'Please select a bank');
       return;
     }
 
     if (accountNumber.length !== 10) {
-      Alert.alert("Error", "Please enter a valid 10-digit account number");
+      Alert.alert('Error', 'Please enter a valid 10-digit account number');
       return;
     }
 
     if (!accountName) {
-      Alert.alert("Error", "Account name could not be verified");
+      Alert.alert('Error', 'Account name could not be verified');
       return;
     }
 
@@ -207,41 +202,41 @@ function WithdrawContent() {
           // Navigate to success screen with transaction data
           const successDetails: TransactionDetail[] = [
             {
-              label: "Bank",
+              label: 'Bank',
               value: selectedBank.name,
             },
             {
-              label: "Account Number",
+              label: 'Account Number',
               value: accountNumber,
             },
             {
-              label: "Account Name",
+              label: 'Account Name',
               value: accountName,
             },
             {
-              label: "Withdrawal Amount",
+              label: 'Withdrawal Amount',
               value: formatCurrency(parseFloat(amount)),
               highlight: true,
             },
             {
-              label: "Processing Fee",
+              label: 'Processing Fee',
               value: formatCurrency(preview.fee),
             },
             {
-              label: "Total Debit",
+              label: 'Total Debit',
               value: formatCurrency(preview.totalDebit),
               highlight: true,
             },
           ];
 
           router.push({
-            pathname: "/transaction-success",
+            pathname: '/transaction-success',
             params: {
-              serviceType: "Bank Withdrawal",
+              serviceType: 'Bank Withdrawal',
               amount: preview.totalDebit.toString(),
-              reference: data.reference || "",
-              cashbackEarned: "0",
-              cashbackRedeemed: "0",
+              reference: data.reference || '',
+              cashbackEarned: '0',
+              cashbackRedeemed: '0',
               details: JSON.stringify(successDetails),
             },
           });
@@ -249,12 +244,12 @@ function WithdrawContent() {
         onError: () => {
           setShowPINModal(false);
         },
-      }
+      },
     );
   };
 
   const filteredBanks = banks.filter((bank) =>
-    bank.name.toLowerCase().includes(searchQuery.toLowerCase())
+    bank.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const isFormValid =
@@ -268,28 +263,28 @@ function WithdrawContent() {
   // Prepare transaction details for confirmation modal
   const transactionDetails: TransactionDetail[] = [
     {
-      label: "Bank",
-      value: selectedBank?.name || "",
+      label: 'Bank',
+      value: selectedBank?.name || '',
     },
     {
-      label: "Account Number",
+      label: 'Account Number',
       value: accountNumber,
     },
     {
-      label: "Account Name",
+      label: 'Account Name',
       value: accountName,
     },
     {
-      label: "Withdrawal Amount",
+      label: 'Withdrawal Amount',
       value: formatCurrency(parseFloat(amount) || 0),
       highlight: true,
     },
     {
-      label: "Processing Fee",
+      label: 'Processing Fee',
       value: formatCurrency(preview?.fee || 0),
     },
     {
-      label: "Total Debit",
+      label: 'Total Debit',
       value: formatCurrency(preview?.totalDebit || 0),
       highlight: true,
     },
@@ -297,10 +292,10 @@ function WithdrawContent() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1 bg-gray-50 dark:bg-gray-900"
     >
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       <ScreenHeader title="Withdraw" subtitle={balance} />
 
@@ -338,11 +333,7 @@ function WithdrawContent() {
         <View className="flex-row bg-gray-200 dark:bg-gray-700 rounded-xl p-1 mb-6">
           <TouchableOpacity className="flex-1">
             <View className="py-3 rounded-lg bg-white dark:bg-gray-800">
-              <Text
-                variant="bodyMedium"
-                weight="semibold"
-                className="text-center text-[#5B55F6]"
-              >
+              <Text variant="bodyMedium" weight="semibold" className="text-center text-[#5B55F6]">
                 To Bank
               </Text>
             </View>
@@ -352,20 +343,20 @@ function WithdrawContent() {
               // Check if user has set tag
               if (!user?.tag) {
                 Alert.alert(
-                  "Set Your @username",
-                  "Choose your @username to send money to other users",
+                  'Set Your @username',
+                  'Choose your @username to send money to other users',
                   [
-                    { text: "Cancel", style: "cancel" },
+                    { text: 'Cancel', style: 'cancel' },
                     {
-                      text: "Set Username",
-                      onPress: () => router.push("/set-tag"),
+                      text: 'Set Username',
+                      onPress: () => router.push('/set-tag'),
                     },
-                  ]
+                  ],
                 );
                 return;
               }
               // Navigate to the existing send-p2p screen
-              router.push("/send-p2p");
+              router.push('/send-p2p');
             }}
             className="flex-1"
           >
@@ -409,11 +400,9 @@ function WithdrawContent() {
                 className="flex-1 min-w-[30%]"
               >
                 <Card
-                  variant={amount === value.toString() ? "filled" : "elevated"}
+                  variant={amount === value.toString() ? 'filled' : 'elevated'}
                   className={`p-3 items-center ${
-                    amount === value.toString()
-                      ? "bg-purple-100 border-2 border-[#5B55F6]"
-                      : ""
+                    amount === value.toString() ? 'bg-purple-100 border-2 border-[#5B55F6]' : ''
                   }`}
                 >
                   <Text variant="caption" weight="semibold">
@@ -438,9 +427,7 @@ function WithdrawContent() {
                   <Text variant="caption" color="secondary">
                     Withdrawal Amount
                   </Text>
-                  <Text variant="bodyMedium">
-                    {formatCurrency(preview.amount)}
-                  </Text>
+                  <Text variant="bodyMedium">{formatCurrency(preview.amount)}</Text>
                 </View>
                 <View className="flex-row justify-between">
                   <Text variant="caption" color="secondary">
@@ -568,7 +555,7 @@ function WithdrawContent() {
         >
           {isFormValid && preview && preview.amountToReceive
             ? `Withdraw ${formatCurrency(preview.amountToReceive)}`
-            : "Withdraw"}
+            : 'Withdraw'}
         </Button>
       </View>
 
@@ -584,11 +571,7 @@ function WithdrawContent() {
             <View className="flex-row items-center justify-between mb-4">
               <Text variant="h3">Select Bank</Text>
               <TouchableOpacity onPress={() => setShowBankModal(false)}>
-                <Ionicons
-                  name="close"
-                  size={24}
-                  color={isDark ? "#FFFFFF" : "#111827"}
-                />
+                <Ionicons name="close" size={24} color={isDark ? '#FFFFFF' : '#111827'} />
               </TouchableOpacity>
             </View>
 

@@ -1,12 +1,12 @@
 // app/debug-sentry.tsx
-import { Button, Card, ScreenHeader, Text } from "@/src/components/ui";
-import { useTheme } from "@/src/hooks/useTheme";
-import * as Sentry from "@sentry/react-native";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React from "react";
-import { Alert, ScrollView, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Button, Card, ScreenHeader, Text } from '@/src/components/ui';
+import { useTheme } from '@/src/hooks/useTheme';
+import * as Sentry from '@sentry/react-native';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React from 'react';
+import { Alert, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function DebugSentryScreen() {
   const { isDark } = useTheme();
@@ -15,55 +15,46 @@ export default function DebugSentryScreen() {
   // Test 1: Simple error
   const testSimpleError = () => {
     try {
-      throw new Error("Test Error: This is a manual test error");
+      throw new Error('Test Error: This is a manual test error');
     } catch (error) {
       Sentry.captureException(error);
-      Alert.alert(
-        "Error Captured",
-        "Check your Sentry dashboard for the error"
-      );
+      Alert.alert('Error Captured', 'Check your Sentry dashboard for the error');
     }
   };
 
   // Test 2: Error with context
   const testErrorWithContext = () => {
     try {
-      Sentry.setContext("test_action", {
-        action: "button_click",
-        screen: "debug-sentry",
+      Sentry.setContext('test_action', {
+        action: 'button_click',
+        screen: 'debug-sentry',
         timestamp: new Date().toISOString(),
       });
-      throw new Error("Test Error with Context");
+      throw new Error('Test Error with Context');
     } catch (error) {
       Sentry.captureException(error);
-      Alert.alert(
-        "Error with Context Captured",
-        "Check Sentry for additional context data"
-      );
+      Alert.alert('Error with Context Captured', 'Check Sentry for additional context data');
     }
   };
 
   // Test 3: Custom message
   const testCustomMessage = () => {
-    Sentry.captureMessage("Test Message: User clicked test button", "info");
-    Alert.alert("Message Sent", "Check Sentry for the custom message");
+    Sentry.captureMessage('Test Message: User clicked test button', 'info');
+    Alert.alert('Message Sent', 'Check Sentry for the custom message');
   };
 
   // Test 4: Error with user context
   const testWithUserContext = () => {
     try {
       Sentry.setUser({
-        id: "test-user-123",
-        email: "test@example.com",
-        username: "testuser",
+        id: 'test-user-123',
+        email: 'test@example.com',
+        username: 'testuser',
       });
-      throw new Error("Test Error with User Context");
+      throw new Error('Test Error with User Context');
     } catch (error) {
       Sentry.captureException(error);
-      Alert.alert(
-        "Error with User Captured",
-        "Check Sentry for user information"
-      );
+      Alert.alert('Error with User Captured', 'Check Sentry for user information');
     }
   };
 
@@ -71,40 +62,37 @@ export default function DebugSentryScreen() {
   const testBreadcrumbs = () => {
     try {
       Sentry.addBreadcrumb({
-        category: "navigation",
-        message: "User navigated to debug screen",
-        level: "info",
+        category: 'navigation',
+        message: 'User navigated to debug screen',
+        level: 'info',
       });
 
       Sentry.addBreadcrumb({
-        category: "action",
-        message: "User clicked test button",
-        level: "info",
+        category: 'action',
+        message: 'User clicked test button',
+        level: 'info',
         data: {
-          button: "breadcrumbs-test",
+          button: 'breadcrumbs-test',
         },
       });
 
-      throw new Error("Test Error with Breadcrumbs");
+      throw new Error('Test Error with Breadcrumbs');
     } catch (error) {
       Sentry.captureException(error);
-      Alert.alert(
-        "Error with Breadcrumbs Captured",
-        "Check Sentry for breadcrumb trail"
-      );
+      Alert.alert('Error with Breadcrumbs Captured', 'Check Sentry for breadcrumb trail');
     }
   };
 
   // Test 6: Crash the app (use carefully!)
   const testCrash = () => {
-    Alert.alert("Warning", "This will crash the app. Are you sure?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert('Warning', 'This will crash the app. Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
       {
-        text: "Crash",
-        style: "destructive",
+        text: 'Crash',
+        style: 'destructive',
         onPress: () => {
           // This will cause an unhandled error that crashes the app
-          throw new Error("Intentional Crash for Testing");
+          throw new Error('Intentional Crash for Testing');
         },
       },
     ]);
@@ -114,23 +102,19 @@ export default function DebugSentryScreen() {
   const checkSentryStatus = () => {
     const isEnabled = !__DEV__; // Based on your config
     Alert.alert(
-      "Sentry Status",
-      `Environment: ${__DEV__ ? "Development" : "Production"}\n` +
-        `Sentry Enabled: ${isEnabled ? "Yes" : "No"}\n` +
-        `Debug Mode: ${__DEV__ ? "Yes" : "No"}\n\n` +
+      'Sentry Status',
+      `Environment: ${__DEV__ ? 'Development' : 'Production'}\n` +
+        `Sentry Enabled: ${isEnabled ? 'Yes' : 'No'}\n` +
+        `Debug Mode: ${__DEV__ ? 'Yes' : 'No'}\n\n` +
         `Note: Sentry is disabled in development by default. ` +
-        `Set SENTRY_ENABLED=true or build for production to test.`
+        `Set SENTRY_ENABLED=true or build for production to test.`,
     );
   };
 
   return (
     <View className="flex-1 bg-white dark:bg-gray-950">
-      <StatusBar style={isDark ? "light" : "dark"} />
-      <ScreenHeader
-        title="Sentry Debug"
-        showBack
-        onBackPress={() => router.back()}
-      />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <ScreenHeader title="Sentry Debug" onBack={() => router.back()} />
 
       <ScrollView
         className="flex-1"
@@ -141,9 +125,7 @@ export default function DebugSentryScreen() {
         }}
       >
         <Card className="mb-4 p-4">
-          <Text className="text-base font-semibold mb-2">
-            Sentry Error Tracking Test
-          </Text>
+          <Text className="text-base font-semibold mb-2">Sentry Error Tracking Test</Text>
           <Text className="text-sm text-gray-600 dark:text-gray-400 mb-2">
             Use these buttons to test Sentry error tracking and monitoring.
           </Text>
@@ -186,7 +168,7 @@ export default function DebugSentryScreen() {
             Test 5: Error with Breadcrumbs
           </Button>
 
-          <Button variant="destructive" onPress={testCrash}>
+          <Button variant="primary" onPress={testCrash}>
             Test 6: Crash App (Dangerous!)
           </Button>
         </View>
@@ -199,7 +181,7 @@ export default function DebugSentryScreen() {
             1. Go to your Sentry dashboard
           </Text>
           <Text className="text-xs text-blue-800 dark:text-blue-200 mb-1">
-            2. Select your project: {"{your-project-name}"}
+            2. Select your project: {'{your-project-name}'}
           </Text>
           <Text className="text-xs text-blue-800 dark:text-blue-200 mb-1">
             3. Check Issues → All Issues

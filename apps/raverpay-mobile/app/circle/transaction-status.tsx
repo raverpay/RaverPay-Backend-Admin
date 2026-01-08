@@ -1,18 +1,18 @@
 // app/circle/transaction-status.tsx
-import { Button, Card, Text } from "@/src/components/ui";
+import { Button, Card, Text } from '@/src/components/ui';
 import {
   useAccelerateTransaction,
   useCCTPTransfer_Single,
   useCircleTransaction,
-} from "@/src/hooks/useCircleWallet";
-import { useTheme } from "@/src/hooks/useTheme";
-import { CCTPTransferState } from "@/src/types/circle.types";
-import { Ionicons } from "@expo/vector-icons";
-import { router, Stack, useLocalSearchParams } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useEffect } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+} from '@/src/hooks/useCircleWallet';
+import { useTheme } from '@/src/hooks/useTheme';
+import { CCTPTransferState } from '@/src/types/circle.types';
+import { Ionicons } from '@expo/vector-icons';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect } from 'react';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TransactionStatusScreen() {
   const { isDark } = useTheme();
@@ -22,19 +22,19 @@ export default function TransactionStatusScreen() {
     type?: string;
   }>();
 
-  const isCCTP = type === "CCTP";
+  const isCCTP = type === 'CCTP';
 
   const {
     data: circleTx,
     isLoading: isLoadingTx,
     refetch: refetchTx,
-  } = useCircleTransaction(transactionId || "", { enabled: !isCCTP });
+  } = useCircleTransaction(transactionId || '', { enabled: !isCCTP });
 
   const {
     data: cctpTx,
     isLoading: isLoadingCCTP,
     refetch: refetchCCTP,
-  } = useCCTPTransfer_Single(transactionId || "", { enabled: isCCTP });
+  } = useCCTPTransfer_Single(transactionId || '', { enabled: isCCTP });
 
   // Select data based on type
   const transaction = isCCTP ? cctpTx : circleTx;
@@ -52,17 +52,16 @@ export default function TransactionStatusScreen() {
 
     if (isCCTP) {
       const state = transaction.state as CCTPTransferState;
-      isCompleting =
-        state !== "COMPLETE" && state !== "FAILED" && state !== "CANCELLED";
+      isCompleting = state !== 'COMPLETE' && state !== 'FAILED' && state !== 'CANCELLED';
     } else {
       const state = transaction.state;
       isCompleting =
-        state === "INITIATED" ||
-        state === "QUEUED" ||
-        state === "SENT" ||
-        state === "CONFIRMED" ||
-        state === "CLEARED" ||
-        state === "STUCK";
+        state === 'INITIATED' ||
+        state === 'QUEUED' ||
+        state === 'SENT' ||
+        state === 'CONFIRMED' ||
+        state === 'CLEARED' ||
+        state === 'STUCK';
     }
 
     if (isCompleting) {
@@ -88,7 +87,7 @@ export default function TransactionStatusScreen() {
   if (isLoading || !transaction) {
     return (
       <>
-        <StatusBar style={isDark ? "light" : "dark"} />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
         <View className="flex-1 bg-gray-50 dark:bg-gray-900 justify-center items-center">
           <ActivityIndicator size="large" color="#5B55F6" />
           <Text variant="body" color="secondary" className="mt-4">
@@ -103,185 +102,179 @@ export default function TransactionStatusScreen() {
     if (isCCTP) {
       const state = transaction.state as CCTPTransferState;
       switch (state) {
-        case "INITIATED":
+        case 'INITIATED':
           return {
-            icon: "time-outline" as const,
-            color: "#F59E0B",
-            title: "Bridge Initiated",
-            description: "Your cross-chain transfer has been started.",
+            icon: 'time-outline' as const,
+            color: '#F59E0B',
+            title: 'Bridge Initiated',
+            description: 'Your cross-chain transfer has been started.',
             progress: 10,
           };
-        case "BURN_PENDING":
+        case 'BURN_PENDING':
           return {
-            icon: "flame-outline" as const,
-            color: "#F59E0B",
-            title: "Burning USDC",
-            description: "Burning funds on the source chain...",
+            icon: 'flame-outline' as const,
+            color: '#F59E0B',
+            title: 'Burning USDC',
+            description: 'Burning funds on the source chain...',
             progress: 25,
           };
-        case "BURN_CONFIRMED":
+        case 'BURN_CONFIRMED':
           return {
-            icon: "checkmark-circle-outline" as const,
-            color: "#3B82F6",
-            title: "Burn Confirmed",
-            description: "Funds burned. Waiting for attestation...",
+            icon: 'checkmark-circle-outline' as const,
+            color: '#3B82F6',
+            title: 'Burn Confirmed',
+            description: 'Funds burned. Waiting for attestation...',
             progress: 40,
           };
-        case "ATTESTATION_PENDING":
+        case 'ATTESTATION_PENDING':
           return {
-            icon: "shield-checkmark-outline" as const,
-            color: "#3B82F6",
-            title: "Verifying",
-            description: "Circle is verifying the transfer across chains...",
+            icon: 'shield-checkmark-outline' as const,
+            color: '#3B82F6',
+            title: 'Verifying',
+            description: 'Circle is verifying the transfer across chains...',
             progress: 60,
           };
-        case "ATTESTATION_RECEIVED":
+        case 'ATTESTATION_RECEIVED':
           return {
-            icon: "shield-checkmark" as const,
-            color: "#3B82F6",
-            title: "Attestation Received",
-            description: "Verification complete. Preparing to mint...",
+            icon: 'shield-checkmark' as const,
+            color: '#3B82F6',
+            title: 'Attestation Received',
+            description: 'Verification complete. Preparing to mint...',
             progress: 75,
           };
-        case "MINT_PENDING":
+        case 'MINT_PENDING':
           return {
-            icon: "download-outline" as const,
-            color: "#3B82F6",
-            title: "Minting USDC",
-            description: "Minting your funds on the destination chain...",
+            icon: 'download-outline' as const,
+            color: '#3B82F6',
+            title: 'Minting USDC',
+            description: 'Minting your funds on the destination chain...',
             progress: 90,
           };
-        case "COMPLETE":
+        case 'COMPLETE':
           return {
-            icon: "checkmark-circle" as const,
-            color: "#10B981",
-            title: "Bridging Complete",
-            description: "Your USDC has been successfully bridged!",
+            icon: 'checkmark-circle' as const,
+            color: '#10B981',
+            title: 'Bridging Complete',
+            description: 'Your USDC has been successfully bridged!',
             progress: 100,
           };
-        case "FAILED":
+        case 'FAILED':
           return {
-            icon: "close-circle" as const,
-            color: "#EF4444",
-            title: "Bridging Failed",
-            description:
-              "The transfer failed. Please try again or contact support.",
+            icon: 'close-circle' as const,
+            color: '#EF4444',
+            title: 'Bridging Failed',
+            description: 'The transfer failed. Please try again or contact support.',
             progress: 0,
           };
-        case "CANCELLED":
+        case 'CANCELLED':
           return {
-            icon: "ban" as const,
-            color: "#6B7280",
-            title: "Bridging Cancelled",
-            description: "This transfer was cancelled.",
+            icon: 'ban' as const,
+            color: '#6B7280',
+            title: 'Bridging Cancelled',
+            description: 'This transfer was cancelled.',
             progress: 0,
           };
         default:
           return {
-            icon: "help-circle-outline" as const,
-            color: "#9CA3AF",
-            title: "Unknown Status",
-            description: "Transfer status is unknown.",
+            icon: 'help-circle-outline' as const,
+            color: '#9CA3AF',
+            title: 'Unknown Status',
+            description: 'Transfer status is unknown.',
             progress: 0,
           };
       }
     } else {
       // Standard Transaction
       switch (transaction.state) {
-        case "INITIATED":
+        case 'INITIATED':
           return {
-            icon: "time-outline" as const,
-            color: "#F59E0B",
-            title: "Transaction Initiated",
-            description:
-              "Your transaction has been created and is being prepared for submission.",
+            icon: 'time-outline' as const,
+            color: '#F59E0B',
+            title: 'Transaction Initiated',
+            description: 'Your transaction has been created and is being prepared for submission.',
             progress: 20,
           };
-        case "QUEUED":
+        case 'QUEUED':
           return {
-            icon: "hourglass-outline" as const,
-            color: "#F59E0B",
-            title: "Transaction Queued",
+            icon: 'hourglass-outline' as const,
+            color: '#F59E0B',
+            title: 'Transaction Queued',
             description:
-              "Your transaction is queued and will be submitted to the blockchain shortly.",
+              'Your transaction is queued and will be submitted to the blockchain shortly.',
             progress: 30,
           };
-        case "CLEARED":
+        case 'CLEARED':
           return {
-            icon: "checkmark-outline" as const,
-            color: "#3B82F6",
-            title: "Transaction Cleared",
-            description:
-              "Transaction has been cleared for blockchain submission.",
+            icon: 'checkmark-outline' as const,
+            color: '#3B82F6',
+            title: 'Transaction Cleared',
+            description: 'Transaction has been cleared for blockchain submission.',
             progress: 40,
           };
-        case "SENT":
+        case 'SENT':
           return {
-            icon: "paper-plane-outline" as const,
-            color: "#3B82F6",
-            title: "Transaction Sent",
+            icon: 'paper-plane-outline' as const,
+            color: '#3B82F6',
+            title: 'Transaction Sent',
             description:
-              "Your transaction has been sent to the blockchain and is awaiting confirmation.",
+              'Your transaction has been sent to the blockchain and is awaiting confirmation.',
             progress: 60,
           };
-        case "CONFIRMED":
+        case 'CONFIRMED':
           return {
-            icon: "checkmark-done-outline" as const,
-            color: "#3B82F6",
-            title: "Transaction Confirmed",
+            icon: 'checkmark-done-outline' as const,
+            color: '#3B82F6',
+            title: 'Transaction Confirmed',
             description:
-              "Your transaction has been confirmed on the blockchain. Waiting for completion.",
+              'Your transaction has been confirmed on the blockchain. Waiting for completion.',
             progress: 80,
           };
-        case "COMPLETE":
+        case 'COMPLETE':
           return {
-            icon: "checkmark-circle" as const,
-            color: "#10B981",
-            title: "Transaction Complete",
-            description:
-              "Your transaction has been successfully completed and finalized!",
+            icon: 'checkmark-circle' as const,
+            color: '#10B981',
+            title: 'Transaction Complete',
+            description: 'Your transaction has been successfully completed and finalized!',
             progress: 100,
           };
-        case "FAILED":
+        case 'FAILED':
           return {
-            icon: "close-circle" as const,
-            color: "#EF4444",
-            title: "Transaction Failed",
-            description:
-              "Your transaction failed to complete. Please try again.",
+            icon: 'close-circle' as const,
+            color: '#EF4444',
+            title: 'Transaction Failed',
+            description: 'Your transaction failed to complete. Please try again.',
             progress: 0,
           };
-        case "CANCELLED":
+        case 'CANCELLED':
           return {
-            icon: "ban" as const,
-            color: "#6B7280",
-            title: "Transaction Cancelled",
-            description: "This transaction was cancelled.",
+            icon: 'ban' as const,
+            color: '#6B7280',
+            title: 'Transaction Cancelled',
+            description: 'This transaction was cancelled.',
             progress: 0,
           };
-        case "STUCK":
+        case 'STUCK':
           return {
-            icon: "alert-circle" as const,
-            color: "#F59E0B",
-            title: "Transaction Stuck",
-            description:
-              "Your transaction appears to be stuck. You may need to accelerate it.",
+            icon: 'alert-circle' as const,
+            color: '#F59E0B',
+            title: 'Transaction Stuck',
+            description: 'Your transaction appears to be stuck. You may need to accelerate it.',
             progress: 60,
           };
-        case "DENIED":
+        case 'DENIED':
           return {
-            icon: "close-circle" as const,
-            color: "#EF4444",
-            title: "Transaction Denied",
-            description: "Your transaction was denied.",
+            icon: 'close-circle' as const,
+            color: '#EF4444',
+            title: 'Transaction Denied',
+            description: 'Your transaction was denied.',
             progress: 0,
           };
         default:
           return {
-            icon: "help-circle-outline" as const,
-            color: "#9CA3AF",
-            title: "Unknown Status",
-            description: "Transaction status is unknown.",
+            icon: 'help-circle-outline' as const,
+            color: '#9CA3AF',
+            title: 'Unknown Status',
+            description: 'Transaction status is unknown.',
             progress: 0,
           };
       }
@@ -289,17 +282,17 @@ export default function TransactionStatusScreen() {
   };
 
   const stateInfo = getStateInfo();
-  const isComplete = transaction.state === "COMPLETE";
+  const isComplete = transaction.state === 'COMPLETE';
   const isFailed =
-    transaction.state === "FAILED" ||
-    transaction.state === "CANCELLED" ||
-    transaction.state === "DENIED";
-  const isStuck = !isCCTP && transaction.state === "STUCK";
+    transaction.state === 'FAILED' ||
+    transaction.state === 'CANCELLED' ||
+    transaction.state === 'DENIED';
+  const isStuck = !isCCTP && transaction.state === 'STUCK';
 
   // Normalize data fields
   const amount = isCCTP
-    ? parseFloat((transaction as any).amount || "0")
-    : parseFloat((transaction as any).amounts?.[0] || "0");
+    ? parseFloat((transaction as any).amount || '0')
+    : parseFloat((transaction as any).amounts?.[0] || '0');
 
   const destinationAddress = transaction.destinationAddress;
   const blockchain = isCCTP
@@ -318,16 +311,13 @@ export default function TransactionStatusScreen() {
           gestureEnabled: false, // Disable swipe back gesture
         }}
       />
-      <StatusBar style={isDark ? "light" : "dark"} />
-      <View
-        className="flex-1 bg-gray-50 dark:bg-gray-900"
-        style={{ paddingTop: insets.top }}
-      >
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <View className="flex-1 bg-gray-50 dark:bg-gray-900" style={{ paddingTop: insets.top }}>
         <ScrollView className="flex-1">
           {/* Header */}
           <View className="px-6 py-4">
             <Text variant="h4" weight="bold" className="dark:text-white">
-              {isCCTP ? "Bridge Status" : "Transaction Status"}
+              {isCCTP ? 'Bridge Status' : 'Transaction Status'}
             </Text>
           </View>
 
@@ -339,11 +329,7 @@ export default function TransactionStatusScreen() {
                 className="w-24 h-24 rounded-full items-center justify-center mb-4"
                 style={{ backgroundColor: `${stateInfo.color}20` }}
               >
-                <Ionicons
-                  name={stateInfo.icon}
-                  size={48}
-                  color={stateInfo.color}
-                />
+                <Ionicons name={stateInfo.icon} size={48} color={stateInfo.color} />
               </View>
 
               {/* Status Title */}
@@ -352,12 +338,7 @@ export default function TransactionStatusScreen() {
               </Text>
 
               {/* Status Description */}
-              <Text
-                variant="body"
-                color="secondary"
-                align="center"
-                className="mb-4"
-              >
+              <Text variant="body" color="secondary" align="center" className="mb-4">
                 {stateInfo.description}
               </Text>
 
@@ -402,10 +383,7 @@ export default function TransactionStatusScreen() {
                 <Text variant="caption" color="secondary" className="mb-1">
                   Reference ID
                 </Text>
-                <Text
-                  variant="body"
-                  className="dark:text-white font-mono text-xs"
-                >
+                <Text variant="body" className="dark:text-white font-mono text-xs">
                   {reference}
                 </Text>
               </View>
@@ -425,7 +403,7 @@ export default function TransactionStatusScreen() {
               {/* To Address */}
               <View className="p-4 border-b border-gray-200 dark:border-gray-700">
                 <Text variant="caption" color="secondary" className="mb-1">
-                  {isCCTP ? "Destination Address" : "To Address"}
+                  {isCCTP ? 'Destination Address' : 'To Address'}
                 </Text>
                 <Text
                   variant="bodyMedium"
@@ -440,7 +418,7 @@ export default function TransactionStatusScreen() {
               {/* Blockchain */}
               <View className="p-4 border-b border-gray-200 dark:border-gray-700">
                 <Text variant="caption" color="secondary" className="mb-1">
-                  {isCCTP ? "To Network" : "Blockchain"}
+                  {isCCTP ? 'To Network' : 'Blockchain'}
                 </Text>
                 <Text variant="body" className="dark:text-white">
                   {blockchain}
@@ -454,10 +432,10 @@ export default function TransactionStatusScreen() {
                 <View className="p-4 border-b border-gray-200 dark:border-gray-700">
                   <Text variant="caption" color="secondary" className="mb-1">
                     {(transaction as any).mintTxHash
-                      ? "Mint Hash"
+                      ? 'Mint Hash'
                       : (transaction as any).burnTxHash
-                        ? "Burn Hash"
-                        : "Transaction Hash"}
+                        ? 'Burn Hash'
+                        : 'Transaction Hash'}
                   </Text>
                   <Text
                     variant="bodyMedium"
@@ -479,8 +457,7 @@ export default function TransactionStatusScreen() {
                     Network Fee
                   </Text>
                   <Text variant="body" className="dark:text-white">
-                    {parseFloat((transaction as any).networkFee).toFixed(6)}{" "}
-                    Native
+                    {parseFloat((transaction as any).networkFee).toFixed(6)} Native
                   </Text>
                 </View>
               )}
@@ -515,10 +492,7 @@ export default function TransactionStatusScreen() {
                   <Text variant="caption" className="text-red-500 mb-1">
                     Error
                   </Text>
-                  <Text
-                    variant="body"
-                    className="text-red-600 dark:text-red-400"
-                  >
+                  <Text variant="body" className="text-red-600 dark:text-red-400">
                     {(transaction as any).errorReason}
                   </Text>
                 </View>
@@ -526,8 +500,7 @@ export default function TransactionStatusScreen() {
 
               {/* Memo */}
               {(transaction as any).refId &&
-                (transaction as any).refId !==
-                  (transaction as any).reference && (
+                (transaction as any).refId !== (transaction as any).reference && (
                   <View className="p-4">
                     <Text variant="caption" color="secondary" className="mb-1">
                       Memo
@@ -569,12 +542,9 @@ export default function TransactionStatusScreen() {
                     >
                       Transaction Stuck
                     </Text>
-                    <Text
-                      variant="caption"
-                      className="text-yellow-700 dark:text-yellow-300"
-                    >
-                      Your transaction appears to be stuck. You can accelerate
-                      it to speed up processing.
+                    <Text variant="caption" className="text-yellow-700 dark:text-yellow-300">
+                      Your transaction appears to be stuck. You can accelerate it to speed up
+                      processing.
                     </Text>
                   </View>
                 </View>
@@ -594,7 +564,7 @@ export default function TransactionStatusScreen() {
                 variant="primary"
                 size="lg"
                 fullWidth
-                onPress={() => router.replace("/(tabs)/circle-wallet")}
+                onPress={() => router.replace('/circle')}
                 className="mb-3"
               >
                 Back to Wallet
@@ -605,7 +575,7 @@ export default function TransactionStatusScreen() {
                 fullWidth
                 onPress={() =>
                   router.push(
-                    `/circle/transaction-details?id=${transaction.id}&type=${isCCTP ? "CCTP" : "STANDARD"}`
+                    `/circle/transaction-details?id=${transaction.id}&type=${isCCTP ? 'CCTP' : 'STANDARD'}`,
                   )
                 }
               >
@@ -620,9 +590,7 @@ export default function TransactionStatusScreen() {
                 variant="primary"
                 size="lg"
                 fullWidth
-                onPress={() =>
-                  router.replace(isCCTP ? "/circle/bridge" : "/circle/send")
-                }
+                onPress={() => router.replace(isCCTP ? '/circle/bridge' : '/circle/send')}
                 className="mb-3"
               >
                 Try Again
@@ -631,7 +599,7 @@ export default function TransactionStatusScreen() {
                 variant="outline"
                 size="lg"
                 fullWidth
-                onPress={() => router.replace("/(tabs)/circle-wallet")}
+                onPress={() => router.replace('/circle')}
               >
                 Back to Wallet
               </Button>
@@ -655,7 +623,7 @@ export default function TransactionStatusScreen() {
                 variant="outline"
                 size="lg"
                 fullWidth
-                onPress={() => router.replace("/(tabs)/circle-wallet")}
+                onPress={() => router.replace('/circle')}
                 disabled={isAccelerating}
               >
                 Back to Wallet
@@ -664,12 +632,7 @@ export default function TransactionStatusScreen() {
           )}
 
           {!isComplete && !isFailed && !isStuck && (
-            <Button
-              variant="outline"
-              size="lg"
-              fullWidth
-              onPress={() => router.replace("/(tabs)/circle-wallet")}
-            >
+            <Button variant="outline" size="lg" fullWidth onPress={() => router.replace('/circle')}>
               Back to Wallet
             </Button>
           )}

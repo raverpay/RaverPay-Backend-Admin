@@ -1,18 +1,13 @@
 // app/virtual-account/success.tsx
-import { Button } from "@/src/components/ui/Button";
-import { Text } from "@/src/components/ui/Text";
-import { toast } from "@/src/lib/utils/toast";
-import { Ionicons } from "@expo/vector-icons";
-import * as Clipboard from "expo-clipboard";
+import { Button } from '@/src/components/ui/Button';
+import { Text } from '@/src/components/ui/Text';
+import { toast } from '@/src/lib/utils/toast';
+import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 
-import {
-  router,
-  Stack,
-  useFocusEffect,
-  useLocalSearchParams,
-} from "expo-router";
-import React, { useCallback } from "react";
-import { BackHandler, ScrollView, TouchableOpacity, View } from "react-native";
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import React, { useCallback } from 'react';
+import { BackHandler, ScrollView, TouchableOpacity, View } from 'react-native';
 
 export default function SuccessScreen() {
   const params = useLocalSearchParams<{
@@ -25,29 +20,26 @@ export default function SuccessScreen() {
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
-        router.replace("/fund-wallet");
+        router.replace('/fund-wallet');
         return true; // Prevent default back behavior
       };
 
       // Android hardware back button
-      const backHandler = BackHandler.addEventListener(
-        "hardwareBackPress",
-        onBackPress
-      );
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
 
       return () => backHandler.remove();
-    }, [])
+    }, []),
   );
 
   const handleClose = () => {
-    router.replace("/fund-wallet");
+    router.replace('/fund-wallet');
   };
 
   const handleCopyAccountNumber = async () => {
     await Clipboard.setStringAsync(params.accountNumber);
     toast.success({
-      title: "Copied!",
-      message: "Account number copied to clipboard",
+      title: 'Copied!',
+      message: 'Account number copied to clipboard',
     });
   };
 
@@ -62,7 +54,7 @@ export default function SuccessScreen() {
   // };
 
   const handleStartUsing = () => {
-    router.replace("/fund-wallet");
+    router.replace('/fund-wallet');
   };
 
   return (
@@ -100,9 +92,7 @@ export default function SuccessScreen() {
 
           {/* Account Details Card */}
           <View className="bg-gradient-to-br from-[#5B55F6] to-purple-800 rounded-3xl p-6 mb-6">
-            <Text className="text-white text-sm mb-4 opacity-80">
-              Your Virtual Account
-            </Text>
+            <Text className="text-white text-sm mb-4 opacity-80">Your Virtual Account</Text>
 
             <View className="mb-4">
               <Text className=" text-xs mb-1 opacity-80">Bank Name</Text>
@@ -112,9 +102,7 @@ export default function SuccessScreen() {
             <View className="mb-4">
               <Text className="text-xs mb-1 opacity-80">Account Number</Text>
               <View className="flex-row items-center justify-between">
-                <Text className=" text-3xl font-bold tracking-wider">
-                  {params.accountNumber}
-                </Text>
+                <Text className=" text-3xl font-bold tracking-wider">{params.accountNumber}</Text>
                 <TouchableOpacity
                   onPress={handleCopyAccountNumber}
                   className="bg-white dark:bg-gray-800/20 px-4 py-2 rounded-xl"
@@ -126,9 +114,7 @@ export default function SuccessScreen() {
 
             <View>
               <Text className=" text-xs mb-1 opacity-80">Account Name</Text>
-              <Text className=" text-base font-medium">
-                {params.accountName}
-              </Text>
+              <Text className=" text-base font-medium">{params.accountName}</Text>
             </View>
           </View>
 

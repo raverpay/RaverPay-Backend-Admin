@@ -1,15 +1,15 @@
 // app/virtual-account/consent.tsx
-import { Button } from "@/src/components/ui/Button";
-import { ScreenHeader } from "@/src/components/ui/ScreenHeader";
-import { Text } from "@/src/components/ui/Text";
-import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import React from "react";
-import { ScrollView, View } from "react-native";
+import { Button } from '@/src/components/ui/Button';
+import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
+import { Text } from '@/src/components/ui/Text';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import React from 'react';
+import { ScrollView, View } from 'react-native';
 
 export default function VirtualAccountConsentScreen() {
   const handleContinue = () => {
-    router.push("/virtual-account/bvn-form");
+    router.push('/virtual-account/bvn-form');
   };
 
   return (
@@ -101,40 +101,25 @@ export default function VirtualAccountConsentScreen() {
           </Text>
 
           <Text variant="body" color="secondary" className="mb-4">
-            For compliance with Nigerian financial regulations, we need to
-            verify your identity by providing the following information:
+            For compliance with Nigerian financial regulations, we need to verify your identity by
+            providing the following information:
           </Text>
 
           <View className="space-y-2">
             <View className="flex-row items-center">
-              <Ionicons
-                name="ellipse"
-                size={8}
-                color="#5B55F6"
-                style={{ marginRight: 8 }}
-              />
+              <Ionicons name="ellipse" size={8} color="#5B55F6" style={{ marginRight: 8 }} />
               <Text variant="body" color="secondary">
                 Bank Account Number
               </Text>
             </View>
             <View className="flex-row items-center">
-              <Ionicons
-                name="ellipse"
-                size={8}
-                color="#5B55F6"
-                style={{ marginRight: 8 }}
-              />
+              <Ionicons name="ellipse" size={8} color="#5B55F6" style={{ marginRight: 8 }} />
               <Text variant="body" color="secondary">
                 Bank Name
               </Text>
             </View>
             <View className="flex-row items-center">
-              <Ionicons
-                name="ellipse"
-                size={8}
-                color="#5B55F6"
-                style={{ marginRight: 8 }}
-              />
+              <Ionicons name="ellipse" size={8} color="#5B55F6" style={{ marginRight: 8 }} />
               <Text variant="body" color="secondary">
                 BVN (Bank Verification Number)
               </Text>
@@ -144,16 +129,11 @@ export default function VirtualAccountConsentScreen() {
 
         {/* Privacy Notice */}
         <View className="bg-blue-50 dark:bg-gray-800 rounded-2xl p-4 mb-6 flex-row">
-          <Ionicons
-            name="lock-closed"
-            size={20}
-            color="#3B82F6"
-            style={{ marginRight: 12 }}
-          />
+          <Ionicons name="lock-closed" size={20} color="#3B82F6" style={{ marginRight: 12 }} />
           <View className="flex-1">
             <Text variant="body" color="secondary">
-              Your data is secure and encrypted. We only use this information
-              for identity verification as required by CBN regulations.
+              Your data is secure and encrypted. We only use this information for identity
+              verification as required by CBN regulations.
             </Text>
           </View>
         </View>
@@ -161,9 +141,8 @@ export default function VirtualAccountConsentScreen() {
         {/* Consent */}
         <View className="bg-gray-50 dark:bg-gray-900 rounded-2xl p-4 mb-8">
           <Text variant="body" color="secondary">
-            By continuing, you agree to share your personal information with our
-            payment processor (Paystack) for the purpose of creating and
-            managing your dedicated virtual account.
+            By continuing, you agree to share your personal information with our payment processor
+            (Paystack) for the purpose of creating and managing your dedicated virtual account.
           </Text>
         </View>
       </ScrollView>

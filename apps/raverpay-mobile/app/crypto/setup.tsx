@@ -1,42 +1,44 @@
 // app/crypto/setup.tsx
-import { Button, Card, PinPad, ScreenHeader, Text } from "@/src/components/ui";
-import { useInitializeCryptoWallet } from "@/src/hooks/useCryptoWallet";
-import { useTheme } from "@/src/hooks/useTheme";
-import { validateCryptoPin } from "@/src/lib/utils/crypto-pin";
-import { toast } from "@/src/lib/utils/toast";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
-import { ScrollView, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Button, Card, PinPad, ScreenHeader, Text } from '@/src/components/ui';
+import { useInitializeCryptoWallet } from '@/src/hooks/useCryptoWallet';
+import { useTheme } from '@/src/hooks/useTheme';
+import { validateCryptoPin } from '@/src/lib/utils/crypto-pin';
+import { toast } from '@/src/lib/utils/toast';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useState } from 'react';
+import { ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function CryptoSetupScreen() {
   const { isDark } = useTheme();
-  const [pin, setPin] = useState("");
-  const [confirmPin, setConfirmPin] = useState("");
-  const { mutateAsync: initializeWallet, isPending: isLoadingWallet } =
-    useInitializeCryptoWallet();
+  const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [error, setError] = useState('');
+  const { mutateAsync: initializeWallet, isPending: isLoadingWallet } = useInitializeCryptoWallet();
   const insets = useSafeAreaInsets();
+
+  console.log({ error });
   const handleSetup = async () => {
-    setError("");
+    setError('');
 
     // Validation - Crypto wallet uses 6-digit PIN
     const pinValidation = validateCryptoPin(pin);
     if (!pinValidation.isValid) {
-      const errorMsg = pinValidation.error || "Invalid PIN";
+      const errorMsg = pinValidation.error || 'Invalid PIN';
       setError(errorMsg);
       toast.error({
-        title: "Invalid PIN",
+        title: 'Invalid PIN',
         message: errorMsg,
       });
       return;
     }
 
     if (pin !== confirmPin) {
-      const errorMsg = "PINs do not match";
+      const errorMsg = 'PINs do not match';
       setError(errorMsg);
       toast.error({
-        title: "PIN Mismatch",
+        title: 'PIN Mismatch',
         message: errorMsg,
       });
       return;
@@ -45,29 +47,26 @@ export default function CryptoSetupScreen() {
     try {
       await initializeWallet(pin);
       toast.success({
-        title: "Wallet Created!",
-        message: "Your crypto wallet has been set up successfully",
+        title: 'Wallet Created!',
+        message: 'Your crypto wallet has been set up successfully',
       });
       router.back();
     } catch (err: any) {
       toast.error({
-        title: "Setup Failed",
-        message: `${err.message || "Failed to setup wallet"}`,
+        title: 'Setup Failed',
+        message: `${err.message || 'Failed to setup wallet'}`,
       });
       // Error is already handled in useCryptoWallet hook
-      setError(err.message || "Failed to setup wallet");
+      setError(err.message || 'Failed to setup wallet');
     }
   };
 
   return (
     <View className="flex-1 bg-gray-50 dark:bg-gray-900 px-4">
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* Header */}
-      <ScreenHeader
-        title="Setup Crypto Wallet"
-        subtitleText="Create a secure 6-digit PIN"
-      />
+      <ScreenHeader title="Setup Crypto Wallet" subtitleText="Create a secure 6-digit PIN" />
 
       <ScrollView
         className=""
@@ -122,9 +121,7 @@ export default function CryptoSetupScreen() {
             size="lg"
             fullWidth
             onPress={handleSetup}
-            disabled={
-              isLoadingWallet || pin.length !== 6 || confirmPin.length !== 6
-            }
+            disabled={isLoadingWallet || pin.length !== 6 || confirmPin.length !== 6}
             loading={isLoadingWallet}
           >
             Setup Wallet

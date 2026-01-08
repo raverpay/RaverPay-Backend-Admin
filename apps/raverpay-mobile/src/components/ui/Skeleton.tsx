@@ -1,13 +1,13 @@
 // src/components/ui/Skeleton.tsx
-import React, { useEffect } from "react";
-import { View, ViewProps } from "react-native";
+import React, { useEffect } from 'react';
+import { View, ViewProps } from 'react-native';
 import Animated, {
   interpolate,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
-} from "react-native-reanimated";
+} from 'react-native-reanimated';
 
 interface SkeletonProps extends ViewProps {
   width?: number | string;
@@ -16,7 +16,7 @@ interface SkeletonProps extends ViewProps {
 }
 
 export const Skeleton: React.FC<SkeletonProps> = ({
-  width = "100%",
+  width = '100%',
   height = 20,
   borderRadius = 8,
   style,
@@ -39,10 +39,10 @@ export const Skeleton: React.FC<SkeletonProps> = ({
     <Animated.View
       style={[
         {
-          width,
-          height,
+          width: width as any,
+          height: height as any,
           borderRadius,
-          backgroundColor: "#D1D5DB",
+          backgroundColor: '#D1D5DB',
         },
         animatedStyle,
         style,
@@ -57,9 +57,7 @@ interface SkeletonCircleProps {
   size?: number;
 }
 
-export const SkeletonCircle: React.FC<SkeletonCircleProps> = ({
-  size = 40,
-}) => {
+export const SkeletonCircle: React.FC<SkeletonCircleProps> = ({ size = 40 }) => {
   return <Skeleton width={size} height={size} borderRadius={size / 2} />;
 };
 
@@ -73,16 +71,12 @@ interface SkeletonTextProps {
 export const SkeletonText: React.FC<SkeletonTextProps> = ({
   lines = 3,
   gap = 8,
-  lastLineWidth = "70%",
+  lastLineWidth = '70%',
 }) => {
   return (
     <View style={{ gap }}>
       {Array.from({ length: lines }).map((_, index) => (
-        <Skeleton
-          key={index}
-          width={index === lines - 1 ? lastLineWidth : "100%"}
-          height={14}
-        />
+        <Skeleton key={index} width={index === lines - 1 ? lastLineWidth : '100%'} height={14} />
       ))}
     </View>
   );

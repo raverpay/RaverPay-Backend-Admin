@@ -1,37 +1,37 @@
-import * as Sentry from "@sentry/react-native";
-import Constants from "expo-constants";
+import * as Sentry from '@sentry/react-native';
+import Constants from 'expo-constants';
 
 const SENSITIVE_FIELDS = [
-  "firstName",
-  "lastName",
-  "password",
-  "pin",
-  "token",
-  "bvn",
-  "nin",
-  "amount",
-  "balance",
-  "accountNumber",
-  "cardNumber",
-  "cvv",
-  "dateOfBirth",
-  "address",
-  "accessToken",
-  "refreshToken",
-  "authorization",
-  "apiKey",
-  "encryptionKey",
-  "privateKey",
-  "mnemonic",
-  "seed",
+  'firstName',
+  'lastName',
+  'password',
+  'pin',
+  'token',
+  'bvn',
+  'nin',
+  'amount',
+  'balance',
+  'accountNumber',
+  'cardNumber',
+  'cvv',
+  'dateOfBirth',
+  'address',
+  'accessToken',
+  'refreshToken',
+  'authorization',
+  'apiKey',
+  'encryptionKey',
+  'privateKey',
+  'mnemonic',
+  'seed',
 ];
 
 /**
  * Recursively scrubs sensitive data from objects
  */
 function scrubObject(obj: any, depth = 0): any {
-  if (depth > 10) return "[Max Depth Reached]";
-  if (!obj || typeof obj !== "object") return obj;
+  if (depth > 10) return '[Max Depth Reached]';
+  if (!obj || typeof obj !== 'object') return obj;
 
   if (Array.isArray(obj)) {
     return obj.map((item) => scrubObject(item, depth + 1));
@@ -41,7 +41,7 @@ function scrubObject(obj: any, depth = 0): any {
   for (const key of Object.keys(obj)) {
     const lowerKey = key.toLowerCase();
     if (SENSITIVE_FIELDS.some((field) => lowerKey.includes(field))) {
-      scrubbed[key] = "[Filtered]";
+      scrubbed[key] = '[Filtered]';
     } else {
       scrubbed[key] = scrubObject(obj[key], depth + 1);
     }
@@ -52,10 +52,7 @@ function scrubObject(obj: any, depth = 0): any {
 /**
  * Scrubs sensitive data from Sentry events before sending
  */
-function scrubSensitiveData(
-  event: Sentry.Event,
-  hint?: any
-): Sentry.Event | null {
+function scrubSensitiveData(event: Sentry.Event, hint?: any): Sentry.Event | null {
   try {
     // Scrub user context
     if (event.user) {
@@ -70,31 +67,24 @@ function scrubSensitiveData(
     if (event.request?.data) {
       try {
         const data =
-          typeof event.request.data === "string"
+          typeof event.request.data === 'string'
             ? JSON.parse(event.request.data)
             : event.request.data;
         const scrubbedData = scrubObject(data);
         event.request.data =
-          typeof event.request.data === "string"
-            ? JSON.stringify(scrubbedData)
-            : scrubbedData;
+          typeof event.request.data === 'string' ? JSON.stringify(scrubbedData) : scrubbedData;
       } catch {
         // If parsing fails, redact entire request data
-        event.request.data = "[Filtered]";
+        event.request.data = '[Filtered]';
       }
     }
 
     // Scrub request headers
     if (event.request?.headers) {
-      const sensitiveHeaders = [
-        "authorization",
-        "cookie",
-        "x-api-key",
-        "x-auth-token",
-      ];
+      const sensitiveHeaders = ['authorization', 'cookie', 'x-api-key', 'x-auth-token'];
       sensitiveHeaders.forEach((header) => {
         if (event.request?.headers?.[header]) {
-          event.request.headers[header] = "[Filtered]";
+          event.request.headers[header] = '[Filtered]';
         }
       });
     }
@@ -103,7 +93,7 @@ function scrubSensitiveData(
     if (event.contexts) {
       Object.keys(event.contexts).forEach((contextKey) => {
         const context = event.contexts?.[contextKey];
-        if (context && typeof context === "object") {
+        if (context && typeof context === 'object') {
           event.contexts![contextKey] = scrubObject(context);
         }
       });
@@ -119,7 +109,7 @@ function scrubSensitiveData(
           // Scrub potential sensitive data from messages
           let message = breadcrumb.message;
           SENSITIVE_FIELDS.forEach((field) => {
-            const regex = new RegExp(`${field}["\s:=]+[^"\s,}]+`, "gi");
+            const regex = new RegExp(`${field}["\s:=]+[^"\s,}]+`, 'gi');
             message = message.replace(regex, `${field}: [Filtered]`);
           });
           breadcrumb.message = message;
@@ -134,7 +124,7 @@ function scrubSensitiveData(
         if (exception.value) {
           let value = exception.value;
           SENSITIVE_FIELDS.forEach((field) => {
-            const regex = new RegExp(`${field}["\s:=]+[^"\s,}]+`, "gi");
+            const regex = new RegExp(`${field}["\s:=]+[^"\s,}]+`, 'gi');
             value = value.replace(regex, `${field}: [Filtered]`);
           });
           exception.value = value;
@@ -145,7 +135,7 @@ function scrubSensitiveData(
 
     return event;
   } catch (error) {
-    console.error("[Sentry] Error scrubbing sensitive data:", error);
+    console.error('[Sentry] Error scrubbing sensitive data:', error);
     return event;
   }
 }
@@ -155,13 +145,13 @@ function scrubSensitiveData(
  */
 export function initializeSentry() {
   const environment = __DEV__
-    ? "development"
-    : Constants.expoConfig?.extra?.environment || "production";
+    ? 'development'
+    : Constants.expoConfig?.extra?.environment || 'production';
 
   const dsn = Constants.expoConfig?.extra?.sentryDsn;
 
   if (!dsn && !__DEV__) {
-    console.warn("[Sentry] No DSN configured, Sentry will not be initialized");
+    console.warn('[Sentry] No DSN configured, Sentry will not be initialized');
     return;
   }
 
@@ -194,14 +184,14 @@ export function initializeSentry() {
 
     // Ignore specific errors that are not actionable
     ignoreErrors: [
-      "Network request failed",
-      "Timeout",
-      "AbortError",
+      'Network request failed',
+      'Timeout',
+      'AbortError',
       /^ResizeObserver/,
-      "Aborted",
-      "cancelled",
+      'Aborted',
+      'cancelled',
       /Network Error/i,
-      "Load failed",
+      'Load failed',
       /cancelled by user/i,
     ],
 
@@ -216,7 +206,7 @@ export function initializeSentry() {
     dist: Constants.expoConfig?.version,
   });
 
-  console.log("[Sentry] Initialized in", environment, "mode");
+  console.log('[Sentry] Initialized in', environment, 'mode');
 }
 
 /**
@@ -259,8 +249,8 @@ export function setCustomContext(key: string, data: Record<string, any>) {
 export function addBreadcrumb(
   message: string,
   category: string,
-  level: Sentry.SeverityLevel = "info",
-  data?: Record<string, any>
+  level: Sentry.SeverityLevel = 'info',
+  data?: Record<string, any>,
 ) {
   Sentry.addBreadcrumb({
     message,
@@ -280,10 +270,10 @@ export function captureException(
     tags?: Record<string, string>;
     extra?: Record<string, any>;
     level?: Sentry.SeverityLevel;
-  }
+  },
 ) {
   Sentry.captureException(error, {
-    level: context?.level || "error",
+    level: context?.level || 'error',
     tags: context?.tags,
     extra: context?.extra ? scrubObject(context.extra) : undefined,
   });
@@ -294,11 +284,11 @@ export function captureException(
  */
 export function captureMessage(
   message: string,
-  level: Sentry.SeverityLevel = "info",
+  level: Sentry.SeverityLevel = 'info',
   context?: {
     tags?: Record<string, string>;
     extra?: Record<string, any>;
-  }
+  },
 ) {
   Sentry.captureMessage(message, {
     level,

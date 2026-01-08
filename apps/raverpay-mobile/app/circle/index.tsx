@@ -1,42 +1,37 @@
 // app/circle/index.tsx
-import { CircleWalletCard } from "@/src/components/circle";
-import { Button, Card, Text } from "@/src/components/ui";
+import { CircleWalletCard } from '@/src/components/circle';
+import { Button, Card, Text } from '@/src/components/ui';
 import {
   useCircleChains,
   useCircleConfig,
   useCircleWalletBalance,
   useCircleWallets,
-} from "@/src/hooks/useCircleWallet";
-import { useTheme } from "@/src/hooks/useTheme";
-import { useCircleStore } from "@/src/store/circle.store";
-import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+} from '@/src/hooks/useCircleWallet';
+import { useTheme } from '@/src/hooks/useTheme';
+import { useCircleStore } from '@/src/store/circle.store';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   RefreshControl,
   ScrollView,
   TouchableOpacity,
   View,
-} from "react-native";
+} from 'react-native';
 
 export default function CircleWalletScreen() {
   const { isDark } = useTheme();
   const { data: config, isLoading: isLoadingConfig } = useCircleConfig();
   const { data: chainsData } = useCircleChains();
-  const {
-    data: wallets,
-    isLoading: isLoadingWallets,
-    refetch,
-  } = useCircleWallets();
-  const { selectedWallet, setSelectedWallet, getUsdcBalance } =
-    useCircleStore();
+  const { data: wallets, isLoading: isLoadingWallets, refetch } = useCircleWallets();
+  const { selectedWallet, setSelectedWallet, getUsdcBalance } = useCircleStore();
 
   const [refreshing, setRefreshing] = useState(false);
 
   // Load balance for selected wallet
-  useCircleWalletBalance(selectedWallet?.id || "");
+  useCircleWalletBalance(selectedWallet?.id || '');
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -48,7 +43,7 @@ export default function CircleWalletScreen() {
   if (!isLoadingWallets && (!wallets || wallets.length === 0)) {
     return (
       <>
-        <StatusBar style={isDark ? "light" : "dark"} />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
         <View className="flex-1 bg-gray-50 dark:bg-gray-900 justify-center items-center p-6">
           {/* USDC Logo */}
           <View className="w-24 h-24 rounded-full bg-[#2775CA] items-center justify-center mb-6">
@@ -57,21 +52,12 @@ export default function CircleWalletScreen() {
             </Text>
           </View>
 
-          <Text
-            variant="h3"
-            weight="bold"
-            className="mb-2 text-center dark:text-white"
-          >
+          <Text variant="h3" weight="bold" className="mb-2 text-center dark:text-white">
             USDC Wallet
           </Text>
-          <Text
-            variant="body"
-            color="secondary"
-            align="center"
-            className="mb-6 px-4"
-          >
-            Create your Circle USDC wallet to send and receive stablecoins
-            across multiple blockchains.
+          <Text variant="body" color="secondary" align="center" className="mb-6 px-4">
+            Create your Circle USDC wallet to send and receive stablecoins across multiple
+            blockchains.
           </Text>
 
           {/* Features List */}
@@ -106,7 +92,7 @@ export default function CircleWalletScreen() {
             variant="primary"
             size="lg"
             fullWidth
-            onPress={() => router.push("/circle/wallet-type-selection")}
+            onPress={() => router.push('/circle/wallet-type-selection')}
             className="bg-[#2775CA]"
           >
             Create USDC Wallet
@@ -119,7 +105,7 @@ export default function CircleWalletScreen() {
   if (isLoadingWallets || isLoadingConfig) {
     return (
       <>
-        <StatusBar style={isDark ? "light" : "dark"} />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
         <View className="flex-1 bg-gray-50 dark:bg-gray-900 justify-center items-center">
           <ActivityIndicator size="large" color="#2775CA" />
           <Text variant="body" color="secondary" className="mt-4">
@@ -135,9 +121,7 @@ export default function CircleWalletScreen() {
       <StatusBar style="light" />
       <ScrollView
         className="flex-1 bg-gray-50 dark:bg-gray-900"
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         {/* Header with Balance */}
         {/* <View className="bg-[#2775CA] p-6 pb-12">
@@ -170,7 +154,7 @@ export default function CircleWalletScreen() {
             <View className="flex-row justify-around">
               <TouchableOpacity
                 className="items-center"
-                onPress={() => router.push("/circle/receive")}
+                onPress={() => router.push('/circle/receive')}
               >
                 <View className="w-12 h-12 bg-green-100 rounded-full items-center justify-center mb-2">
                   <Ionicons name="arrow-down" size={24} color="#10B981" />
@@ -182,7 +166,7 @@ export default function CircleWalletScreen() {
 
               <TouchableOpacity
                 className="items-center"
-                onPress={() => router.push("/circle/send")}
+                onPress={() => router.push('/circle/send')}
               >
                 <View className="w-12 h-12 bg-blue-100 rounded-full items-center justify-center mb-2">
                   <Ionicons name="arrow-up" size={24} color="#3B82F6" />
@@ -194,14 +178,10 @@ export default function CircleWalletScreen() {
 
               <TouchableOpacity
                 className="items-center"
-                onPress={() => router.push("/circle/bridge")}
+                onPress={() => router.push('/circle/bridge')}
               >
                 <View className="w-12 h-12 bg-purple-100 rounded-full items-center justify-center mb-2">
-                  <Ionicons
-                    name="git-compare-outline"
-                    size={24}
-                    color="#9333EA"
-                  />
+                  <Ionicons name="git-compare-outline" size={24} color="#9333EA" />
                 </View>
                 <Text variant="caption" weight="semibold">
                   Bridge
@@ -219,11 +199,10 @@ export default function CircleWalletScreen() {
 
           {wallets?.map((wallet) => {
             const supportedChain = chainsData?.chains?.find(
-              (c) => c.blockchain === wallet.blockchain
+              (c) => c.blockchain === wallet.blockchain,
             );
             const isSupported = !!supportedChain;
-            const isSponsored =
-              supportedChain?.feeLabel?.includes("Free") || false;
+            const isSponsored = supportedChain?.feeLabel?.includes('Free') || false;
 
             return (
               <CircleWalletCard
@@ -243,7 +222,7 @@ export default function CircleWalletScreen() {
         <View className="px-6 mb-6">
           <TouchableOpacity
             className="flex-row justify-between items-center mb-4"
-            onPress={() => router.push("/circle/transactions")}
+            onPress={() => router.push('/circle/transactions')}
           >
             <Text variant="h5" weight="bold" className="dark:text-white">
               Recent Activity
@@ -259,7 +238,7 @@ export default function CircleWalletScreen() {
           <Card
             variant="outlined"
             pressable
-            onPress={() => router.push("/circle/transactions")}
+            onPress={() => router.push('/circle/transactions')}
             className="p-6"
           >
             <View className="items-center">
@@ -278,19 +257,15 @@ export default function CircleWalletScreen() {
               <View className="flex-row items-center">
                 <Ionicons
                   name={
-                    config.environment === "testnet"
-                      ? "flask-outline"
-                      : "shield-checkmark-outline"
+                    config.environment === 'testnet' ? 'flask-outline' : 'shield-checkmark-outline'
                   }
                   size={20}
-                  color={
-                    config.environment === "testnet" ? "#F59E0B" : "#10B981"
-                  }
+                  color={config.environment === 'testnet' ? '#F59E0B' : '#10B981'}
                 />
                 <Text variant="caption" color="secondary" className="ml-2">
-                  {config.environment === "testnet"
-                    ? "Connected to Testnet"
-                    : "Connected to Mainnet"}
+                  {config.environment === 'testnet'
+                    ? 'Connected to Testnet'
+                    : 'Connected to Mainnet'}
                 </Text>
               </View>
             </Card>

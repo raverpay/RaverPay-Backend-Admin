@@ -1,25 +1,16 @@
 // app/(auth)/verify-device.tsx
-import { Button, Text } from "@/src/components/ui";
-import { useTheme } from "@/src/hooks/useTheme";
-import { apiClient, handleApiError } from "@/src/lib/api/client";
-import { API_ENDPOINTS } from "@/src/lib/api/endpoints";
-import { toast } from "@/src/lib/utils/toast";
-import { useAuthStore } from "@/src/store/auth.store";
-import { useUserStore } from "@/src/store/user.store";
-import {
-  VerifyDeviceRequest,
-  VerifyDeviceResponse,
-} from "@/src/types/api.types";
-import { router, useLocalSearchParams } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useRef, useState } from "react";
-import {
-  Alert,
-  BackHandler,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Button, Text } from '@/src/components/ui';
+import { useTheme } from '@/src/hooks/useTheme';
+import { apiClient, handleApiError } from '@/src/lib/api/client';
+import { API_ENDPOINTS } from '@/src/lib/api/endpoints';
+import { toast } from '@/src/lib/utils/toast';
+import { useAuthStore } from '@/src/store/auth.store';
+import { useUserStore } from '@/src/store/user.store';
+import { VerifyDeviceRequest, VerifyDeviceResponse } from '@/src/types/api.types';
+import { router, useLocalSearchParams } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useRef, useState } from 'react';
+import { Alert, BackHandler, TextInput, TouchableOpacity, View } from 'react-native';
 
 const CODE_LENGTH = 6;
 
@@ -31,11 +22,11 @@ export default function VerifyDeviceScreen() {
     message?: string;
   }>();
 
-  const [code, setCode] = useState<string[]>(new Array(CODE_LENGTH).fill(""));
+  const [code, setCode] = useState<string[]>(new Array(CODE_LENGTH).fill(''));
   const [countdown, setCountdown] = useState(120); // 2 minutes
   const [isVerifying, setIsVerifying] = useState(false);
   const inputRefs = useRef<(TextInput | null)[]>([]);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { setTokens } = useAuthStore();
   const { setUser } = useUserStore();
@@ -58,13 +49,10 @@ export default function VerifyDeviceScreen() {
     }, 1000);
 
     // Prevent Android hardware back button
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      () => {
-        // Return true to prevent default back behavior
-        return true;
-      }
-    );
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      // Return true to prevent default back behavior
+      return true;
+    });
 
     return () => {
       if (timerRef.current) {
@@ -88,20 +76,20 @@ export default function VerifyDeviceScreen() {
     }
 
     // Auto-submit when all fields are filled
-    if (newCode.every((digit) => digit !== "") && text) {
-      handleVerify(newCode.join(""));
+    if (newCode.every((digit) => digit !== '') && text) {
+      handleVerify(newCode.join(''));
     }
   };
 
   const handleKeyPress = (e: any, index: number) => {
     // Handle backspace
-    if (e.nativeEvent.key === "Backspace" && !code[index] && index > 0) {
+    if (e.nativeEvent.key === 'Backspace' && !code[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
   };
 
   const handleVerify = async (verificationCode?: string) => {
-    const codeToVerify = verificationCode || code.join("");
+    const codeToVerify = verificationCode || code.join('');
 
     if (codeToVerify.length !== CODE_LENGTH) {
       return;
@@ -109,11 +97,10 @@ export default function VerifyDeviceScreen() {
 
     if (!params.deviceId || !params.userId) {
       toast.error({
-        title: "Error",
-        message:
-          "Missing device or user information. Please try logging in again.",
+        title: 'Error',
+        message: 'Missing device or user information. Please try logging in again.',
       });
-      router.replace("/(auth)/login");
+      router.replace('/(auth)/login');
       return;
     }
 
@@ -126,7 +113,7 @@ export default function VerifyDeviceScreen() {
           userId: params.userId,
           deviceId: params.deviceId,
           code: codeToVerify,
-        } as VerifyDeviceRequest
+        } as VerifyDeviceRequest,
       );
 
       // Store tokens and user
@@ -134,34 +121,34 @@ export default function VerifyDeviceScreen() {
       setUser(data.user);
 
       toast.success({
-        title: "Device Verified",
-        message: "Your device has been verified successfully.",
+        title: 'Device Verified',
+        message: 'Your device has been verified successfully.',
       });
 
       // Navigate to main app (root navigator will handle routing)
-      router.replace("/(tabs)");
+      router.replace('/(tabs)');
     } catch (error) {
       const apiError = handleApiError(error);
 
       // Check if it's an invalid verification code error (401 with specific message)
       if (
         apiError.statusCode === 401 &&
-        (apiError.message?.toLowerCase().includes("invalid") ||
-          apiError.message?.toLowerCase().includes("verification code") ||
-          apiError.message?.toLowerCase().includes("expired"))
+        (apiError.message?.toLowerCase().includes('invalid') ||
+          apiError.message?.toLowerCase().includes('verification code') ||
+          apiError.message?.toLowerCase().includes('expired'))
       ) {
         // Use the same toast method as email/phone verification
         toast.auth.invalidVerificationCode();
       } else {
         // For other errors, show the specific error message
         toast.error({
-          title: "Verification Failed",
-          message: apiError.message || "An error occurred. Please try again.",
+          title: 'Verification Failed',
+          message: apiError.message || 'An error occurred. Please try again.',
         });
       }
 
       // Clear the code on error
-      setCode(new Array(CODE_LENGTH).fill(""));
+      setCode(new Array(CODE_LENGTH).fill(''));
       inputRefs.current[0]?.focus();
     } finally {
       setIsVerifying(false);
@@ -174,40 +161,39 @@ export default function VerifyDeviceScreen() {
     }
 
     Alert.alert(
-      "Resend Verification Code",
-      "A new verification code will be sent to your email/phone. Please check your inbox.",
+      'Resend Verification Code',
+      'A new verification code will be sent to your email/phone. Please check your inbox.',
       [
         {
-          text: "Cancel",
-          style: "cancel",
+          text: 'Cancel',
+          style: 'cancel',
         },
         {
-          text: "Resend",
+          text: 'Resend',
           onPress: async () => {
             try {
               // The OTP was already sent during login, so we just reset the countdown
               // In a real implementation, you might want to call a resend endpoint
               setCountdown(120);
               toast.success({
-                title: "Code Sent",
-                message:
-                  "A new verification code has been sent to your email/phone.",
+                title: 'Code Sent',
+                message: 'A new verification code has been sent to your email/phone.',
               });
             } catch {
               toast.error({
-                title: "Error",
-                message: "Failed to resend code. Please try logging in again.",
+                title: 'Error',
+                message: 'Failed to resend code. Please try logging in again.',
               });
             }
           },
         },
-      ]
+      ],
     );
   };
 
   return (
     <View className="flex-1 bg-gray-50 dark:bg-gray-900 p-5">
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* Header */}
       <View className="mt-16 mb-8">
@@ -233,11 +219,13 @@ export default function VerifyDeviceScreen() {
         {code.map((digit, index) => (
           <TextInput
             key={index}
-            ref={(ref) => (inputRefs.current[index] = ref)}
+            ref={(ref) => {
+              inputRefs.current[index] = ref;
+            }}
             className={`w-[50px] h-[60px] border-2 rounded-xl text-center text-2xl font-bold text-gray-900 dark:text-white ${
               digit
-                ? "border-purple-500 bg-purple-50 dark:bg-purple-900/30"
-                : "border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800"
+                ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30'
+                : 'border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800'
             }`}
             value={digit}
             onChangeText={(text) => handleChangeText(text, index)}
@@ -256,7 +244,7 @@ export default function VerifyDeviceScreen() {
         fullWidth
         loading={isVerifying}
         onPress={() => handleVerify()}
-        disabled={code.some((digit) => digit === "")}
+        disabled={code.some((digit) => digit === '')}
         className="mb-6"
       >
         Verify Device

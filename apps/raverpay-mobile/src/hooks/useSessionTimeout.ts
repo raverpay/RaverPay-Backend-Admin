@@ -13,7 +13,7 @@ interface UseSessionTimeoutOptions {
 
 export const useSessionTimeout = (options: UseSessionTimeoutOptions = {}) => {
   const { timeoutMs = 30 * 60 * 1000, enabled = true } = options; // 30 minutes default
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 

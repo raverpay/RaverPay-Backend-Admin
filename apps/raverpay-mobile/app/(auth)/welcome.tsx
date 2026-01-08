@@ -1,15 +1,15 @@
 // app/(auth)/welcome.tsx
 // Multi-stage onboarding flow with Splash and Onboarding Carousel
 
-import { Text } from "@/src/components/ui";
-import { useTheme } from "@/src/hooks/useTheme";
-import { useAuthStore } from "@/src/store/auth.store";
-import { useOnboardingStore } from "@/src/store/onboarding.store";
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Text } from '@/src/components/ui';
+import { useTheme } from '@/src/hooks/useTheme';
+import { useAuthStore } from '@/src/store/auth.store';
+import { useOnboardingStore } from '@/src/store/onboarding.store';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   Image,
@@ -17,7 +17,7 @@ import {
   Pressable,
   TouchableOpacity,
   View,
-} from "react-native";
+} from 'react-native';
 import Animated, {
   FadeIn,
   FadeOut,
@@ -25,15 +25,15 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
-} from "react-native-reanimated";
-import Carousel, { ICarouselInstance } from "react-native-reanimated-carousel";
+} from 'react-native-reanimated';
+import Carousel, { ICarouselInstance } from 'react-native-reanimated-carousel';
 
 // ============================================================================
 // Types & Constants
 // ============================================================================
 
 /** Current stage of the onboarding flow */
-type OnboardingStage = "splash" | "onboarding";
+type OnboardingStage = 'splash' | 'onboarding';
 
 /** Onboarding slide data structure */
 interface OnboardingSlide {
@@ -44,33 +44,33 @@ interface OnboardingSlide {
 }
 
 /** Screen dimensions for carousel */
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 /** Duration of splash screen in milliseconds */
 const SPLASH_DURATION = 3000;
 
 /** Primary brand color for active states */
-const PRIMARY_COLOR = "#5B55F6";
+const PRIMARY_COLOR = '#5B55F6';
 
 /** Onboarding slides content */
 const ONBOARDING_SLIDES: OnboardingSlide[] = [
   {
     id: 1,
-    image: require("../../assets/onboarding/screen11.png"),
-    title: "Your Money, Simplified",
-    subtitle: "All your daily transactions in one place.",
+    image: require('../../assets/onboarding/screen11.png'),
+    title: 'Your Money, Simplified',
+    subtitle: 'All your daily transactions in one place.',
   },
   {
     id: 2,
-    image: require("../../assets/onboarding/screen12.png"),
-    title: "Get Paid Globally",
-    subtitle: "Receive international payments easily.",
+    image: require('../../assets/onboarding/screen12.png'),
+    title: 'Get Paid Globally',
+    subtitle: 'Receive international payments easily.',
   },
   {
     id: 3,
-    image: require("../../assets/onboarding/screen13.png"),
-    title: "Stablecoins Transfers",
-    subtitle: "Send money across the world instantly.",
+    image: require('../../assets/onboarding/screen13.png'),
+    title: 'Stablecoins Transfers',
+    subtitle: 'Send money across the world instantly.',
   },
 ];
 
@@ -83,10 +83,7 @@ interface SplashComponentProps {
   isDark: boolean;
 }
 
-const SplashComponent: React.FC<SplashComponentProps> = ({
-  onComplete,
-  isDark,
-}) => {
+const SplashComponent: React.FC<SplashComponentProps> = ({ onComplete, isDark }) => {
   const logoScale = useSharedValue(0);
   const logoOpacity = useSharedValue(0);
 
@@ -110,11 +107,11 @@ const SplashComponent: React.FC<SplashComponentProps> = ({
 
   return (
     <View className="flex-1 bg-gray-50 dark:bg-gray-900 justify-center items-center">
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       <Animated.View style={logoStyle}>
         <Image
-          source={require("../../assets/images/splash-icon.png")}
+          source={require('../../assets/images/splash-icon.png')}
           className="w-52 h-52"
           resizeMode="contain"
         />
@@ -137,10 +134,7 @@ interface OnboardingCarouselProps {
   isDark: boolean;
 }
 
-const OnboardingCarousel: React.FC<OnboardingCarouselProps> = ({
-  onComplete,
-  isDark,
-}) => {
+const OnboardingCarousel: React.FC<OnboardingCarouselProps> = ({ onComplete, isDark }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const carouselRef = useRef<ICarouselInstance>(null);
   const { setHasSeenWelcome } = useOnboardingStore();
@@ -177,10 +171,7 @@ const OnboardingCarousel: React.FC<OnboardingCarouselProps> = ({
   // Render individual slide
   const renderSlide = useCallback(
     ({ item }: { item: OnboardingSlide }) => (
-      <View
-        style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
-        className="relative"
-      >
+      <View style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }} className="relative">
         {/* Background Image */}
         <Image
           source={item.image}
@@ -191,14 +182,10 @@ const OnboardingCarousel: React.FC<OnboardingCarouselProps> = ({
 
         {/* Dark Gradient Overlay at Bottom */}
         <LinearGradient
-          colors={[
-            "transparent",
-            "rgba(17, 24, 39, 0.6)",
-            "rgba(17, 24, 39, 0.95)",
-          ]}
+          colors={['transparent', 'rgba(17, 24, 39, 0.6)', 'rgba(17, 24, 39, 0.95)']}
           locations={[0.3, 0.6, 1]}
           style={{
-            position: "absolute",
+            position: 'absolute',
             left: 0,
             right: 0,
             bottom: 0,
@@ -217,7 +204,7 @@ const OnboardingCarousel: React.FC<OnboardingCarouselProps> = ({
         </View>
       </View>
     ),
-    []
+    [],
   );
 
   return (
@@ -255,11 +242,7 @@ const OnboardingCarousel: React.FC<OnboardingCarouselProps> = ({
         )}
 
         {/* Skip Button */}
-        <TouchableOpacity
-          onPress={handleSkip}
-          activeOpacity={0.7}
-          className="py-2 px-4"
-        >
+        <TouchableOpacity onPress={handleSkip} activeOpacity={0.7} className="py-2 px-4">
           <Text variant="body" className="text-white font-semibold">
             Skip
           </Text>
@@ -276,10 +259,7 @@ const OnboardingCarousel: React.FC<OnboardingCarouselProps> = ({
               className="h-2 rounded-full"
               style={{
                 width: index === activeIndex ? 24 : 8,
-                backgroundColor:
-                  index === activeIndex
-                    ? PRIMARY_COLOR
-                    : "rgba(255, 255, 255, 0.4)",
+                backgroundColor: index === activeIndex ? PRIMARY_COLOR : 'rgba(255, 255, 255, 0.4)',
               }}
             />
           ))}
@@ -292,7 +272,7 @@ const OnboardingCarousel: React.FC<OnboardingCarouselProps> = ({
           style={{ backgroundColor: PRIMARY_COLOR }}
         >
           <Text variant="body" className="text-white font-semibold text-base">
-            {isLastSlide ? "Continue" : "Next"}
+            {isLastSlide ? 'Continue' : 'Next'}
           </Text>
         </Pressable>
       </View>
@@ -310,12 +290,12 @@ export default function WelcomeScreen() {
   const { hasSeenWelcome } = useOnboardingStore();
 
   // Current stage of the onboarding flow
-  const [stage, setStage] = useState<OnboardingStage>("splash");
+  const [stage, setStage] = useState<OnboardingStage>('splash');
 
   // Redirect authenticated users to main app
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace("/(tabs)");
+      router.replace('/(tabs)');
     }
   }, [isAuthenticated]);
 
@@ -323,36 +303,27 @@ export default function WelcomeScreen() {
   const handleSplashComplete = useCallback(() => {
     if (hasSeenWelcome) {
       // Returning user: Splash → Login
-      router.replace("/(auth)/login");
+      router.replace('/(auth)/login');
     } else {
       // First-time user: Splash → Onboarding
-      setStage("onboarding");
+      setStage('onboarding');
     }
   }, [hasSeenWelcome]);
 
   // Handle onboarding completion - navigate to login screen
   const handleOnboardingComplete = useCallback(() => {
-    router.replace("/(auth)/login");
+    router.replace('/(auth)/login');
   }, []);
 
   // Render current stage
   switch (stage) {
-    case "splash":
-      return (
-        <SplashComponent onComplete={handleSplashComplete} isDark={isDark} />
-      );
+    case 'splash':
+      return <SplashComponent onComplete={handleSplashComplete} isDark={isDark} />;
 
-    case "onboarding":
-      return (
-        <OnboardingCarousel
-          onComplete={handleOnboardingComplete}
-          isDark={isDark}
-        />
-      );
+    case 'onboarding':
+      return <OnboardingCarousel onComplete={handleOnboardingComplete} isDark={isDark} />;
 
     default:
-      return (
-        <SplashComponent onComplete={handleSplashComplete} isDark={isDark} />
-      );
+      return <SplashComponent onComplete={handleSplashComplete} isDark={isDark} />;
   }
 }

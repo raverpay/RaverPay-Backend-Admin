@@ -1,17 +1,12 @@
 // app/transactions.tsx
-import {
-  ScreenHeader,
-  Skeleton,
-  SkeletonCircle,
-  Text,
-} from "@/src/components/ui";
-import { TransactionItem } from "@/src/components/wallet/TransactionItem";
-import { useTheme } from "@/src/hooks/useTheme";
-import { useTransactions } from "@/src/hooks/useTransactions";
-import { groupItemsByDate } from "@/src/lib/utils/dateGrouping";
-import { Ionicons } from "@expo/vector-icons";
-import { StatusBar } from "expo-status-bar";
-import React, { useMemo, useState } from "react";
+import { ScreenHeader, Skeleton, SkeletonCircle, Text } from '@/src/components/ui';
+import { TransactionItem } from '@/src/components/wallet/TransactionItem';
+import { useTheme } from '@/src/hooks/useTheme';
+import { useTransactions } from '@/src/hooks/useTransactions';
+import { groupItemsByDate } from '@/src/lib/utils/dateGrouping';
+import { Ionicons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -19,19 +14,14 @@ import {
   ScrollView,
   TouchableOpacity,
   View,
-} from "react-native";
+} from 'react-native';
 
 // Backend filter types (simplified categories)
-type TransactionFilterType = "ALL" | "DEBIT" | "CREDIT";
+type TransactionFilterType = 'ALL' | 'DEBIT' | 'CREDIT';
 
-type TransactionStatus =
-  | "ALL"
-  | "COMPLETED"
-  | "PENDING"
-  | "FAILED"
-  | "REVERSED";
+type TransactionStatus = 'ALL' | 'COMPLETED' | 'PENDING' | 'FAILED' | 'REVERSED';
 
-type DateRangeFilter = "ALL" | "TODAY" | "WEEK" | "MONTH" | "CUSTOM";
+type DateRangeFilter = 'ALL' | 'TODAY' | 'WEEK' | 'MONTH' | 'CUSTOM';
 
 const TRANSACTION_TYPES: {
   label: string;
@@ -39,28 +29,28 @@ const TRANSACTION_TYPES: {
   description: string;
 }[] = [
   {
-    label: "All Transactions",
-    value: "ALL",
-    description: "Show all transactions",
+    label: 'All Transactions',
+    value: 'ALL',
+    description: 'Show all transactions',
   },
   {
-    label: "Money In",
-    value: "CREDIT",
-    description: "Deposits, refunds, sales",
+    label: 'Money In',
+    value: 'CREDIT',
+    description: 'Deposits, refunds, sales',
   },
   {
-    label: "Money Out",
-    value: "DEBIT",
-    description: "Withdrawals, purchases, bills",
+    label: 'Money Out',
+    value: 'DEBIT',
+    description: 'Withdrawals, purchases, bills',
   },
 ];
 
 const TRANSACTION_STATUSES: { label: string; value: TransactionStatus }[] = [
-  { label: "All Status", value: "ALL" },
-  { label: "Completed", value: "COMPLETED" },
-  { label: "Pending", value: "PENDING" },
-  { label: "Failed", value: "FAILED" },
-  { label: "Reversed", value: "REVERSED" },
+  { label: 'All Status', value: 'ALL' },
+  { label: 'Completed', value: 'COMPLETED' },
+  { label: 'Pending', value: 'PENDING' },
+  { label: 'Failed', value: 'FAILED' },
+  { label: 'Reversed', value: 'REVERSED' },
 ];
 
 const DATE_RANGES: {
@@ -68,20 +58,17 @@ const DATE_RANGES: {
   value: DateRangeFilter;
   description: string;
 }[] = [
-  { label: "All Time", value: "ALL", description: "Show all transactions" },
-  { label: "Today", value: "TODAY", description: "Transactions from today" },
-  { label: "Last 7 Days", value: "WEEK", description: "Past week" },
-  { label: "Last 30 Days", value: "MONTH", description: "Past month" },
+  { label: 'All Time', value: 'ALL', description: 'Show all transactions' },
+  { label: 'Today', value: 'TODAY', description: 'Transactions from today' },
+  { label: 'Last 7 Days', value: 'WEEK', description: 'Past week' },
+  { label: 'Last 30 Days', value: 'MONTH', description: 'Past month' },
 ];
 
 export default function TransactionsScreen() {
   const { isDark } = useTheme();
-  const [selectedType, setSelectedType] =
-    useState<TransactionFilterType>("ALL");
-  const [selectedStatus, setSelectedStatus] =
-    useState<TransactionStatus>("ALL");
-  const [selectedDateRange, setSelectedDateRange] =
-    useState<DateRangeFilter>("ALL");
+  const [selectedType, setSelectedType] = useState<TransactionFilterType>('ALL');
+  const [selectedStatus, setSelectedStatus] = useState<TransactionStatus>('ALL');
+  const [selectedDateRange, setSelectedDateRange] = useState<DateRangeFilter>('ALL');
   const [showTypeModal, setShowTypeModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showDateModal, setShowDateModal] = useState(false);
@@ -92,19 +79,19 @@ export default function TransactionsScreen() {
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     switch (range) {
-      case "TODAY":
+      case 'TODAY':
         return {
           startDate: today.toISOString(),
           endDate: now.toISOString(),
         };
-      case "WEEK":
+      case 'WEEK':
         const weekAgo = new Date(today);
         weekAgo.setDate(weekAgo.getDate() - 7);
         return {
           startDate: weekAgo.toISOString(),
           endDate: now.toISOString(),
         };
-      case "MONTH":
+      case 'MONTH':
         const monthAgo = new Date(today);
         monthAgo.setDate(monthAgo.getDate() - 30);
         return {
@@ -118,8 +105,8 @@ export default function TransactionsScreen() {
 
   // Build filter params
   const filterParams: any = { limit: 20 };
-  if (selectedType !== "ALL") filterParams.type = selectedType;
-  if (selectedStatus !== "ALL") filterParams.status = selectedStatus;
+  if (selectedType !== 'ALL') filterParams.type = selectedType;
+  if (selectedStatus !== 'ALL') filterParams.status = selectedStatus;
 
   // Add date range filters
   const dateRange = getDateRange(selectedDateRange);
@@ -140,7 +127,7 @@ export default function TransactionsScreen() {
   // Group transactions by date
   const groupedTransactions = useMemo(() => {
     const transactionsList = data?.pages.flatMap((page) => page.data) || [];
-    return groupItemsByDate(transactionsList, "createdAt");
+    return groupItemsByDate(transactionsList, 'createdAt');
   }, [data]);
 
   const handleLoadMore = () => {
@@ -154,19 +141,17 @@ export default function TransactionsScreen() {
   };
 
   const clearFilters = () => {
-    setSelectedType("ALL");
-    setSelectedStatus("ALL");
-    setSelectedDateRange("ALL");
+    setSelectedType('ALL');
+    setSelectedStatus('ALL');
+    setSelectedDateRange('ALL');
   };
 
   const hasActiveFilters =
-    selectedType !== "ALL" ||
-    selectedStatus !== "ALL" ||
-    selectedDateRange !== "ALL";
+    selectedType !== 'ALL' || selectedStatus !== 'ALL' || selectedDateRange !== 'ALL';
 
   return (
     <View className="flex-1 bg-gray-50 dark:bg-gray-900">
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* Header */}
       <ScreenHeader title="Transactions" />
@@ -184,18 +169,14 @@ export default function TransactionsScreen() {
               <Ionicons
                 name="funnel-outline"
                 size={16}
-                color={isDark ? "#9CA3AF" : "#6B7280"}
+                color={isDark ? '#9CA3AF' : '#6B7280'}
                 style={{ marginRight: 8 }}
               />
               <Text variant="body" color="secondary" numberOfLines={1}>
                 {TRANSACTION_TYPES.find((t) => t.value === selectedType)?.label}
               </Text>
             </View>
-            <Ionicons
-              name="chevron-down"
-              size={16}
-              color={isDark ? "#9CA3AF" : "#6B7280"}
-            />
+            <Ionicons name="chevron-down" size={16} color={isDark ? '#9CA3AF' : '#6B7280'} />
           </TouchableOpacity>
 
           {/* Status Filter */}
@@ -207,21 +188,14 @@ export default function TransactionsScreen() {
               <Ionicons
                 name="checkbox-outline"
                 size={16}
-                color={isDark ? "#9CA3AF" : "#6B7280"}
+                color={isDark ? '#9CA3AF' : '#6B7280'}
                 style={{ marginRight: 8 }}
               />
               <Text variant="body" color="secondary" numberOfLines={1}>
-                {
-                  TRANSACTION_STATUSES.find((s) => s.value === selectedStatus)
-                    ?.label
-                }
+                {TRANSACTION_STATUSES.find((s) => s.value === selectedStatus)?.label}
               </Text>
             </View>
-            <Ionicons
-              name="chevron-down"
-              size={16}
-              color={isDark ? "#9CA3AF" : "#6B7280"}
-            />
+            <Ionicons name="chevron-down" size={16} color={isDark ? '#9CA3AF' : '#6B7280'} />
           </TouchableOpacity>
         </View>
 
@@ -236,18 +210,14 @@ export default function TransactionsScreen() {
               <Ionicons
                 name="calendar-outline"
                 size={16}
-                color={isDark ? "#9CA3AF" : "#6B7280"}
+                color={isDark ? '#9CA3AF' : '#6B7280'}
                 style={{ marginRight: 8 }}
               />
               <Text variant="body" color="secondary" numberOfLines={1}>
                 {DATE_RANGES.find((d) => d.value === selectedDateRange)?.label}
               </Text>
             </View>
-            <Ionicons
-              name="chevron-down"
-              size={16}
-              color={isDark ? "#9CA3AF" : "#6B7280"}
-            />
+            <Ionicons name="chevron-down" size={16} color={isDark ? '#9CA3AF' : '#6B7280'} />
           </TouchableOpacity>
 
           {/* Clear Filters */}
@@ -257,12 +227,7 @@ export default function TransactionsScreen() {
               className="bg-purple-100 dark:bg-purple-900/30 px-4 py-3 rounded-lg"
             >
               <View className="flex-row items-center">
-                <Ionicons
-                  name="close"
-                  size={16}
-                  color="#5B55F6"
-                  style={{ marginRight: 4 }}
-                />
+                <Ionicons name="close" size={16} color="#5B55F6" style={{ marginRight: 4 }} />
                 <Text variant="caption" className="text-[#5B55F6]">
                   Clear
                 </Text>
@@ -287,21 +252,13 @@ export default function TransactionsScreen() {
           <Text variant="h3" className="mb-2">
             No transactions found
           </Text>
-          <Text
-            variant="body"
-            color="secondary"
-            align="center"
-            className="mb-6"
-          >
+          <Text variant="body" color="secondary" align="center" className="mb-6">
             {hasActiveFilters
-              ? "Try adjusting your filters to see more results"
-              : "Your transactions will appear here"}
+              ? 'Try adjusting your filters to see more results'
+              : 'Your transactions will appear here'}
           </Text>
           {hasActiveFilters && (
-            <TouchableOpacity
-              onPress={clearFilters}
-              className="bg-[#5B55F6] px-6 py-3 rounded-lg"
-            >
+            <TouchableOpacity onPress={clearFilters} className="bg-[#5B55F6] px-6 py-3 rounded-lg">
               <Text variant="bodyMedium" className="text-white">
                 Clear Filters
               </Text>
@@ -322,10 +279,7 @@ export default function TransactionsScreen() {
               </View>
               {/* Section Items */}
               {section.data.map((transaction) => (
-                <TransactionItem
-                  key={transaction.id}
-                  transaction={transaction}
-                />
+                <TransactionItem key={transaction.id} transaction={transaction} />
               ))}
             </View>
           )}
@@ -407,17 +361,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
   const { isDark } = useTheme();
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <TouchableOpacity
-        className="flex-1 bg-black/50"
-        activeOpacity={1}
-        onPress={onClose}
-      >
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity className="flex-1 bg-black/50" activeOpacity={1} onPress={onClose}>
         <View className="flex-1 justify-end">
           <TouchableOpacity activeOpacity={1}>
             <View className="bg-white dark:bg-gray-800 rounded-t-3xl">
@@ -425,11 +370,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
               <View className="flex-row items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
                 <Text variant="h3">{title}</Text>
                 <TouchableOpacity onPress={onClose}>
-                  <Ionicons
-                    name="close"
-                    size={24}
-                    color={isDark ? "#F3F4F6" : "#111827"}
-                  />
+                  <Ionicons name="close" size={24} color={isDark ? '#F3F4F6' : '#111827'} />
                 </TouchableOpacity>
               </View>
 
@@ -440,29 +381,19 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     key={option.value}
                     onPress={() => onSelect(option.value)}
                     className={`px-5 py-4 border-b border-gray-100 dark:border-gray-700 ${
-                      selectedValue === option.value
-                        ? "bg-purple-50 dark:bg-purple-900/30"
-                        : ""
+                      selectedValue === option.value ? 'bg-purple-50 dark:bg-purple-900/30' : ''
                     }`}
                   >
                     <View className="flex-row items-center justify-between">
                       <View className="flex-1">
                         <Text
                           variant="bodyMedium"
-                          className={
-                            selectedValue === option.value
-                              ? "text-[#5B55F6]"
-                              : ""
-                          }
+                          className={selectedValue === option.value ? 'text-[#5B55F6]' : ''}
                         >
                           {option.label}
                         </Text>
                         {option.description && (
-                          <Text
-                            variant="caption"
-                            color="secondary"
-                            className="mt-1"
-                          >
+                          <Text variant="caption" color="secondary" className="mt-1">
                             {option.description}
                           </Text>
                         )}

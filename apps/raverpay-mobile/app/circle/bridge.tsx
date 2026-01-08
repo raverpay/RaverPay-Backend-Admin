@@ -1,5 +1,5 @@
 // app/circle/bridge.tsx
-import { BlockchainSelector, CircleWalletCard } from "@/src/components/circle";
+import { BlockchainSelector, CircleWalletCard } from '@/src/components/circle';
 import {
   Button,
   Card,
@@ -8,25 +8,21 @@ import {
   PINModal,
   ScreenHeader,
   Text,
-} from "@/src/components/ui";
+} from '@/src/components/ui';
 import {
   useCCTPChains,
   useCCTPTransfer,
   useCircleWalletBalance,
   useCircleWallets,
   useEstimateCCTPFee,
-} from "@/src/hooks/useCircleWallet";
-import { useTheme } from "@/src/hooks/useTheme";
-import { useCircleStore } from "@/src/store/circle.store";
-import {
-  CCTPTransferType,
-  CircleBlockchain,
-  CircleFeeLevel,
-} from "@/src/types/circle.types";
-import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
+} from '@/src/hooks/useCircleWallet';
+import { useTheme } from '@/src/hooks/useTheme';
+import { useCircleStore } from '@/src/store/circle.store';
+import { CCTPTransferType, CircleBlockchain, CircleFeeLevel } from '@/src/types/circle.types';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -34,8 +30,8 @@ import {
   ScrollView,
   TouchableOpacity,
   View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TRANSFER_TYPES: {
   type: CCTPTransferType;
@@ -44,16 +40,16 @@ const TRANSFER_TYPES: {
   time: string;
 }[] = [
   {
-    type: "FAST",
-    label: "Fast Transfer",
-    description: "Higher fee, instant finality",
-    time: "~1-5 min",
+    type: 'FAST',
+    label: 'Fast Transfer',
+    description: 'Higher fee, instant finality',
+    time: '~1-5 min',
   },
   {
-    type: "STANDARD",
-    label: "Standard Transfer",
-    description: "Lower fee, normal speed",
-    time: "~15-30 min",
+    type: 'STANDARD',
+    label: 'Standard Transfer',
+    description: 'Lower fee, normal speed',
+    time: '~15-30 min',
   },
 ];
 
@@ -63,20 +59,17 @@ export default function CircleBridgeScreen() {
   const { data: wallets, isLoading: isLoadingWallets } = useCircleWallets();
   const { data: supportedChains, isLoading: isLoadingChains } = useCCTPChains();
   const { selectedWallet, getUsdcBalance } = useCircleStore();
-  const { mutateAsync: bridgeTransfer, isPending: isBridging } =
-    useCCTPTransfer();
+  const { mutateAsync: bridgeTransfer, isPending: isBridging } = useCCTPTransfer();
   const { mutateAsync: estimateFee } = useEstimateCCTPFee();
 
   // Load balance for selected wallet
-  useCircleWalletBalance(selectedWallet?.id || "");
+  useCircleWalletBalance(selectedWallet?.id || '');
 
   const [sourceWallet] = useState(selectedWallet);
-  const [destinationChain, setDestinationChain] = useState<
-    CircleBlockchain | undefined
-  >();
-  const [destinationAddress, setDestinationAddress] = useState("");
-  const [amount, setAmount] = useState("");
-  const [transferType, setTransferType] = useState<CCTPTransferType>("FAST");
+  const [destinationChain, setDestinationChain] = useState<CircleBlockchain | undefined>();
+  const [destinationAddress, setDestinationAddress] = useState('');
+  const [amount, setAmount] = useState('');
+  const [transferType, setTransferType] = useState<CCTPTransferType>('FAST');
   const [estimatedFee, setEstimatedFee] = useState<{
     totalFee: string;
     estimatedTime: number;
@@ -94,19 +87,14 @@ export default function CircleBridgeScreen() {
         setDestinationAddress(destWallet.address);
       }
     } else if (!useOwnAddress) {
-      setDestinationAddress("");
+      setDestinationAddress('');
     }
   }, [useOwnAddress, destinationChain, wallets]);
 
   // Estimate fee when parameters change
   useEffect(() => {
     const estimate = async () => {
-      if (
-        sourceWallet &&
-        destinationChain &&
-        amount &&
-        parseFloat(amount) > 0
-      ) {
+      if (sourceWallet && destinationChain && amount && parseFloat(amount) > 0) {
         try {
           const result = await estimateFee({
             sourceChain: sourceWallet.blockchain,
@@ -126,7 +114,7 @@ export default function CircleBridgeScreen() {
     estimate();
   }, [sourceWallet, destinationChain, amount, transferType, estimateFee]);
 
-  const currentBalance = sourceWallet ? getUsdcBalance(sourceWallet.id) : "0";
+  const currentBalance = sourceWallet ? getUsdcBalance(sourceWallet.id) : '0';
 
   const totalFee = estimatedFee ? parseFloat(estimatedFee.totalFee) : 0;
 
@@ -139,8 +127,7 @@ export default function CircleBridgeScreen() {
   };
 
   const handleBridge = async () => {
-    if (!sourceWallet || !destinationChain || !destinationAddress || !amount)
-      return;
+    if (!sourceWallet || !destinationChain || !destinationAddress || !amount) return;
 
     try {
       const result = await bridgeTransfer({
@@ -149,25 +136,25 @@ export default function CircleBridgeScreen() {
         destinationChain,
         amount,
         transferType,
-        feeLevel: "MEDIUM" as CircleFeeLevel,
+        feeLevel: 'MEDIUM' as CircleFeeLevel,
       });
       setShowPinModal(false);
 
-      console.log("Bridge result", result);
+      console.log('Bridge result', result);
 
       if (result?.data?.transferId) {
         router.replace(
-          `/circle/transaction-status?transactionId=${result.data.transferId}&type=CCTP`
+          `/circle/transaction-status?transactionId=${result.data.transferId}&type=CCTP`,
         );
       } else {
-        router.replace("/circle/transactions");
+        router.replace('/circle/transactions');
       }
     } catch {
       // Error handled in hook
     }
   };
 
-  const totalNeeded = parseFloat(amount || "0") + totalFee;
+  const totalNeeded = parseFloat(amount || '0') + totalFee;
   const hasInsufficientBalance = totalNeeded > parseFloat(currentBalance);
 
   const canSubmit =
@@ -189,8 +176,7 @@ export default function CircleBridgeScreen() {
 
   // Filter out current source chain from destination options
   const availableDestinations =
-    supportedChains?.filter((chain) => chain !== sourceWallet?.blockchain) ||
-    [];
+    supportedChains?.filter((chain) => chain !== sourceWallet?.blockchain) || [];
 
   const handleReviewTransaction = () => {
     setShowConfirmationModal(true);
@@ -203,14 +189,11 @@ export default function CircleBridgeScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1 bg-gray-50 dark:bg-gray-900"
     >
-      <StatusBar style={isDark ? "light" : "dark"} />
-      <ScreenHeader
-        title="Bridge USDC"
-        subtitleText="Transfer across blockchains"
-      />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <ScreenHeader title="Bridge USDC" subtitleText="Transfer across blockchains" />
 
       <ScrollView
         className="flex-1 px-4"
@@ -222,36 +205,23 @@ export default function CircleBridgeScreen() {
           <View className="flex-row items-start">
             <Ionicons name="git-compare" size={20} color="#2775CA" />
             <View className="ml-3 flex-1">
-              <Text
-                variant="bodyMedium"
-                weight="semibold"
-                className="text-[#2775CA] mb-1"
-              >
+              <Text variant="bodyMedium" weight="semibold" className="text-[#2775CA] mb-1">
                 Cross-Chain Transfer Protocol
               </Text>
               <Text variant="caption" color="secondary">
-                Move native USDC between blockchains with no slippage. Your USDC
-                is burned on the source chain and minted on the destination
-                chain.
+                Move native USDC between blockchains with no slippage. Your USDC is burned on the
+                source chain and minted on the destination chain.
               </Text>
             </View>
           </View>
         </Card>
 
         {/* Source Wallet */}
-        <Text
-          variant="bodyMedium"
-          weight="semibold"
-          className="mb-2 dark:text-white"
-        >
+        <Text variant="bodyMedium" weight="semibold" className="mb-2 dark:text-white">
           From
         </Text>
         {sourceWallet && (
-          <CircleWalletCard
-            wallet={sourceWallet}
-            usdcBalance={currentBalance}
-            isSelected
-          />
+          <CircleWalletCard wallet={sourceWallet} usdcBalance={currentBalance} isSelected />
         )}
 
         {/* Arrow */}
@@ -263,11 +233,7 @@ export default function CircleBridgeScreen() {
 
         {/* Destination Chain */}
         <Card variant="elevated" className="p-4 mb-4">
-          <Text
-            variant="bodyMedium"
-            weight="semibold"
-            className="mb-3 dark:text-white"
-          >
+          <Text variant="bodyMedium" weight="semibold" className="mb-3 dark:text-white">
             To Network
           </Text>
           <BlockchainSelector
@@ -280,11 +246,7 @@ export default function CircleBridgeScreen() {
         {/* Destination Address */}
         <Card variant="elevated" className="p-4 mb-4">
           <View className="flex-row justify-between items-center mb-3">
-            <Text
-              variant="bodyMedium"
-              weight="semibold"
-              className="dark:text-white"
-            >
+            <Text variant="bodyMedium" weight="semibold" className="dark:text-white">
               Destination Address
             </Text>
             <TouchableOpacity
@@ -292,7 +254,7 @@ export default function CircleBridgeScreen() {
               className="flex-row items-center"
             >
               <Ionicons
-                name={useOwnAddress ? "checkbox" : "square-outline"}
+                name={useOwnAddress ? 'checkbox' : 'square-outline'}
                 size={20}
                 color="#2775CA"
               />
@@ -308,7 +270,7 @@ export default function CircleBridgeScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             editable={!useOwnAddress}
-            className={`font-mono ${useOwnAddress ? "opacity-60" : ""}`}
+            className={`font-mono ${useOwnAddress ? 'opacity-60' : ''}`}
             multiline
           />
           {useOwnAddress && destinationChain && (
@@ -321,11 +283,7 @@ export default function CircleBridgeScreen() {
         {/* Amount */}
         <Card variant="elevated" className="p-4 mb-4">
           <View className="flex-row justify-between items-center mb-2">
-            <Text
-              variant="bodyMedium"
-              weight="semibold"
-              className="dark:text-white"
-            >
+            <Text variant="bodyMedium" weight="semibold" className="dark:text-white">
               Amount
             </Text>
             <TouchableOpacity onPress={handleMaxAmount}>
@@ -358,11 +316,7 @@ export default function CircleBridgeScreen() {
 
         {/* Transfer Type */}
         <Card variant="elevated" className="p-4 mb-4">
-          <Text
-            variant="bodyMedium"
-            weight="semibold"
-            className="mb-3 dark:text-white"
-          >
+          <Text variant="bodyMedium" weight="semibold" className="mb-3 dark:text-white">
             Transfer Speed
           </Text>
           {TRANSFER_TYPES.map((tt) => (
@@ -371,8 +325,8 @@ export default function CircleBridgeScreen() {
               onPress={() => setTransferType(tt.type)}
               className={`p-3 rounded-lg border mb-2 ${
                 transferType === tt.type
-                  ? "border-[#2775CA] bg-[#2775CA]/10"
-                  : "border-gray-200 dark:border-gray-700"
+                  ? 'border-[#2775CA] bg-[#2775CA]/10'
+                  : 'border-gray-200 dark:border-gray-700'
               }`}
             >
               <View className="flex-row justify-between items-center">
@@ -380,11 +334,7 @@ export default function CircleBridgeScreen() {
                   <Text
                     variant="bodyMedium"
                     weight="semibold"
-                    className={
-                      transferType === tt.type
-                        ? "text-[#2775CA]"
-                        : "dark:text-white"
-                    }
+                    className={transferType === tt.type ? 'text-[#2775CA]' : 'dark:text-white'}
                   >
                     {tt.label}
                   </Text>
@@ -397,11 +347,7 @@ export default function CircleBridgeScreen() {
                     {tt.time}
                   </Text>
                   {transferType === tt.type && (
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={16}
-                      color="#2775CA"
-                    />
+                    <Ionicons name="checkmark-circle" size={16} color="#2775CA" />
                   )}
                 </View>
               </View>
@@ -412,11 +358,7 @@ export default function CircleBridgeScreen() {
         {/* Fee Estimate */}
         {estimatedFee && (
           <Card variant="filled" className="p-4 mb-6">
-            <Text
-              variant="bodyMedium"
-              weight="semibold"
-              className="mb-2 dark:text-white"
-            >
+            <Text variant="bodyMedium" weight="semibold" className="mb-2 dark:text-white">
               Estimated Fees
             </Text>
             <View className="flex-row justify-between mb-1">
@@ -448,7 +390,7 @@ export default function CircleBridgeScreen() {
           loading={isBridging}
           className="bg-[#2775CA]"
         >
-          {isBridging ? "Bridging..." : "Bridge USDC"}
+          {isBridging ? 'Bridging...' : 'Bridge USDC'}
         </Button>
 
         {sourceWallet?.blockchain === destinationChain && (
@@ -466,31 +408,29 @@ export default function CircleBridgeScreen() {
         serviceType="Bridge Transfer"
         details={[
           {
-            label: "From",
-            value: sourceWallet?.blockchain || "",
+            label: 'From',
+            value: sourceWallet?.blockchain || '',
           },
           {
-            label: "To",
-            value: destinationChain || "",
+            label: 'To',
+            value: destinationChain || '',
           },
           {
-            label: "Destination",
+            label: 'Destination',
             value: `${destinationAddress.slice(0, 10)}...${destinationAddress.slice(-8)}`,
           },
           {
-            label: "Amount",
+            label: 'Amount',
             value: `$${amount} USDC`,
             highlight: true,
           },
           {
-            label: "Bridge Fee",
-            value: estimatedFee
-              ? `$${estimatedFee.totalFee}`
-              : "Calculating...",
+            label: 'Bridge Fee',
+            value: estimatedFee ? `$${estimatedFee.totalFee}` : 'Calculating...',
           },
           {
-            label: "Est. Time",
-            value: estimatedFee ? `${estimatedFee.estimatedTime}` : "",
+            label: 'Est. Time',
+            value: estimatedFee ? `${estimatedFee.estimatedTime}` : '',
           },
         ]}
         amount={parseFloat(amount) || 0}

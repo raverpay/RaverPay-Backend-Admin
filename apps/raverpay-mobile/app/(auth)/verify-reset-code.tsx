@@ -150,7 +150,9 @@ export default function VerifyResetCodeScreen() {
         {code.map((digit, index) => (
           <TextInput
             key={index}
-            ref={(ref) => (inputRefs.current[index] = ref)}
+            ref={(ref) => {
+              inputRefs.current[index] = ref;
+            }}
             className={`w-[50px] h-[60px] border-2 rounded-xl text-center text-2xl font-bold text-gray-900 dark:text-white ${
               digit
                 ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30'

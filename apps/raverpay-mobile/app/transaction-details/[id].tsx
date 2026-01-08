@@ -1,107 +1,82 @@
 // app/transaction-details/[id].tsx
-import {
-  Button,
-  Card,
-  ScreenHeader,
-  Skeleton,
-  SkeletonCircle,
-  Text,
-} from "@/src/components/ui";
-import { useTheme } from "@/src/hooks/useTheme";
-import { useTransactionDetails } from "@/src/hooks/useTransactions";
-import { formatCurrency, formatDateTime } from "@/src/lib/utils/formatters";
-import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React from "react";
-import {
-  Clipboard,
-  Alert as RNAlert,
-  ScrollView,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Button, Card, ScreenHeader, Skeleton, SkeletonCircle, Text } from '@/src/components/ui';
+import { useTheme } from '@/src/hooks/useTheme';
+import { useTransactionDetails } from '@/src/hooks/useTransactions';
+import { formatCurrency, formatDateTime } from '@/src/lib/utils/formatters';
+import { Ionicons } from '@expo/vector-icons';
+import { router, useLocalSearchParams } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React from 'react';
+import { Clipboard, Alert as RNAlert, ScrollView, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TransactionDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const {
-    data: transaction,
-    isPending: isLoading,
-    isError,
-  } = useTransactionDetails(id);
+  const { data: transaction, isPending: isLoading, isError } = useTransactionDetails(id);
 
   // console.log({ transaction });
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "COMPLETED":
-        return "text-green-600 dark:text-green-400";
-      case "PENDING":
-        return "text-yellow-600 dark:text-yellow-400";
-      case "FAILED":
-        return "text-red-600 dark:text-red-400";
-      case "REVERSED":
-        return "text-gray-600 dark:text-gray-400";
+      case 'COMPLETED':
+        return 'text-green-600 dark:text-green-400';
+      case 'PENDING':
+        return 'text-yellow-600 dark:text-yellow-400';
+      case 'FAILED':
+        return 'text-red-600 dark:text-red-400';
+      case 'REVERSED':
+        return 'text-gray-600 dark:text-gray-400';
       default:
-        return "text-gray-600 dark:text-gray-400";
+        return 'text-gray-600 dark:text-gray-400';
     }
   };
 
   const getStatusBgColor = (status: string) => {
     switch (status) {
-      case "COMPLETED":
-        return "bg-green-100 dark:bg-green-500";
-      case "PENDING":
-        return "bg-yellow-100 dark:bg-yellow-500";
-      case "FAILED":
-        return "bg-red-100 dark:bg-red-500";
-      case "REVERSED":
-        return "bg-gray-100 dark:bg-gray-500";
+      case 'COMPLETED':
+        return 'bg-green-100 dark:bg-green-500';
+      case 'PENDING':
+        return 'bg-yellow-100 dark:bg-yellow-500';
+      case 'FAILED':
+        return 'bg-red-100 dark:bg-red-500';
+      case 'REVERSED':
+        return 'bg-gray-100 dark:bg-gray-500';
       default:
-        return "bg-gray-100 dark:bg-gray-500";
+        return 'bg-gray-100 dark:bg-gray-500';
     }
   };
 
   const getIcon = (type: string) => {
     // Money IN (green, arrow down): DEPOSIT, REFUND, GIFTCARD_SELL, CRYPTO_SELL
     // Money OUT (red, arrow up): WITHDRAWAL, TRANSFER, VTU_*, GIFTCARD_BUY, CRYPTO_BUY, FEE
-    const creditTypes = ["DEPOSIT", "REFUND", "GIFTCARD_SELL", "CRYPTO_SELL"];
-    if (creditTypes.includes(type)) return "arrow-down-circle";
-    return "arrow-up-circle";
+    const creditTypes = ['DEPOSIT', 'REFUND', 'GIFTCARD_SELL', 'CRYPTO_SELL'];
+    if (creditTypes.includes(type)) return 'arrow-down-circle';
+    return 'arrow-up-circle';
   };
 
   const getIconColor = (type: string) => {
     // Money IN = green, Money OUT = red
-    const creditTypes = ["DEPOSIT", "REFUND", "GIFTCARD_SELL", "CRYPTO_SELL"];
-    if (creditTypes.includes(type)) return "#22C55E";
-    return "#EF4444";
+    const creditTypes = ['DEPOSIT', 'REFUND', 'GIFTCARD_SELL', 'CRYPTO_SELL'];
+    if (creditTypes.includes(type)) return '#22C55E';
+    return '#EF4444';
   };
 
   if (isLoading) {
     return (
       <View className="flex-1 bg-gray-50 dark:bg-gray-900">
-        <StatusBar style={isDark ? "light" : "dark"} />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
 
         {/* Header */}
         <ScreenHeader title="Transaction Details" />
 
-        <ScrollView
-          className="flex-1 px-5 pt-6"
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView className="flex-1 px-5 pt-6" showsVerticalScrollIndicator={false}>
           {/* Status Card Skeleton */}
           <Card variant="elevated" className="p-6 items-center mb-6">
             <SkeletonCircle size={80} />
             <Skeleton width={200} height={40} className="mt-4" />
-            <Skeleton
-              width={120}
-              height={32}
-              borderRadius={16}
-              className="mt-4"
-            />
+            <Skeleton width={120} height={32} borderRadius={16} className="mt-4" />
           </Card>
 
           {/* Transaction Info Skeleton */}
@@ -148,14 +123,8 @@ export default function TransactionDetailsScreen() {
           <Text variant="h3" className="mb-2">
             Transaction Not Found
           </Text>
-          <Text
-            variant="body"
-            color="secondary"
-            align="center"
-            className="mb-6"
-          >
-            We couldn&apos;t find this transaction. It may have been deleted or
-            doesn&apos;t exist.
+          <Text variant="body" color="secondary" align="center" className="mb-6">
+            We couldn&apos;t find this transaction. It may have been deleted or doesn&apos;t exist.
           </Text>
           <Button variant="primary" onPress={() => router.back()}>
             Go Back
@@ -165,13 +134,13 @@ export default function TransactionDetailsScreen() {
     );
   }
 
-  const creditTypes = ["DEPOSIT", "REFUND", "GIFTCARD_SELL", "CRYPTO_SELL"];
+  const creditTypes = ['DEPOSIT', 'REFUND', 'GIFTCARD_SELL', 'CRYPTO_SELL'];
   const isCredit = creditTypes.includes(transaction.type);
   const amount = parseFloat(transaction.amount);
 
   return (
     <View className="flex-1 bg-gray-50 dark:bg-gray-900">
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* Header */}
       <ScreenHeader
@@ -180,7 +149,7 @@ export default function TransactionDetailsScreen() {
           <TouchableOpacity
             onPress={() =>
               router.push({
-                pathname: "/support",
+                pathname: '/support',
                 params: {
                   context: JSON.stringify({
                     transactionId: transaction.id,
@@ -220,22 +189,14 @@ export default function TransactionDetailsScreen() {
               />
             </View>
 
-            <Text
-              variant="h3"
-              className={isCredit ? "text-green-600" : "text-red-600"}
-            >
-              {isCredit ? "+" : "-"}
+            <Text variant="h3" className={isCredit ? 'text-green-600' : 'text-red-600'}>
+              {isCredit ? '+' : '-'}
               {formatCurrency(amount)}
             </Text>
           </View>
 
-          <View
-            className={`px-4 py-2 rounded-full mt-4 ${getStatusBgColor(transaction.status)}`}
-          >
-            <Text
-              variant="bodyMedium"
-              className={getStatusColor(transaction.status)}
-            >
+          <View className={`px-4 py-2 rounded-full mt-4 ${getStatusBgColor(transaction.status)}`}>
+            <Text variant="bodyMedium" className={getStatusColor(transaction.status)}>
               {transaction.status}
             </Text>
           </View>
@@ -251,16 +212,13 @@ export default function TransactionDetailsScreen() {
             label="Description"
             value={
               transaction.description.length > 30
-                ? transaction.description.substring(0, 30) + "..."
+                ? transaction.description.substring(0, 30) + '...'
                 : transaction.description
             }
           />
           <DetailRow label="Reference" value={transaction.reference} />
           <DetailRow label="Type" value={transaction.type} />
-          <DetailRow
-            label="Date"
-            value={formatDateTime(transaction.createdAt)}
-          />
+          <DetailRow label="Date" value={formatDateTime(transaction.createdAt)} />
           {transaction.completedAt && (
             <DetailRow
               label="Completed At"
@@ -283,7 +241,7 @@ export default function TransactionDetailsScreen() {
           <DetailRow
             label="Amount"
             value={formatCurrency(amount)}
-            valueColor={isCredit ? "text-green-600" : "text-red-600"}
+            valueColor={isCredit ? 'text-green-600' : 'text-red-600'}
           />
           <DetailRow
             label="Balance After"
@@ -293,7 +251,7 @@ export default function TransactionDetailsScreen() {
         </Card>
 
         {/* Electricity Token (if available) */}
-        {transaction.metadata?.serviceType === "ELECTRICITY" &&
+        {transaction.metadata?.serviceType === 'ELECTRICITY' &&
           transaction.metadata?.meterToken && (
             <Card
               variant="elevated"
@@ -303,10 +261,7 @@ export default function TransactionDetailsScreen() {
                 <View className="w-8 h-8 rounded-full bg-yellow-100 dark:bg-yellow-900/40 items-center justify-center mr-3">
                   <Ionicons name="flash" size={20} color="#CA8A04" />
                 </View>
-                <Text
-                  variant="h4"
-                  className="text-yellow-800 dark:text-yellow-400"
-                >
+                <Text variant="h4" className="text-yellow-800 dark:text-yellow-400">
                   Electricity Token
                 </Text>
               </View>
@@ -316,16 +271,13 @@ export default function TransactionDetailsScreen() {
                   Token Number
                 </Text> */}
                 <View className="flex-row items-center justify-between">
-                  <Text
-                    variant="h4"
-                    className="text-yellow-600 dark:text-yellow-400 flex-1 mr-2"
-                  >
+                  <Text variant="h4" className="text-yellow-600 dark:text-yellow-400 flex-1 mr-2">
                     {transaction.metadata.meterToken}
                   </Text>
                   <TouchableOpacity
                     onPress={() => {
                       Clipboard.setString(transaction.metadata.meterToken);
-                      RNAlert.alert("Copied!", "Token copied to clipboard");
+                      RNAlert.alert('Copied!', 'Token copied to clipboard');
                     }}
                     className="bg-yellow-100 dark:bg-yellow-900/40 p-2 rounded-lg"
                   >
@@ -339,9 +291,7 @@ export default function TransactionDetailsScreen() {
                   <Text variant="caption" color="secondary">
                     Customer Name
                   </Text>
-                  <Text variant="bodyMedium">
-                    {transaction.metadata.customerName}
-                  </Text>
+                  <Text variant="bodyMedium">{transaction.metadata.customerName}</Text>
                 </View>
               )}
 
@@ -359,99 +309,79 @@ export default function TransactionDetailsScreen() {
                   <Text variant="caption" color="secondary">
                     Meter Number
                   </Text>
-                  <Text variant="bodyMedium">
-                    {transaction.metadata.recipient}
-                  </Text>
+                  <Text variant="bodyMedium">{transaction.metadata.recipient}</Text>
                 </View>
               )}
             </Card>
           )}
 
         {/* JAMB PIN (if available) */}
-        {transaction.metadata?.serviceType === "JAMB" &&
-          transaction.metadata?.pin && (
-            <Card
-              variant="elevated"
-              className="p-5 mb-6 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800"
-            >
-              <View className="flex-row items-center mb-3">
-                <View className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 items-center justify-center mr-3">
-                  <Ionicons
-                    name="school"
-                    size={20}
-                    color={isDark ? "#93C5FD" : "#1E40AF"}
-                  />
-                </View>
-                <Text variant="h4" className="text-blue-800 dark:text-blue-400">
-                  JAMB PIN
-                </Text>
+        {transaction.metadata?.serviceType === 'JAMB' && transaction.metadata?.pin && (
+          <Card
+            variant="elevated"
+            className="p-5 mb-6 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800"
+          >
+            <View className="flex-row items-center mb-3">
+              <View className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 items-center justify-center mr-3">
+                <Ionicons name="school" size={20} color={isDark ? '#93C5FD' : '#1E40AF'} />
               </View>
+              <Text variant="h4" className="text-blue-800 dark:text-blue-400">
+                JAMB PIN
+              </Text>
+            </View>
 
-              <View className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-blue-200 dark:border-blue-800 mb-3">
-                <Text variant="caption" color="secondary" className="mb-2">
-                  PIN Number
+            <View className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-blue-200 dark:border-blue-800 mb-3">
+              <Text variant="caption" color="secondary" className="mb-2">
+                PIN Number
+              </Text>
+              <View className="flex-row items-center justify-between">
+                <Text variant="h4" className="text-blue-600 dark:text-blue-400 flex-1 mr-2">
+                  {transaction.metadata.pin}
                 </Text>
-                <View className="flex-row items-center justify-between">
-                  <Text
-                    variant="h4"
-                    className="text-blue-600 dark:text-blue-400 flex-1 mr-2"
-                  >
-                    {transaction.metadata.pin}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      Clipboard.setString(transaction.metadata.pin);
-                      RNAlert.alert("Copied!", "JAMB PIN copied to clipboard");
-                    }}
-                    className="bg-blue-100 dark:bg-blue-900/40 p-2 rounded-lg"
-                  >
-                    <Ionicons
-                      name="copy-outline"
-                      size={20}
-                      color={isDark ? "#93C5FD" : "#1E40AF"}
-                    />
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                  onPress={() => {
+                    Clipboard.setString(transaction.metadata.pin);
+                    RNAlert.alert('Copied!', 'JAMB PIN copied to clipboard');
+                  }}
+                  className="bg-blue-100 dark:bg-blue-900/40 p-2 rounded-lg"
+                >
+                  <Ionicons name="copy-outline" size={20} color={isDark ? '#93C5FD' : '#1E40AF'} />
+                </TouchableOpacity>
               </View>
+            </View>
 
-              {transaction.metadata?.profileId && (
-                <View className="mb-2">
-                  <Text variant="caption" color="secondary">
-                    Profile ID
-                  </Text>
-                  <Text variant="bodyMedium">
-                    {transaction.metadata.profileId}
-                  </Text>
-                </View>
-              )}
+            {transaction.metadata?.profileId && (
+              <View className="mb-2">
+                <Text variant="caption" color="secondary">
+                  Profile ID
+                </Text>
+                <Text variant="bodyMedium">{transaction.metadata.profileId}</Text>
+              </View>
+            )}
 
-              {transaction.metadata?.customerName && (
-                <View className="mb-2">
-                  <Text variant="caption" color="secondary">
-                    Customer Name
-                  </Text>
-                  <Text variant="bodyMedium">
-                    {transaction.metadata.customerName}
-                  </Text>
-                </View>
-              )}
+            {transaction.metadata?.customerName && (
+              <View className="mb-2">
+                <Text variant="caption" color="secondary">
+                  Customer Name
+                </Text>
+                <Text variant="bodyMedium">{transaction.metadata.customerName}</Text>
+              </View>
+            )}
 
-              {transaction.metadata?.productName && (
-                <View>
-                  <Text variant="caption" color="secondary">
-                    Plan
-                  </Text>
-                  <Text variant="bodyMedium">
-                    {transaction.metadata.productName}
-                  </Text>
-                </View>
-              )}
-            </Card>
-          )}
+            {transaction.metadata?.productName && (
+              <View>
+                <Text variant="caption" color="secondary">
+                  Plan
+                </Text>
+                <Text variant="bodyMedium">{transaction.metadata.productName}</Text>
+              </View>
+            )}
+          </Card>
+        )}
 
         {/* WAEC Result Checker Cards (if available) */}
-        {(transaction.metadata?.serviceType === "WAEC_RESULT" ||
-          transaction.metadata?.serviceType === "WAEC_REGISTRATION") &&
+        {(transaction.metadata?.serviceType === 'WAEC_RESULT' ||
+          transaction.metadata?.serviceType === 'WAEC_REGISTRATION') &&
           transaction.metadata?.cards &&
           (() => {
             try {
@@ -464,17 +394,10 @@ export default function TransactionDetailsScreen() {
                   >
                     <View className="flex-row items-center mb-3">
                       <View className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/40 items-center justify-center mr-3">
-                        <Ionicons
-                          name="card"
-                          size={20}
-                          color={isDark ? "#86EFAC" : "#16A34A"}
-                        />
+                        <Ionicons name="card" size={20} color={isDark ? '#86EFAC' : '#16A34A'} />
                       </View>
-                      <Text
-                        variant="h4"
-                        className="text-green-800 dark:text-green-400"
-                      >
-                        WAEC Result Card{cards.length > 1 ? "s" : ""}
+                      <Text variant="h4" className="text-green-800 dark:text-green-400">
+                        WAEC Result Card{cards.length > 1 ? 's' : ''}
                       </Text>
                     </View>
 
@@ -493,11 +416,7 @@ export default function TransactionDetailsScreen() {
                         </View>
                         <View className="flex-row items-center justify-between">
                           <View className="flex-1">
-                            <Text
-                              variant="caption"
-                              color="secondary"
-                              className="mb-1"
-                            >
+                            <Text variant="caption" color="secondary" className="mb-1">
                               PIN
                             </Text>
                             <Text
@@ -509,20 +428,15 @@ export default function TransactionDetailsScreen() {
                           </View>
                           <TouchableOpacity
                             onPress={() => {
-                              Clipboard.setString(
-                                `Serial: ${card.Serial}\nPIN: ${card.Pin}`
-                              );
-                              RNAlert.alert(
-                                "Copied!",
-                                "Card details copied to clipboard"
-                              );
+                              Clipboard.setString(`Serial: ${card.Serial}\nPIN: ${card.Pin}`);
+                              RNAlert.alert('Copied!', 'Card details copied to clipboard');
                             }}
                             className="bg-green-100 dark:bg-green-900/40 p-2 rounded-lg ml-2"
                           >
                             <Ionicons
                               name="copy-outline"
                               size={20}
-                              color={isDark ? "#86EFAC" : "#16A34A"}
+                              color={isDark ? '#86EFAC' : '#16A34A'}
                             />
                           </TouchableOpacity>
                         </View>
@@ -538,134 +452,124 @@ export default function TransactionDetailsScreen() {
           })()}
 
         {/* Metadata */}
-        {transaction.metadata &&
-          Object.keys(transaction.metadata).length > 0 && (
-            <Card variant="elevated" className="p-4 mb-6">
-              <Text variant="h4" className="mb-4">
-                Additional Details
-              </Text>
-              {Object.entries(transaction.metadata as Record<string, any>)
-                .filter(([key]) => {
-                  // Filter out electricity-specific fields if already shown above
-                  if (transaction.metadata?.serviceType === "ELECTRICITY") {
-                    return ![
-                      "meterToken",
-                      "customerName",
-                      "units",
-                      "recipient",
-                      "tokenAmount",
-                      "tariff",
-                      "customerAddress",
-                      "serviceType",
-                      "orderId",
-                    ].includes(key);
-                  }
-
-                  // Filter out data transaction fields
-                  if (transaction.metadata?.transferType === "p2p") {
-                    return !["recipientId"].includes(key);
-                  }
-
-                  if (
-                    transaction.metadata?.serviceType === "CABLE_TV" ||
-                    transaction.metadata?.serviceType === "AIRTIME" ||
-                    transaction.metadata?.serviceType === "DATA" ||
-                    transaction.metadata?.serviceType === "JAMB" ||
-                    transaction.metadata?.serviceType === "WAEC_RESULT" ||
-                    transaction.metadata?.serviceType === "WAEC_REGISTRATION"
-                  ) {
-                    return ![
-                      "productCode",
-                      "productName",
-                      "serviceType",
-                      "cashbackToEarn",
-                      "cashbackRedeemed",
-                      "orderId",
-                      "cards",
-                    ].includes(key);
-                  }
-
-                  // Always filter out sensitive/internal/technical fields
+        {transaction.metadata && Object.keys(transaction.metadata).length > 0 && (
+          <Card variant="elevated" className="p-4 mb-6">
+            <Text variant="h4" className="mb-4">
+              Additional Details
+            </Text>
+            {Object.entries(transaction.metadata as Record<string, any>)
+              .filter(([key]) => {
+                // Filter out electricity-specific fields if already shown above
+                if (transaction.metadata?.serviceType === 'ELECTRICITY') {
                   return ![
-                    "paystackResponse",
-                    "bankCode",
-                    "transferCode",
-                    "reversedBy",
-                    "provider",
-                    "paymentMethod",
-                    "type",
-                    "deviceId",
-                    "platform",
-                    "appVersion",
-                    "deviceName",
-                    "cancelledAt",
-                    "cancelledBy",
-                    "ip",
-                    "lockedWallet",
-                    "limitExceeded",
-                    "refunded",
-                    "error",
+                    'meterToken',
+                    'customerName',
+                    'units',
+                    'recipient',
+                    'tokenAmount',
+                    'tariff',
+                    'customerAddress',
+                    'serviceType',
+                    'orderId',
                   ].includes(key);
-                })
-                .map(([key, value], index, arr) => {
-                  // Custom labels for specific fields (use camelCase keys)
-                  const labelMap: Record<string, string> = {
-                    netAmount: "Amount Received",
-                    grossAmount: "Total Amount",
-                    paystackFee: "Transaction Fee",
-                    accountNumber: "Account Number",
-                    recipientTag: "Recipient Tag",
-                    transferType: "Transfer Type",
-                    recipientName: "Recipient Name",
-                    meterType: "Meter Type",
-                    subscriptionType: "Subscription Type",
-                    processingFee: "Processing Fee",
-                    requestedAmount: "Requested Amount",
-                    refundAmount: "Refunded Amount",
-                    bankName: "Bank Name",
-                  };
+                }
 
-                  // Get custom label or format the key
-                  const label =
-                    labelMap[key] ||
-                    key
-                      .replace(/_/g, " ")
-                      .replace(/\b\w/g, (l) => l.toUpperCase());
+                // Filter out data transaction fields
+                if (transaction.metadata?.transferType === 'p2p') {
+                  return !['recipientId'].includes(key);
+                }
 
-                  // Format the value for better display
-                  let formattedValue = String(value);
+                if (
+                  transaction.metadata?.serviceType === 'CABLE_TV' ||
+                  transaction.metadata?.serviceType === 'AIRTIME' ||
+                  transaction.metadata?.serviceType === 'DATA' ||
+                  transaction.metadata?.serviceType === 'JAMB' ||
+                  transaction.metadata?.serviceType === 'WAEC_RESULT' ||
+                  transaction.metadata?.serviceType === 'WAEC_REGISTRATION'
+                ) {
+                  return ![
+                    'productCode',
+                    'productName',
+                    'serviceType',
+                    'cashbackToEarn',
+                    'cashbackRedeemed',
+                    'orderId',
+                    'cards',
+                  ].includes(key);
+                }
 
-                  // Format currency fields
-                  if (
-                    ["netAmount", "grossAmount", "paystackFee"].includes(key)
-                  ) {
-                    formattedValue = formatCurrency(Number(value));
-                  }
+                // Always filter out sensitive/internal/technical fields
+                return ![
+                  'paystackResponse',
+                  'bankCode',
+                  'transferCode',
+                  'reversedBy',
+                  'provider',
+                  'paymentMethod',
+                  'type',
+                  'deviceId',
+                  'platform',
+                  'appVersion',
+                  'deviceName',
+                  'cancelledAt',
+                  'cancelledBy',
+                  'ip',
+                  'lockedWallet',
+                  'limitExceeded',
+                  'refunded',
+                  'error',
+                ].includes(key);
+              })
+              .map(([key, value], index, arr) => {
+                // Custom labels for specific fields (use camelCase keys)
+                const labelMap: Record<string, string> = {
+                  netAmount: 'Amount Received',
+                  grossAmount: 'Total Amount',
+                  paystackFee: 'Transaction Fee',
+                  accountNumber: 'Account Number',
+                  recipientTag: 'Recipient Tag',
+                  transferType: 'Transfer Type',
+                  recipientName: 'Recipient Name',
+                  meterType: 'Meter Type',
+                  subscriptionType: 'Subscription Type',
+                  processingFee: 'Processing Fee',
+                  requestedAmount: 'Requested Amount',
+                  refundAmount: 'Refunded Amount',
+                  bankName: 'Bank Name',
+                };
 
-                  return (
-                    <DetailRow
-                      key={key}
-                      label={label}
-                      value={formattedValue}
-                      isLast={index === arr.length - 1}
-                    />
-                  );
-                })}
-            </Card>
-          )}
+                // Get custom label or format the key
+                const label =
+                  labelMap[key] || key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+
+                // Format the value for better display
+                let formattedValue = String(value);
+
+                // Format currency fields
+                if (['netAmount', 'grossAmount', 'paystackFee'].includes(key)) {
+                  formattedValue = formatCurrency(Number(value));
+                }
+
+                return (
+                  <DetailRow
+                    key={key}
+                    label={label}
+                    value={formattedValue}
+                    isLast={index === arr.length - 1}
+                  />
+                );
+              })}
+          </Card>
+        )}
 
         {/* Help Section */}
         <Card variant="elevated" className="p-4 mb-8 bg-purple-50">
           <View className="flex-row items-start">
-            <Ionicons
-              name="information-circle-outline"
-              size={20}
-              color="#8B5CF6"
-            />
+            <Ionicons name="information-circle-outline" size={20} color="#8B5CF6" />
             <View className="ml-3 flex-1">
               <Text variant="caption" color="secondary">
-                If you have any questions about this transaction, please contact
-                our support team with the transaction reference.
+                If you have any questions about this transaction, please contact our support team
+                with the transaction reference.
               </Text>
             </View>
           </View>
@@ -698,20 +602,13 @@ interface DetailRowProps {
   isLast?: boolean;
 }
 
-const DetailRow: React.FC<DetailRowProps> = ({
-  label,
-  value,
-  valueColor,
-  isLast = false,
-}) => (
-  <View
-    className={`flex-row justify-between py-3 ${!isLast ? "border-b border-gray-100" : ""}`}
-  >
+const DetailRow: React.FC<DetailRowProps> = ({ label, value, valueColor, isLast = false }) => (
+  <View className={`flex-row justify-between py-3 ${!isLast ? 'border-b border-gray-100' : ''}`}>
     <Text variant="body" color="secondary">
       {label}
     </Text>
-    <Text variant="bodyMedium" className={valueColor || ""}>
-      {value.length > 30 ? value.substring(0, 30) + "..." : value}
+    <Text variant="bodyMedium" className={valueColor || ''}>
+      {value.length > 30 ? value.substring(0, 30) + '...' : value}
     </Text>
   </View>
 );

@@ -6,7 +6,7 @@
  * the native React Native SDK due to Swift compatibility issues.
  */
 
-import Constants from "expo-constants";
+import Constants from 'expo-constants';
 import React, {
   createContext,
   ReactNode,
@@ -14,13 +14,13 @@ import React, {
   useContext,
   useEffect,
   useState,
-} from "react";
+} from 'react';
 import {
   CircleChallengeParams,
   CircleChallengeResult,
   CircleChallengeWebView,
-} from "../components/circle/CircleChallengeWebView";
-import { circleWebSDKService } from "../services/circle-web-sdk.service";
+} from '../components/circle/CircleChallengeWebView';
+import { circleWebSDKService } from '../services/circle-web-sdk.service';
 
 interface CircleSDKContextType {
   isInitialized: boolean;
@@ -29,29 +29,23 @@ interface CircleSDKContextType {
   executeChallenge: (
     userToken: string,
     encryptionKey: string,
-    challengeIds: string[]
+    challengeIds: string[],
   ) => Promise<any>;
-  setBiometrics: (
-    userToken: string,
-    encryptionKey: string,
-    challengeId: string
-  ) => Promise<any>;
+  setBiometrics: (userToken: string, encryptionKey: string, challengeId: string) => Promise<any>;
   setSecurityQuestions: (
     userToken: string,
     encryptionKey: string,
     challengeId: string,
-    questions: { question: string; answer: string }[]
+    questions: { question: string; answer: string }[],
   ) => Promise<any>;
   performTransaction: (
     userToken: string,
     encryptionKey: string,
-    challengeId: string
+    challengeId: string,
   ) => Promise<any>;
 }
 
-const CircleSDKContext = createContext<CircleSDKContextType | undefined>(
-  undefined
-);
+const CircleSDKContext = createContext<CircleSDKContextType | undefined>(undefined);
 
 interface PendingChallenge {
   params: CircleChallengeParams;
@@ -66,8 +60,7 @@ export function CircleSDKProvider({ children }: CircleSDKProviderProps) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pendingChallenge, setPendingChallenge] =
-    useState<PendingChallenge | null>(null);
+  const [pendingChallenge, setPendingChallenge] = useState<PendingChallenge | null>(null);
 
   useEffect(() => {
     initializeSDK();
@@ -80,12 +73,11 @@ export function CircleSDKProvider({ children }: CircleSDKProviderProps) {
 
       // Get Circle App ID from environment variables
       const appId =
-        Constants.expoConfig?.extra?.circleAppId ||
-        process.env.EXPO_PUBLIC_CIRCLE_APP_ID;
+        Constants.expoConfig?.extra?.circleAppId || process.env.EXPO_PUBLIC_CIRCLE_APP_ID;
 
       if (!appId) {
         throw new Error(
-          "Circle App ID not configured. Please set EXPO_PUBLIC_CIRCLE_APP_ID in your environment."
+          'Circle App ID not configured. Please set EXPO_PUBLIC_CIRCLE_APP_ID in your environment.',
         );
       }
 
@@ -95,12 +87,10 @@ export function CircleSDKProvider({ children }: CircleSDKProviderProps) {
       });
 
       setIsInitialized(true);
-      console.log(
-        "[CircleSDKContext] SDK initialized successfully (WebView mode)"
-      );
+      console.log('[CircleSDKContext] SDK initialized successfully (WebView mode)');
     } catch (err: any) {
-      console.error("[CircleSDKContext] SDK initialization failed:", err);
-      setError(err.message || "Failed to initialize Circle SDK");
+      console.error('[CircleSDKContext] SDK initialization failed:', err);
+      setError(err.message || 'Failed to initialize Circle SDK');
       setIsInitialized(false);
     } finally {
       setIsInitializing(false);
@@ -114,7 +104,7 @@ export function CircleSDKProvider({ children }: CircleSDKProviderProps) {
         setPendingChallenge({ params, resolve });
       });
     },
-    []
+    [],
   );
 
   // Register callback with service when it changes
@@ -133,7 +123,7 @@ export function CircleSDKProvider({ children }: CircleSDKProviderProps) {
         setPendingChallenge(null);
       }
     },
-    [pendingChallenge]
+    [pendingChallenge],
   );
 
   // Handle WebView close
@@ -141,7 +131,7 @@ export function CircleSDKProvider({ children }: CircleSDKProviderProps) {
     if (pendingChallenge) {
       pendingChallenge.resolve({
         success: false,
-        error: "User cancelled",
+        error: 'User cancelled',
       });
       setPendingChallenge(null);
     }
@@ -150,7 +140,7 @@ export function CircleSDKProvider({ children }: CircleSDKProviderProps) {
   const executeChallenge = async (
     userToken: string,
     encryptionKey: string,
-    challengeIds: string[]
+    challengeIds: string[],
   ) => {
     try {
       const appId = circleWebSDKService.getAppId();
@@ -167,8 +157,8 @@ export function CircleSDKProvider({ children }: CircleSDKProviderProps) {
         if (!result.success) {
           return {
             result: {
-              resultType: "error" as const,
-              error: { message: result.error || "Challenge failed" },
+              resultType: 'error' as const,
+              error: { message: result.error || 'Challenge failed' },
             },
           };
         }
@@ -176,20 +166,16 @@ export function CircleSDKProvider({ children }: CircleSDKProviderProps) {
 
       return {
         result: {
-          resultType: "success" as const,
+          resultType: 'success' as const,
         },
       };
     } catch (err: any) {
-      console.error("[CircleSDKContext] Execute challenge error:", err);
+      console.error('[CircleSDKContext] Execute challenge error:', err);
       throw err;
     }
   };
 
-  const setBiometrics = async (
-    userToken: string,
-    encryptionKey: string,
-    challengeId: string
-  ) => {
+  const setBiometrics = async (userToken: string, encryptionKey: string, challengeId: string) => {
     try {
       const appId = circleWebSDKService.getAppId();
       const result = await executeChallengeViaWebView({
@@ -201,14 +187,12 @@ export function CircleSDKProvider({ children }: CircleSDKProviderProps) {
 
       return {
         result: {
-          resultType: result.success
-            ? ("success" as const)
-            : ("error" as const),
+          resultType: result.success ? ('success' as const) : ('error' as const),
           error: result.error ? { message: result.error } : undefined,
         },
       };
     } catch (err: any) {
-      console.error("[CircleSDKContext] Set biometrics error:", err);
+      console.error('[CircleSDKContext] Set biometrics error:', err);
       throw err;
     }
   };
@@ -217,7 +201,7 @@ export function CircleSDKProvider({ children }: CircleSDKProviderProps) {
     userToken: string,
     encryptionKey: string,
     challengeId: string,
-    _questions: { question: string; answer: string }[]
+    _questions: { question: string; answer: string }[],
   ) => {
     try {
       const appId = circleWebSDKService.getAppId();
@@ -231,14 +215,12 @@ export function CircleSDKProvider({ children }: CircleSDKProviderProps) {
 
       return {
         result: {
-          resultType: result.success
-            ? ("success" as const)
-            : ("error" as const),
+          resultType: result.success ? ('success' as const) : ('error' as const),
           error: result.error ? { message: result.error } : undefined,
         },
       };
     } catch (err: any) {
-      console.error("[CircleSDKContext] Set security questions error:", err);
+      console.error('[CircleSDKContext] Set security questions error:', err);
       throw err;
     }
   };
@@ -246,7 +228,7 @@ export function CircleSDKProvider({ children }: CircleSDKProviderProps) {
   const performTransaction = async (
     userToken: string,
     encryptionKey: string,
-    challengeId: string
+    challengeId: string,
   ) => {
     try {
       const appId = circleWebSDKService.getAppId();
@@ -259,15 +241,13 @@ export function CircleSDKProvider({ children }: CircleSDKProviderProps) {
 
       return {
         result: {
-          resultType: result.success
-            ? ("success" as const)
-            : ("error" as const),
+          resultType: result.success ? ('success' as const) : ('error' as const),
           data: result.result,
           error: result.error ? { message: result.error } : undefined,
         },
       };
     } catch (err: any) {
-      console.error("[CircleSDKContext] Perform transaction error:", err);
+      console.error('[CircleSDKContext] Perform transaction error:', err);
       throw err;
     }
   };
@@ -301,7 +281,7 @@ export function CircleSDKProvider({ children }: CircleSDKProviderProps) {
 export function useCircleSDK() {
   const context = useContext(CircleSDKContext);
   if (context === undefined) {
-    throw new Error("useCircleSDK must be used within a CircleSDKProvider");
+    throw new Error('useCircleSDK must be used within a CircleSDKProvider');
   }
   return context;
 }

@@ -1,19 +1,12 @@
 // lib/api/client.ts
-import axios, {
-  AxiosError,
-  InternalAxiosRequestConfig,
-  isAxiosError,
-} from "axios";
-import { router } from "expo-router";
-import { Alert } from "react-native";
-import { config } from "../../constants/config";
-import { SECURE_KEYS, secureStorage } from "../../lib/storage/secure-store";
-import {
-  generateIdempotencyKey,
-  requiresIdempotencyKey,
-} from "../../lib/utils/idempotency";
-import { ApiError } from "../../types/api.types";
-import { addBreadcrumb } from "../../utils/sentryConfig";
+import axios, { AxiosError, InternalAxiosRequestConfig, isAxiosError } from 'axios';
+import { router } from 'expo-router';
+import { Alert } from 'react-native';
+import { config } from '../../constants/config';
+import { SECURE_KEYS, secureStorage } from '../../lib/storage/secure-store';
+import { generateIdempotencyKey, requiresIdempotencyKey } from '../../lib/utils/idempotency';
+import { ApiError } from '../../types/api.types';
+import { addBreadcrumb } from '../../utils/sentryConfig';
 
 // Session expiration flag to prevent multiple alerts
 let isSessionExpiredAlertShowing = false;
@@ -37,15 +30,15 @@ const showSessionExpiredAlert = async () => {
   await secureStorage.removeItem(SECURE_KEYS.REFRESH_TOKEN);
 
   // Clear stores
-  import("../../store/auth.store").then(({ useAuthStore }) => {
+  import('../../store/auth.store').then(({ useAuthStore }) => {
     const { clearTokens } = useAuthStore.getState();
     clearTokens().then(() => {
       // Clear sensitive user data but retain display info (name, email, avatar)
-      import("../../store/user.store").then(({ useUserStore }) => {
+      import('../../store/user.store').then(({ useUserStore }) => {
         useUserStore.getState().clearSensitiveUserData();
       });
       // Clear wallet data (sensitive financial information)
-      import("../../store/wallet.store").then(({ useWalletStore }) => {
+      import('../../store/wallet.store').then(({ useWalletStore }) => {
         useWalletStore.getState().clearWallet();
       });
     });
@@ -53,30 +46,26 @@ const showSessionExpiredAlert = async () => {
 
   // Show alert to user (only once)
   Alert.alert(
-    "Session Expired",
-    "Your session has expired. Please log in again.",
+    'Session Expired',
+    'Your session has expired. Please log in again.',
     [
       {
-        text: "OK",
+        text: 'OK',
         onPress: () => {
           // Reset flag after user dismisses alert
           isSessionExpiredAlertShowing = false;
           // Navigate to welcome screen
-          router.replace("/(auth)/welcome");
+          router.replace('/(auth)/welcome');
         },
       },
     ],
-    { cancelable: false }
+    { cancelable: false },
   );
 };
 
 // Export function to reset the flag (called on successful login)
 export const resetSessionExpiredFlag = () => {
-  console.log(
-    "[SessionExpired] Resetting flag from",
-    isSessionExpiredAlertShowing,
-    "to false"
-  );
+  console.log('[SessionExpired] Resetting flag from', isSessionExpiredAlertShowing, 'to false');
   isSessionExpiredAlertShowing = false;
 };
 
@@ -85,22 +74,22 @@ export const apiClient = axios.create({
   baseURL: config.API_BASE_URL,
   timeout: 60000, // Increased to 60 seconds for VTU operations
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   },
 });
 
 // Request interceptor - Add auth token and idempotency keys
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    const endpoint = config.url || "";
-    const method = config.method?.toUpperCase() || "";
+    const endpoint = config.url || '';
+    const method = config.method?.toUpperCase() || '';
     console.log(
       `[API Request] ${method} ${endpoint}`,
-      config.data ? JSON.stringify(config.data) : "No data"
+      config.data ? JSON.stringify(config.data) : 'No data',
     );
 
     // Add Sentry breadcrumb for API request
-    addBreadcrumb(`API Request: ${method} ${endpoint}`, "http", "info", {
+    addBreadcrumb(`API Request: ${method} ${endpoint}`, 'http', 'info', {
       url: endpoint,
       method,
       hasData: !!config.data,
@@ -118,23 +107,17 @@ apiClient.interceptors.request.use(
     // Add idempotency key for POST/PUT/PATCH requests to idempotent endpoints
     if (
       config.headers &&
-      (method === "POST" || method === "PUT" || method === "PATCH") &&
+      (method === 'POST' || method === 'PUT' || method === 'PATCH') &&
       requiresIdempotencyKey(endpoint)
     ) {
       // Check if idempotency key already exists (for retries)
-      if (
-        !config.headers["Idempotency-Key"] &&
-        !config.headers["idempotency-key"]
-      ) {
+      if (!config.headers['Idempotency-Key'] && !config.headers['idempotency-key']) {
         try {
           const idempotencyKey = await generateIdempotencyKey();
-          config.headers["Idempotency-Key"] = idempotencyKey;
+          config.headers['Idempotency-Key'] = idempotencyKey;
           //console.log(`[API Request] Added Idempotency-Key header to ${endpoint}`);
         } catch (error) {
-          console.warn(
-            `[API Request] Failed to generate idempotency key for ${endpoint}:`,
-            error
-          );
+          console.warn(`[API Request] Failed to generate idempotency key for ${endpoint}:`, error);
           // Continue without idempotency key (fail open)
         }
       }
@@ -145,7 +128,7 @@ apiClient.interceptors.request.use(
   (error) => {
     //console.error('[API Request] Interceptor error:', error);
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response interceptor - Handle errors and refresh token
@@ -154,9 +137,9 @@ apiClient.interceptors.response.use(
     //console.log(`[API Response] ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`);
 
     // Add Sentry breadcrumb for successful API response
-    const endpoint = response.config.url || "";
-    const method = response.config.method?.toUpperCase() || "";
-    addBreadcrumb(`API Response: ${method} ${endpoint}`, "http", "info", {
+    const endpoint = response.config.url || '';
+    const method = response.config.method?.toUpperCase() || '';
+    addBreadcrumb(`API Response: ${method} ${endpoint}`, 'http', 'info', {
       url: endpoint,
       method,
       status: response.status,
@@ -169,20 +152,20 @@ apiClient.interceptors.response.use(
       _retry?: boolean;
     };
 
-    const endpoint = originalRequest?.url || "unknown";
+    const endpoint = originalRequest?.url || 'unknown';
     // console.log(`[API Response] Error on ${endpoint}:`, error.response?.status, error.message);
 
     // Add Sentry breadcrumb for API error
     addBreadcrumb(
       `API Error: ${originalRequest?.method?.toUpperCase()} ${endpoint}`,
-      "http",
-      "error",
+      'http',
+      'error',
       {
         url: endpoint,
         method: originalRequest?.method?.toUpperCase(),
         status: error.response?.status,
         message: error.message,
-      }
+      },
     );
 
     // Handle 401 (token expired)
@@ -190,15 +173,13 @@ apiClient.interceptors.response.use(
       // Don't try to refresh tokens for public auth endpoints
       // These endpoints handle their own authentication errors
       const publicAuthEndpoints = [
-        "/auth/login",
-        "/auth/register",
-        "/auth/refresh",
-        "/auth/logout",
-        "/auth/me",
+        '/auth/login',
+        '/auth/register',
+        '/auth/refresh',
+        '/auth/logout',
+        '/auth/me',
       ];
-      const isPublicAuthEndpoint = publicAuthEndpoints.some((path) =>
-        endpoint.includes(path)
-      );
+      const isPublicAuthEndpoint = publicAuthEndpoints.some((path) => endpoint.includes(path));
 
       // console.log(`[API Response] Checking if ${endpoint} is public auth endpoint:`, isPublicAuthEndpoint);
 
@@ -212,9 +193,7 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = await secureStorage.getItem(
-          SECURE_KEYS.REFRESH_TOKEN
-        );
+        const refreshToken = await secureStorage.getItem(SECURE_KEYS.REFRESH_TOKEN);
 
         if (!refreshToken) {
           // Show session expired alert (only once)
@@ -223,26 +202,20 @@ apiClient.interceptors.response.use(
           // Return a user-friendly error
           const authError: ApiError = {
             statusCode: 401,
-            message: "Your session has expired. Please log in again.",
-            error: "AUTHENTICATION_REQUIRED",
+            message: 'Your session has expired. Please log in again.',
+            error: 'AUTHENTICATION_REQUIRED',
           };
           return Promise.reject(authError);
         }
 
         // Refresh access token
-        const { data } = await axios.post(
-          `${config.API_BASE_URL}/auth/refresh`,
-          {
-            refreshToken,
-          }
-        );
+        const { data } = await axios.post(`${config.API_BASE_URL}/auth/refresh`, {
+          refreshToken,
+        });
 
         // Update tokens
         await secureStorage.setItem(SECURE_KEYS.ACCESS_TOKEN, data.accessToken);
-        await secureStorage.setItem(
-          SECURE_KEYS.REFRESH_TOKEN,
-          data.refreshToken
-        );
+        await secureStorage.setItem(SECURE_KEYS.REFRESH_TOKEN, data.refreshToken);
 
         // Retry original request
         if (originalRequest.headers) {
@@ -258,8 +231,8 @@ apiClient.interceptors.response.use(
         // Create user-friendly error message
         const authError: ApiError = {
           statusCode: 401,
-          message: "Your session has expired. Please log in again.",
-          error: "SESSION_EXPIRED",
+          message: 'Your session has expired. Please log in again.',
+          error: 'SESSION_EXPIRED',
         };
 
         return Promise.reject(authError);
@@ -268,7 +241,7 @@ apiClient.interceptors.response.use(
 
     // Handle other errors
     return Promise.reject(error);
-  }
+  },
 );
 
 // API Error handler
@@ -282,7 +255,7 @@ export const handleApiError = (error: any): ApiError => {
     const { status, data } = error.response;
     return {
       statusCode: status,
-      message: data.message || "An error occurred",
+      message: data.message || 'An error occurred',
       error: data.error,
       errors: data.errors,
     };
@@ -291,12 +264,12 @@ export const handleApiError = (error: any): ApiError => {
   if (isAxiosError(error) && error.request) {
     return {
       statusCode: 0,
-      message: "Network error. Please check your connection.",
+      message: 'Network error. Please check your connection.',
     };
   }
 
   return {
     statusCode: 0,
-    message: error.message || "Unknown error",
+    message: error.message || 'Unknown error',
   };
 };

@@ -35,7 +35,7 @@ export const usePasswordReset = () => {
     },
     onError: (error) => {
       const apiError = handleApiError(error);
-      errorLogger.logAuthError(apiError, 'forgot_password');
+      errorLogger.logAuthError(new Error(apiError.message), 'forgot_password');
       toast.error({
         title: 'Failed to Send Code',
         message: apiError.message || 'Could not send reset code. Please try again.',
@@ -59,7 +59,7 @@ export const usePasswordReset = () => {
     },
     onError: (error) => {
       const apiError = handleApiError(error);
-      errorLogger.logAuthError(apiError, 'verify_reset_code');
+      errorLogger.logAuthError(new Error(apiError.message), 'verify_reset_code');
       toast.error({
         title: 'Invalid Code',
         message: 'The reset code you entered is incorrect',
@@ -82,7 +82,7 @@ export const usePasswordReset = () => {
     },
     onError: (error) => {
       const apiError = handleApiError(error);
-      errorLogger.logAuthError(apiError, 'reset_password');
+      errorLogger.logAuthError(new Error(apiError.message), 'reset_password');
       toast.error({
         title: 'Password Reset Failed',
         message: apiError.message || 'Could not reset password. Please try again.',

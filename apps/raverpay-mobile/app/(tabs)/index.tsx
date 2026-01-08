@@ -1,21 +1,21 @@
 // app/(tabs)/index.tsx
-import { Card, Skeleton, SkeletonCircle, Text } from "@/src/components/ui";
-import { TransactionItem } from "@/src/components/wallet/TransactionItem";
-import { useCashbackWallet } from "@/src/hooks/useCashback";
-import { useUnreadCount } from "@/src/hooks/useNotifications";
-import { useTransactions } from "@/src/hooks/useTransactions";
-import { useWallet } from "@/src/hooks/useWallet";
-import { formatCurrency } from "@/src/lib/utils/formatters";
-import { useUserStore } from "@/src/store/user.store";
-import { useWalletStore } from "@/src/store/wallet.store";
-import { Ionicons } from "@expo/vector-icons";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { router, Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { Card, Skeleton, SkeletonCircle, Text } from '@/src/components/ui';
+import { TransactionItem } from '@/src/components/wallet/TransactionItem';
+import { useCashbackWallet } from '@/src/hooks/useCashback';
+import { useUnreadCount } from '@/src/hooks/useNotifications';
+import { useTransactions } from '@/src/hooks/useTransactions';
+import { useWallet } from '@/src/hooks/useWallet';
+import { formatCurrency } from '@/src/lib/utils/formatters';
+import { useUserStore } from '@/src/store/user.store';
+import { useWalletStore } from '@/src/store/wallet.store';
+import { Ionicons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { router, Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 
-import { useFocusEffect } from "@react-navigation/native";
-import React, { useCallback } from "react";
-import { Alert, Image, ScrollView, TouchableOpacity, View } from "react-native";
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback } from 'react';
+import { Alert, Image, ScrollView, TouchableOpacity, View } from 'react-native';
 
 // Quick Actions configuration
 const QUICK_ACTIONS = [
@@ -27,31 +27,31 @@ const QUICK_ACTIONS = [
   //   requiresUnlock: false,
   // },
   {
-    id: "airtime",
-    title: "Airtime",
-    image: require("../../assets/icons/airtime2.png"),
-    route: "/buy-airtime",
+    id: 'airtime',
+    title: 'Airtime',
+    image: require('../../assets/icons/airtime2.png'),
+    route: '/buy-airtime',
     requiresUnlock: true,
   },
   {
-    id: "data",
-    title: "Data",
-    image: require("../../assets/icons/data2.png"),
-    route: "/buy-data",
+    id: 'data',
+    title: 'Data',
+    image: require('../../assets/icons/data2.png'),
+    route: '/buy-data',
     requiresUnlock: true,
   },
   {
-    id: "electricity",
-    title: "Electricity",
-    image: require("../../assets/icons/electricity2.png"),
-    route: "/pay-electricity",
+    id: 'electricity',
+    title: 'Electricity',
+    image: require('../../assets/icons/electricity2.png'),
+    route: '/pay-electricity',
     requiresUnlock: false,
   },
   {
-    id: "bills",
-    title: "Bills",
-    image: require("../../assets/icons/bills2.png"),
-    route: "/bills",
+    id: 'bills',
+    title: 'Bills',
+    image: require('../../assets/icons/bills2.png'),
+    route: '/bills',
     requiresUnlock: false,
   },
 ];
@@ -59,14 +59,8 @@ const QUICK_ACTIONS = [
 export default function HomeScreen() {
   // const [refreshing, setRefreshing] = React.useState(false);
   const { user } = useUserStore();
-  const {
-    balance,
-    isBalanceVisible,
-    toggleBalanceVisibility,
-    isLocked,
-    lockedReason,
-    kycTier,
-  } = useWalletStore();
+  const { balance, isBalanceVisible, toggleBalanceVisibility, isLocked, lockedReason, kycTier } =
+    useWalletStore();
   // const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Auto-refresh when screen comes into focus
@@ -90,7 +84,7 @@ export default function HomeScreen() {
       //   }
       // };
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, []),
   );
 
   const { refetch: refetchWallet, isPending: isLoadingWallet } = useWallet();
@@ -109,49 +103,44 @@ export default function HomeScreen() {
 
   const onRefresh = async () => {
     // setRefreshing(true);
-    await Promise.all([
-      refetchWallet(),
-      refetchCashback(),
-      refetchTransactions(),
-    ]);
+    await Promise.all([refetchWallet(), refetchCashback(), refetchTransactions()]);
     //setRefreshing(false);
   };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good Morning";
-    if (hour < 18) return "Good Afternoon";
-    return "Good Evening";
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
   };
 
   const unreadCount = useUnreadCount();
 
   const handleNotifications = () => {
-    router.push("/notifications");
+    router.push('/notifications');
   };
 
   // Helper function to show locked alert
   const showLockedAlert = () => {
     Alert.alert(
-      "Wallet Locked",
-      lockedReason ||
-        "Your wallet is locked. Please upgrade your KYC tier to continue.",
+      'Wallet Locked',
+      lockedReason || 'Your wallet is locked. Please upgrade your KYC tier to continue.',
       [
-        { text: "Cancel", style: "cancel" },
-        { text: "Upgrade Now", onPress: () => router.push("/tier-details") },
-      ]
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Upgrade Now', onPress: () => router.push('/tier-details') },
+      ],
     );
   };
 
   // Helper to get next tier
   const getNextTier = (currentTier: string): string => {
     const tierMap: Record<string, string> = {
-      TIER_0: "TIER 1 (₦300K daily)",
-      TIER_1: "TIER 2 (₦5M daily)",
-      TIER_2: "TIER 3 (Unlimited)",
-      TIER_3: "Already at max tier",
+      TIER_0: 'TIER 1 (₦300K daily)',
+      TIER_1: 'TIER 2 (₦5M daily)',
+      TIER_2: 'TIER 3 (Unlimited)',
+      TIER_3: 'Already at max tier',
     };
-    return tierMap[currentTier] || "Higher Tier";
+    return tierMap[currentTier] || 'Higher Tier';
   };
 
   return (
@@ -181,25 +170,19 @@ export default function HomeScreen() {
                 {getGreeting()}
               </Text>
               <Text variant="h3" className="text-white dark:text-white">
-                {user?.firstName || "User"}
+                {user?.firstName || 'User'}
               </Text>
             </View>
 
             <View className="flex-row items-center gap-4">
-              {!isLoadingCashback &&
-                cashbackWallet &&
-                cashbackWallet.availableBalance > 0 && (
-                  <TouchableOpacity
-                    className="w-10 h-10 rounded-full bg-white/20 items-center justify-center"
-                    onPress={() => router.push("/cashback-wallet")}
-                  >
-                    <MaterialIcons
-                      name="wallet-giftcard"
-                      size={22}
-                      color="white"
-                    />
-                  </TouchableOpacity>
-                )}
+              {!isLoadingCashback && cashbackWallet && cashbackWallet.availableBalance > 0 && (
+                <TouchableOpacity
+                  className="w-10 h-10 rounded-full bg-white/20 items-center justify-center"
+                  onPress={() => router.push('/cashback-wallet')}
+                >
+                  <MaterialIcons name="wallet-giftcard" size={22} color="white" />
+                </TouchableOpacity>
+              )}
 
               <TouchableOpacity
                 className="w-10 h-10 rounded-full bg-white/20 items-center justify-center"
@@ -208,11 +191,7 @@ export default function HomeScreen() {
                 {unreadCount > 0 && (
                   <View className="absolute -top-0 -right-0 w-3 h-3 rounded-full bg-red-500" />
                 )}
-                <MaterialIcons
-                  name="notifications-none"
-                  size={24}
-                  color="white"
-                />
+                <MaterialIcons name="notifications-none" size={24} color="white" />
               </TouchableOpacity>
               {/* <TouchableOpacity
                 className="w-10 h-10 rounded-full bg-white/20 items-center justify-center"
@@ -236,7 +215,7 @@ export default function HomeScreen() {
               {!isLoadingWallet && (
                 <TouchableOpacity onPress={toggleBalanceVisibility}>
                   <Ionicons
-                    name={isBalanceVisible ? "eye-outline" : "eye-off-outline"}
+                    name={isBalanceVisible ? 'eye-outline' : 'eye-off-outline'}
                     size={20}
                     color="white"
                   />
@@ -249,12 +228,12 @@ export default function HomeScreen() {
                 width={200}
                 height={48}
                 className="mb-4"
-                style={{ backgroundColor: "rgba(255, 255, 255, 0.3)" }}
+                style={{ backgroundColor: 'rgba(255, 255, 255, 0.3)' }}
               />
             ) : (
               <View className="flex-row items-center h-14">
                 <Text variant="h2" className="text-white">
-                  {isBalanceVisible ? formatCurrency(balance) : "****"}
+                  {isBalanceVisible ? formatCurrency(balance) : '****'}
                 </Text>
               </View>
             )}
@@ -262,16 +241,14 @@ export default function HomeScreen() {
             <View className="flex-row gap-3">
               <TouchableOpacity
                 className={`w-1/2 h-12 rounded-xl items-center justify-center ${
-                  isLocked
-                    ? "bg-gray-300 dark:bg-gray-600"
-                    : "bg-white/20 dark:bg-white/20"
+                  isLocked ? 'bg-gray-300 dark:bg-gray-600' : 'bg-white/20 dark:bg-white/20'
                 }`}
                 onPress={() => {
                   if (isLocked) {
                     showLockedAlert();
                     return;
                   }
-                  router.push("/fund-wallet");
+                  router.push('/fund-wallet');
                 }}
                 disabled={isLoadingWallet}
               >
@@ -288,9 +265,7 @@ export default function HomeScreen() {
                     variant="bodyMedium"
                     weight="semibold"
                     className={
-                      isLocked
-                        ? "text-gray-500 dark:text-gray-400"
-                        : "text-white dark:text-white"
+                      isLocked ? 'text-gray-500 dark:text-gray-400' : 'text-white dark:text-white'
                     }
                   >
                     Add Money
@@ -299,16 +274,14 @@ export default function HomeScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 className={`w-1/2 h-12 rounded-xl items-center justify-center ${
-                  isLocked
-                    ? "bg-gray-300 dark:bg-gray-600"
-                    : "bg-white/20 dark:bg-white/20"
+                  isLocked ? 'bg-gray-300 dark:bg-gray-600' : 'bg-white/20 dark:bg-white/20'
                 }`}
                 onPress={() => {
                   if (isLocked) {
                     showLockedAlert();
                     return;
                   }
-                  router.push("/withdraw");
+                  router.push('/withdraw');
                 }}
                 disabled={isLoadingWallet}
               >
@@ -325,9 +298,7 @@ export default function HomeScreen() {
                     variant="bodyMedium"
                     weight="semibold"
                     className={
-                      isLocked
-                        ? "text-gray-500 dark:text-gray-400"
-                        : "text-white dark:text-white"
+                      isLocked ? 'text-gray-500 dark:text-gray-400' : 'text-white dark:text-white'
                     }
                   >
                     Transfer
@@ -539,18 +510,15 @@ export default function HomeScreen() {
                       >
                         Wallet Locked
                       </Text>
-                      <Text
-                        variant="caption"
-                        className="text-red-700 dark:text-red-300 mt-1"
-                      >
-                        {lockedReason || "Your wallet has been locked"}
+                      <Text variant="caption" className="text-red-700 dark:text-red-300 mt-1">
+                        {lockedReason || 'Your wallet has been locked'}
                       </Text>
                     </View>
                   </View>
 
                   <TouchableOpacity
                     className="bg-red-500 rounded-xl py-3 items-center"
-                    onPress={() => router.push("/tier-details")}
+                    onPress={() => router.push('/tier-details')}
                   >
                     <Text variant="bodyMedium" color="inverse" weight="bold">
                       Upgrade to {getNextTier(kycTier)} to Unlock
@@ -559,12 +527,9 @@ export default function HomeScreen() {
 
                   <TouchableOpacity
                     className="mt-3 items-center"
-                    onPress={() => router.push("/support")}
+                    onPress={() => router.push('/support')}
                   >
-                    <Text
-                      variant="caption"
-                      className="text-red-600 dark:text-red-400 underline"
-                    >
+                    <Text variant="caption" className="text-red-600 dark:text-red-400 underline">
                       Contact Support
                     </Text>
                   </TouchableOpacity>
@@ -686,11 +651,8 @@ export default function HomeScreen() {
               <Text variant="h4" weight="bold">
                 Recent Transactions
               </Text>
-              <TouchableOpacity onPress={() => router.push("/transactions")}>
-                <Text
-                  variant="bodyMedium"
-                  className="text-[#5B55F6] dark:text-[#5B55F6]"
-                >
+              <TouchableOpacity onPress={() => router.push('/transactions')}>
+                <Text variant="bodyMedium" className="text-[#5B55F6] dark:text-[#5B55F6]">
                   View All
                 </Text>
               </TouchableOpacity>
@@ -706,31 +668,19 @@ export default function HomeScreen() {
               ) : recentTransactions.length === 0 ? (
                 <View className="p-8 items-center">
                   <View className="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-700 items-center justify-center mb-4">
-                    <Ionicons
-                      name="receipt-outline"
-                      size={32}
-                      color="#9CA3AF"
-                    />
+                    <Ionicons name="receipt-outline" size={32} color="#9CA3AF" />
                   </View>
                   <Text variant="bodyMedium" color="secondary" align="center">
                     No transactions yet
                   </Text>
-                  <Text
-                    variant="caption"
-                    color="secondary"
-                    align="center"
-                    className="mt-2"
-                  >
+                  <Text variant="caption" color="secondary" align="center" className="mt-2">
                     Your transactions will appear here
                   </Text>
                 </View>
               ) : (
                 <View className="p-4">
                   {recentTransactions.map((transaction: any) => (
-                    <TransactionItem
-                      key={transaction.id}
-                      transaction={transaction}
-                    />
+                    <TransactionItem key={transaction.id} transaction={transaction} />
                   ))}
                 </View>
               )}
@@ -761,7 +711,7 @@ const QuickActionCard: React.FC<QuickActionCardProps> = ({
   color,
 }) => (
   <TouchableOpacity
-    className={`w-[48%] mb-4 ${disabled ? "opacity-50" : ""}`}
+    className={`w-[48%] mb-4 ${disabled ? 'opacity-50' : ''}`}
     onPress={onPress}
     disabled={disabled}
   >
@@ -777,17 +727,13 @@ const QuickActionCard: React.FC<QuickActionCardProps> = ({
         <View
           className="w-12 h-12 rounded-full items-center justify-center mb-2"
           style={{
-            backgroundColor: disabled ? "#9CA3AF" : color || "#5B55F6",
+            backgroundColor: disabled ? '#9CA3AF' : color || '#5B55F6',
           }}
         >
           <Ionicons name={icon!} size={24} color="white" />
         </View>
       )}
-      <Text
-        variant="h5"
-        align="center"
-        className={disabled ? "text-gray-500" : ""}
-      >
+      <Text variant="h5" align="center" className={disabled ? 'text-gray-500' : ''}>
         {title}
       </Text>
     </Card>

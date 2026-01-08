@@ -1,9 +1,9 @@
 // src/hooks/usePin.ts
-import { apiClient, handleApiError } from "@/src/lib/api/client";
-import { API_ENDPOINTS } from "@/src/lib/api/endpoints";
-import { toast } from "@/src/lib/utils/toast";
-import { useUserStore } from "@/src/store/user.store";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { apiClient, handleApiError } from '@/src/lib/api/client';
+import { API_ENDPOINTS } from '@/src/lib/api/endpoints';
+import { toast } from '@/src/lib/utils/toast';
+import { useUserStore } from '@/src/store/user.store';
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 // ==================== SET PIN (First Time) ====================
 
@@ -12,10 +12,7 @@ export const useSetPin = () => {
 
   return useMutation({
     mutationFn: async (payload: { pin: string; confirmPin: string }) => {
-      const { data } = await apiClient.post(
-        API_ENDPOINTS.USERS.SET_PIN,
-        payload
-      );
+      const { data } = await apiClient.post(API_ENDPOINTS.USERS.SET_PIN, payload);
       return data;
     },
     onSuccess: (data) => {
@@ -25,15 +22,15 @@ export const useSetPin = () => {
       });
 
       toast.success({
-        title: "PIN Set Successfully",
-        message: "Your transaction PIN has been created",
+        title: 'PIN Set Successfully',
+        message: 'Your transaction PIN has been created',
       });
     },
     onError: (error) => {
       const apiError = handleApiError(error);
       toast.error({
-        title: "Failed to Set PIN",
-        message: apiError.message || "Failed to set transaction PIN",
+        title: 'Failed to Set PIN',
+        message: apiError.message || 'Failed to set transaction PIN',
       });
     },
   });
@@ -45,15 +42,8 @@ export const useChangePin = () => {
   const { updateUser } = useUserStore();
 
   return useMutation({
-    mutationFn: async (payload: {
-      currentPin: string;
-      newPin: string;
-      confirmNewPin: string;
-    }) => {
-      const { data } = await apiClient.post(
-        API_ENDPOINTS.USERS.CHANGE_PIN,
-        payload
-      );
+    mutationFn: async (payload: { currentPin: string; newPin: string; confirmNewPin: string }) => {
+      const { data } = await apiClient.post(API_ENDPOINTS.USERS.CHANGE_PIN, payload);
       return data;
     },
     onSuccess: (data) => {
@@ -63,15 +53,15 @@ export const useChangePin = () => {
       });
 
       toast.success({
-        title: "PIN Changed Successfully",
-        message: "Your transaction PIN has been updated",
+        title: 'PIN Changed Successfully',
+        message: 'Your transaction PIN has been updated',
       });
     },
     onError: (error) => {
       const apiError = handleApiError(error);
       toast.error({
-        title: "Failed to Change PIN",
-        message: apiError.message || "Failed to change transaction PIN",
+        title: 'Failed to Change PIN',
+        message: apiError.message || 'Failed to change transaction PIN',
       });
     },
   });
@@ -82,17 +72,14 @@ export const useChangePin = () => {
 export const useVerifyPin = () => {
   return useMutation({
     mutationFn: async (payload: { pin: string }) => {
-      const { data } = await apiClient.post(
-        API_ENDPOINTS.USERS.VERIFY_PIN,
-        payload
-      );
+      const { data } = await apiClient.post(API_ENDPOINTS.USERS.VERIFY_PIN, payload);
       return data;
     },
     onError: (error) => {
       const apiError = handleApiError(error);
       toast.error({
-        title: "Invalid PIN",
-        message: apiError.message || "The PIN you entered is incorrect",
+        title: 'Invalid PIN',
+        message: apiError.message || 'The PIN you entered is incorrect',
       });
     },
   });
@@ -106,7 +93,7 @@ export const useVerifyPin = () => {
  */
 export const useCheckPinStatus = () => {
   return useQuery({
-    queryKey: ["pin-status"],
+    queryKey: ['pin-status'],
     queryFn: async () => {
       const { data } = await apiClient.get(API_ENDPOINTS.USERS.PROFILE);
       return {

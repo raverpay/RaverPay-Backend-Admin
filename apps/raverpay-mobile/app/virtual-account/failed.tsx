@@ -1,10 +1,10 @@
 // app/virtual-account/failed.tsx
-import { Button } from "@/src/components/ui/Button";
-import { Text } from "@/src/components/ui/Text";
-import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
-import React from "react";
-import { ScrollView, View } from "react-native";
+import { Button } from '@/src/components/ui/Button';
+import { Text } from '@/src/components/ui/Text';
+import { Ionicons } from '@expo/vector-icons';
+import { router, useLocalSearchParams } from 'expo-router';
+import React from 'react';
+import { ScrollView, View } from 'react-native';
 
 export default function FailedScreen() {
   const params = useLocalSearchParams<{
@@ -13,21 +13,21 @@ export default function FailedScreen() {
 
   // Check if this is a processing/manual creation scenario (not a real failure)
   const isProcessing =
-    params.reason?.toLowerCase().includes("processing") ||
-    params.reason?.toLowerCase().includes("still being processed") ||
-    params.reason?.toLowerCase().includes("will be notified") ||
-    params.reason?.toLowerCase().includes("taking longer");
+    params.reason?.toLowerCase().includes('processing') ||
+    params.reason?.toLowerCase().includes('still being processed') ||
+    params.reason?.toLowerCase().includes('will be notified') ||
+    params.reason?.toLowerCase().includes('taking longer');
 
   const handleTryAgain = () => {
-    router.replace("/virtual-account/consent");
+    router.replace('/virtual-account/consent');
   };
 
   const handleContactSupport = () => {
-    router.push("/support");
+    router.push('/support');
   };
 
   const handleGoBack = () => {
-    router.replace("/fund-wallet");
+    router.replace('/fund-wallet');
   };
 
   return (
@@ -42,22 +42,20 @@ export default function FailedScreen() {
         <View className="items-center mb-6">
           <View
             className={`w-24 h-24 rounded-full items-center justify-center mb-4 ${
-              isProcessing ? "bg-orange-100" : "bg-red-100"
+              isProcessing ? 'bg-orange-100' : 'bg-red-100'
             }`}
           >
             <Ionicons
-              name={isProcessing ? "time-outline" : "close-circle"}
+              name={isProcessing ? 'time-outline' : 'close-circle'}
               size={64}
-              color={isProcessing ? "#F59E0B" : "#EF4444"}
+              color={isProcessing ? '#F59E0B' : '#EF4444'}
             />
           </View>
           <Text variant="h2" align="center" className="mb-2">
-            {isProcessing ? "Still Processing" : "Verification Failed"}
+            {isProcessing ? 'Still Processing' : 'Verification Failed'}
           </Text>
           <Text variant="body" color="secondary" align="center">
-            {isProcessing
-              ? "Your account is being created"
-              : "We couldn't verify your information"}
+            {isProcessing ? 'Your account is being created' : "We couldn't verify your information"}
           </Text>
         </View>
 
@@ -65,18 +63,18 @@ export default function FailedScreen() {
         {params.reason && (
           <View
             className={`rounded-2xl p-4 mb-6 flex-row ${
-              isProcessing ? "bg-orange-50" : "bg-red-50"
+              isProcessing ? 'bg-orange-50' : 'bg-red-50'
             }`}
           >
             <Ionicons
-              name={isProcessing ? "information-circle" : "alert-circle"}
+              name={isProcessing ? 'information-circle' : 'alert-circle'}
               size={20}
-              color={isProcessing ? "#F59E0B" : "#EF4444"}
+              color={isProcessing ? '#F59E0B' : '#EF4444'}
               style={{ marginRight: 12 }}
             />
             <View className="flex-1">
               <Text variant="body" weight="semibold" className="mb-1">
-                {isProcessing ? "Status Update" : "Error Details"}
+                {isProcessing ? 'Status Update' : 'Error Details'}
               </Text>
               <Text variant="caption" color="secondary">
                 {params.reason}
@@ -99,9 +97,9 @@ export default function FailedScreen() {
                 What Happens Next?
               </Text>
               <Text variant="caption" color="secondary">
-                If automatic creation takes too long, our team will create your
-                account manually. You&apos;ll receive a notification (email,
-                SMS, and push) when your virtual account is ready to use.
+                If automatic creation takes too long, our team will create your account manually.
+                You&apos;ll receive a notification (email, SMS, and push) when your virtual account
+                is ready to use.
               </Text>
             </View>
           </View>
@@ -127,8 +125,7 @@ export default function FailedScreen() {
                     BVN doesn&apos;t match account details
                   </Text>
                   <Text variant="caption" color="secondary">
-                    Make sure your BVN is linked to the bank account you
-                    provided
+                    Make sure your BVN is linked to the bank account you provided
                   </Text>
                 </View>
               </View>
@@ -145,8 +142,7 @@ export default function FailedScreen() {
                     Account number is incorrect
                   </Text>
                   <Text variant="caption" color="secondary">
-                    Double-check that you entered the correct 10-digit account
-                    number
+                    Double-check that you entered the correct 10-digit account number
                   </Text>
                 </View>
               </View>

@@ -1,31 +1,25 @@
 // app/(auth)/register.tsx
-import { Button, Input, Text } from "@/src/components/ui";
-import { useAuth } from "@/src/hooks/useAuth";
-import { useTheme } from "@/src/hooks/useTheme";
+import { Button, Input, Text } from '@/src/components/ui';
+import { useAuth } from '@/src/hooks/useAuth';
+import { useTheme } from '@/src/hooks/useTheme';
 import {
   emailSchema,
   getPasswordStrength,
   passwordSchema,
   phoneSchema,
-} from "@/src/lib/utils/validators";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { z } from "zod";
+} from '@/src/lib/utils/validators';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
+import { z } from 'zod';
 
 const registerSchema = z
   .object({
-    firstName: z.string().min(2, "First name must be at least 2 characters"),
-    lastName: z.string().min(2, "Last name must be at least 2 characters"),
+    firstName: z.string().min(2, 'First name must be at least 2 characters'),
+    lastName: z.string().min(2, 'Last name must be at least 2 characters'),
     email: emailSchema,
     phone: phoneSchema,
     password: passwordSchema,
@@ -33,7 +27,7 @@ const registerSchema = z
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
-    path: ["confirmPassword"],
+    path: ['confirmPassword'],
   });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
@@ -54,16 +48,16 @@ export default function RegisterScreen() {
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      password: "",
-      confirmPassword: "",
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      password: '',
+      confirmPassword: '',
     },
   });
 
-  const password = watch("password");
+  const password = watch('password');
   const passwordStrength = getPasswordStrength(password);
 
   const onSubmit = async (data: RegisterFormData) => {
@@ -72,7 +66,7 @@ export default function RegisterScreen() {
       await register(registerData);
       // After successful registration, redirect to email verification
       // Using replace() to prevent back navigation to registration form
-      router.replace("/(auth)/verify-email");
+      router.replace('/(auth)/verify-email');
     } catch {
       // Error is already logged in useAuth hook
       // No additional logging needed here
@@ -83,9 +77,9 @@ export default function RegisterScreen() {
     let fieldsToValidate: (keyof RegisterFormData)[] = [];
 
     if (currentStep === 1) {
-      fieldsToValidate = ["firstName", "lastName"];
+      fieldsToValidate = ['firstName', 'lastName'];
     } else if (currentStep === 2) {
-      fieldsToValidate = ["email", "phone"];
+      fieldsToValidate = ['email', 'phone'];
     }
 
     const isValid = await trigger(fieldsToValidate);
@@ -103,17 +97,17 @@ export default function RegisterScreen() {
   };
 
   const getStepIndicatorColor = (step: Step) => {
-    if (step < currentStep) return "bg-[#5B55F6]";
-    if (step === currentStep) return "bg-[#5B55F6]";
-    return "bg-gray-300 dark:bg-gray-700";
+    if (step < currentStep) return 'bg-[#5B55F6]';
+    if (step === currentStep) return 'bg-[#5B55F6]';
+    return 'bg-gray-300 dark:bg-gray-700';
   };
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1 bg-gray-50 dark:bg-gray-900"
     >
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <ScrollView
         className="flex-1"
         contentContainerClassName="p-5"
@@ -271,21 +265,17 @@ export default function RegisterScreen() {
                   />
                   {value.length > 0 && (
                     <View className="mt-2">
-                      <Text
-                        variant="caption"
-                        color="secondary"
-                        className="mb-1"
-                      >
+                      <Text variant="caption" color="secondary" className="mb-1">
                         Password Strength: {passwordStrength.level}
                       </Text>
                       <View className="h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                         <View
                           className={`h-full ${
-                            passwordStrength.level === "Weak"
-                              ? "bg-red-500 w-1/3"
-                              : passwordStrength.level === "Medium"
-                                ? "bg-yellow-500 w-2/3"
-                                : "bg-green-500 w-full"
+                            passwordStrength.level === 'Weak'
+                              ? 'bg-red-500 w-1/3'
+                              : passwordStrength.level === 'Medium'
+                                ? 'bg-yellow-500 w-2/3'
+                                : 'bg-green-500 w-full'
                           }`}
                         />
                       </View>
@@ -315,8 +305,7 @@ export default function RegisterScreen() {
             />
 
             <Text variant="caption" color="secondary" className="mt-2">
-              By creating an account, you agree to our Terms of Service and
-              Privacy Policy
+              By creating an account, you agree to our Terms of Service and Privacy Policy
             </Text>
           </View>
         )}
@@ -341,9 +330,9 @@ export default function RegisterScreen() {
         {/* Footer */}
         <View className="flex-row justify-center items-center mt-8">
           <Text variant="body" color="secondary">
-            Already have an account?{" "}
+            Already have an account?{' '}
           </Text>
-          <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
+          <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
             <Text variant="bodyMedium" className="text-[#5B55F6]">
               Sign In
             </Text>

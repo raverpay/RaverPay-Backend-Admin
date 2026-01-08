@@ -1,15 +1,13 @@
 // components/fund-wallet/RequestVirtualAccount.tsx
-import { Button, Card, Text } from "@/src/components/ui";
-import { Ionicons } from "@expo/vector-icons";
-import { View } from "react-native";
+import { Button, Card, Text } from '@/src/components/ui';
+import { Ionicons } from '@expo/vector-icons';
+import { View } from 'react-native';
 
 interface RequestVirtualAccountProps {
   onRequestAccount: () => void;
 }
 
-export function RequestVirtualAccount({
-  onRequestAccount,
-}: RequestVirtualAccountProps) {
+export function RequestVirtualAccount({ onRequestAccount }: RequestVirtualAccountProps) {
   return (
     <Card variant="elevated" className="p-6 items-center">
       <View className="w-16 h-16 rounded-full bg-purple-100 items-center justify-center mb-4">

@@ -48,18 +48,19 @@ const CCTP_STATE_INFO: Record<
 > = {
   INITIATED: { label: 'Initiated', color: '#F59E0B', icon: 'time' },
   BURN_PENDING: { label: 'Burning', color: '#F59E0B', icon: 'flame' },
-  BURN_COMPLETE: { label: 'Burned', color: '#3B82F6', icon: 'checkmark-circle' },
+  BURN_CONFIRMED: { label: 'Burned', color: '#3B82F6', icon: 'checkmark-circle' },
   ATTESTATION_PENDING: {
     label: 'Verifying',
     color: '#3B82F6',
     icon: 'shield-checkmark',
   },
-  ATTESTATION_COMPLETE: {
+  ATTESTATION_RECEIVED: {
     label: 'Verified',
     color: '#3B82F6',
     icon: 'shield-checkmark',
   },
   MINT_PENDING: { label: 'Minting', color: '#3B82F6', icon: 'download' },
+  MINT_CONFIRMED: { label: 'Minted', color: '#10B981', icon: 'checkmark-circle' },
   COMPLETE: {
     label: 'Bridged',
     color: '#10B981',
@@ -80,6 +81,10 @@ const BLOCKCHAIN_EXPLORERS: Record<CircleBlockchain, string> = {
   'SOL-DEVNET': 'https://explorer.solana.com/tx/?cluster=devnet&tx=',
   AVAX: 'https://snowtrace.io/tx/',
   'AVAX-FUJI': 'https://testnet.snowtrace.io/tx/',
+  BASE: 'https://basescan.org/tx/',
+  'BASE-SEPOLIA': 'https://sepolia.basescan.org/tx/',
+  OP: 'https://optimistic.etherscan.io/tx/',
+  'OP-SEPOLIA': 'https://sepolia-optimism.etherscan.io/tx/',
 };
 
 export default function CircleTransactionDetailsScreen() {

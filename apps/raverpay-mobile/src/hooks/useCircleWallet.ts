@@ -196,7 +196,7 @@ export const useAllWalletBalances = (walletIds: string[]) => {
       }
     },
     enabled: isAuthenticated && walletIds.length > 0,
-    staleTime: 1000 * 15, // 15 seconds 
+    staleTime: 1000 * 15, // 15 seconds
     refetchInterval: 1000 * 60 * 5, // Refresh every 5 minutes
   });
 };

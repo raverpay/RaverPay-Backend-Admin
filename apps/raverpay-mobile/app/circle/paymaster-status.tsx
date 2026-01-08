@@ -1,13 +1,13 @@
 // app/circle/paymaster-status.tsx
-import { Button, Card, Text } from "@/src/components/ui";
-import { usePaymaster } from "@/src/hooks/usePaymaster";
-import { useTheme } from "@/src/hooks/useTheme";
-import { Ionicons } from "@expo/vector-icons";
-import { router, Stack, useLocalSearchParams } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Button, Card, Text } from '@/src/components/ui';
+import { usePaymaster } from '@/src/hooks/usePaymaster';
+import { useTheme } from '@/src/hooks/useTheme';
+import { Ionicons } from '@expo/vector-icons';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function PaymasterStatusScreen() {
   const { isDark } = useTheme();
@@ -27,7 +27,7 @@ export default function PaymasterStatusScreen() {
         const status = await getUserOpStatus(userOpHash);
         setUserOp(status);
       } catch (error) {
-        console.error("Failed to fetch UserOp status:", error);
+        console.error('Failed to fetch UserOp status:', error);
       } finally {
         setIsLoading(false);
       }
@@ -39,11 +39,7 @@ export default function PaymasterStatusScreen() {
 
   // Auto-refresh while pending
   useEffect(() => {
-    if (
-      !userOp ||
-      userOp.status === "CONFIRMED" ||
-      userOp.status === "FAILED"
-    ) {
+    if (!userOp || userOp.status === 'CONFIRMED' || userOp.status === 'FAILED') {
       return;
     }
 
@@ -52,7 +48,7 @@ export default function PaymasterStatusScreen() {
         const status = await getUserOpStatus(userOpHash);
         setUserOp(status);
       } catch (error) {
-        console.error("Failed to refresh status:", error);
+        console.error('Failed to refresh status:', error);
       }
     }, 3000);
 
@@ -63,7 +59,7 @@ export default function PaymasterStatusScreen() {
   if (isLoading || !userOp) {
     return (
       <>
-        <StatusBar style={isDark ? "light" : "dark"} />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
         <View className="flex-1 bg-gray-50 dark:bg-gray-900 justify-center items-center">
           <ActivityIndicator size="large" color="#2775CA" />
           <Text variant="body" color="secondary" className="mt-4">
@@ -76,45 +72,44 @@ export default function PaymasterStatusScreen() {
 
   const getStateInfo = () => {
     switch (userOp.status) {
-      case "PENDING":
+      case 'PENDING':
         return {
-          icon: "time-outline" as const,
-          color: "#F59E0B",
-          title: "UserOperation Pending",
-          description: "Your transaction is being processed by the bundler...",
+          icon: 'time-outline' as const,
+          color: '#F59E0B',
+          title: 'UserOperation Pending',
+          description: 'Your transaction is being processed by the bundler...',
           progress: 50,
         };
-      case "CONFIRMED":
+      case 'CONFIRMED':
         return {
-          icon: "checkmark-circle" as const,
-          color: "#10B981",
-          title: "Transaction Complete",
-          description: "Your USDC transfer was successful! Gas paid in USDC.",
+          icon: 'checkmark-circle' as const,
+          color: '#10B981',
+          title: 'Transaction Complete',
+          description: 'Your USDC transfer was successful! Gas paid in USDC.',
           progress: 100,
         };
-      case "FAILED":
+      case 'FAILED':
         return {
-          icon: "close-circle" as const,
-          color: "#EF4444",
-          title: "Transaction Failed",
-          description:
-            "The UserOperation failed to complete. Please try again.",
+          icon: 'close-circle' as const,
+          color: '#EF4444',
+          title: 'Transaction Failed',
+          description: 'The UserOperation failed to complete. Please try again.',
           progress: 0,
         };
       default:
         return {
-          icon: "help-circle-outline" as const,
-          color: "#9CA3AF",
-          title: "Unknown Status",
-          description: "UserOperation status is unknown.",
+          icon: 'help-circle-outline' as const,
+          color: '#9CA3AF',
+          title: 'Unknown Status',
+          description: 'UserOperation status is unknown.',
           progress: 0,
         };
     }
   };
 
   const stateInfo = getStateInfo();
-  const isComplete = userOp.status === "CONFIRMED";
-  const isFailed = userOp.status === "FAILED";
+  const isComplete = userOp.status === 'CONFIRMED';
+  const isFailed = userOp.status === 'FAILED';
 
   return (
     <>
@@ -124,11 +119,8 @@ export default function PaymasterStatusScreen() {
           gestureEnabled: false,
         }}
       />
-      <StatusBar style={isDark ? "light" : "dark"} />
-      <View
-        className="flex-1 bg-gray-50 dark:bg-gray-900"
-        style={{ paddingTop: insets.top }}
-      >
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <View className="flex-1 bg-gray-50 dark:bg-gray-900" style={{ paddingTop: insets.top }}>
         <ScrollView className="flex-1">
           {/* Header */}
           <View className="px-6 py-4">
@@ -148,11 +140,7 @@ export default function PaymasterStatusScreen() {
                 className="w-24 h-24 rounded-full items-center justify-center mb-4"
                 style={{ backgroundColor: `${stateInfo.color}20` }}
               >
-                <Ionicons
-                  name={stateInfo.icon}
-                  size={48}
-                  color={stateInfo.color}
-                />
+                <Ionicons name={stateInfo.icon} size={48} color={stateInfo.color} />
               </View>
 
               {/* Status Title */}
@@ -161,12 +149,7 @@ export default function PaymasterStatusScreen() {
               </Text>
 
               {/* Status Description */}
-              <Text
-                variant="body"
-                color="secondary"
-                align="center"
-                className="mb-4"
-              >
+              <Text variant="body" color="secondary" align="center" className="mb-4">
                 {stateInfo.description}
               </Text>
 
@@ -199,10 +182,7 @@ export default function PaymasterStatusScreen() {
                 <Text variant="caption" color="secondary" className="mb-1">
                   UserOperation Hash
                 </Text>
-                <Text
-                  variant="body"
-                  className="dark:text-white font-mono text-xs"
-                >
+                <Text variant="body" className="dark:text-white font-mono text-xs">
                   {userOp.userOpHash}
                 </Text>
               </View>
@@ -265,22 +245,14 @@ export default function PaymasterStatusScreen() {
                   <Text variant="caption" color="secondary" className="mb-1">
                     Actual Gas Fee (USDC)
                   </Text>
-                  <Text
-                    variant="body"
-                    className="text-green-600 dark:text-green-400"
-                  >
+                  <Text variant="body" className="text-green-600 dark:text-green-400">
                     ${parseFloat(userOp.actualGasUsdc).toFixed(6)} USDC
                   </Text>
-                  {parseFloat(userOp.estimatedGasUsdc) >
-                    parseFloat(userOp.actualGasUsdc) && (
-                    <Text
-                      variant="caption"
-                      className="text-green-600 dark:text-green-400 mt-1"
-                    >
+                  {parseFloat(userOp.estimatedGasUsdc) > parseFloat(userOp.actualGasUsdc) && (
+                    <Text variant="caption" className="text-green-600 dark:text-green-400 mt-1">
                       Saved $
                       {(
-                        parseFloat(userOp.estimatedGasUsdc) -
-                        parseFloat(userOp.actualGasUsdc)
+                        parseFloat(userOp.estimatedGasUsdc) - parseFloat(userOp.actualGasUsdc)
                       ).toFixed(6)}
                       !
                     </Text>
@@ -318,12 +290,9 @@ export default function PaymasterStatusScreen() {
                   >
                     Paymaster Transaction
                   </Text>
-                  <Text
-                    variant="caption"
-                    className="text-blue-700 dark:text-blue-300"
-                  >
-                    This transaction used Circle&apos;s Paymaster to pay gas
-                    fees in USDC instead of native tokens.
+                  <Text variant="caption" className="text-blue-700 dark:text-blue-300">
+                    This transaction used Circle&apos;s Paymaster to pay gas fees in USDC instead of
+                    native tokens.
                   </Text>
                 </View>
               </View>
@@ -341,7 +310,7 @@ export default function PaymasterStatusScreen() {
               variant="primary"
               size="lg"
               fullWidth
-              onPress={() => router.replace("/(tabs)/circle-wallet")}
+              onPress={() => router.replace('/circle')}
               className="bg-[#2775CA]"
             >
               Back to Wallet
@@ -354,7 +323,7 @@ export default function PaymasterStatusScreen() {
                 variant="primary"
                 size="lg"
                 fullWidth
-                onPress={() => router.replace("/circle/send")}
+                onPress={() => router.replace('/circle/send')}
                 className="mb-3 bg-[#2775CA]"
               >
                 Try Again
@@ -363,7 +332,7 @@ export default function PaymasterStatusScreen() {
                 variant="outline"
                 size="lg"
                 fullWidth
-                onPress={() => router.replace("/(tabs)/circle-wallet")}
+                onPress={() => router.replace('/circle')}
               >
                 Back to Wallet
               </Button>
@@ -371,12 +340,7 @@ export default function PaymasterStatusScreen() {
           )}
 
           {!isComplete && !isFailed && (
-            <Button
-              variant="outline"
-              size="lg"
-              fullWidth
-              onPress={() => router.replace("/(tabs)/circle-wallet")}
-            >
+            <Button variant="outline" size="lg" fullWidth onPress={() => router.replace('/circle')}>
               Back to Wallet
             </Button>
           )}

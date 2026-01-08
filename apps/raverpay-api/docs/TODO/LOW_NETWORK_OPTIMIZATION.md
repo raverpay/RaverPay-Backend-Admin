@@ -14,6 +14,7 @@ This document provides specific recommendations for optimizing the RaverPay mobi
 
 **Current Status:** 🟡 MODERATE  
 **Key Strengths:**
+
 - ✅ React Query with persistence (AsyncStorage)
 - ✅ 60-second timeout for VTU operations
 - ✅ Retry logic (2 retries for queries, 1 for mutations)
@@ -21,6 +22,7 @@ This document provides specific recommendations for optimizing the RaverPay mobi
 - ✅ NetInfo library installed
 
 **Critical Gaps:**
+
 - ❌ No network state monitoring/UI feedback
 - ❌ No request queuing for offline operations
 - ❌ No adaptive timeout based on network quality
@@ -48,6 +50,7 @@ This document provides specific recommendations for optimizing the RaverPay mobi
 ### ✅ What's Working Well
 
 #### 1. React Query with Persistence
+
 **Location:** `src/lib/api/query-client.ts`
 
 ```typescript
@@ -74,11 +77,13 @@ export const asyncStoragePersister = createAsyncStoragePersister({
 ```
 
 **Benefits:**
+
 - Cached data persists across app restarts
 - Automatic refetch on reconnect
 - 24-hour cache retention
 
 **Gaps:**
+
 - No offline mutation queue
 - No network-aware retry strategy
 - Fixed retry count regardless of network quality
@@ -86,6 +91,7 @@ export const asyncStoragePersister = createAsyncStoragePersister({
 ---
 
 #### 2. Axios Configuration
+
 **Location:** `src/lib/api/client.ts`
 
 ```typescript
@@ -93,16 +99,18 @@ export const apiClient = axios.create({
   baseURL: config.API_BASE_URL,
   timeout: 60000, // 60 seconds
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   },
 });
 ```
 
 **Benefits:**
+
 - 60-second timeout (good for VTU operations)
 - Token refresh with retry
 
 **Gaps:**
+
 - Fixed timeout (doesn't adapt to network quality)
 - No request compression
 - No request prioritization
@@ -110,12 +118,15 @@ export const apiClient = axios.create({
 ---
 
 #### 3. Network Detection
+
 **Library:** `@react-native-community/netinfo` (installed but underutilized)
 
 **Current Usage:**
+
 - Only in device fingerprinting (`src/lib/device-fingerprint.ts`)
 
 **Gaps:**
+
 - No global network state monitoring
 - No UI feedback for network status
 - No adaptive behavior based on connection type
@@ -125,21 +136,25 @@ export const apiClient = axios.create({
 ### ❌ What's Missing
 
 #### 1. Network State Management
+
 - No global network state store
 - No connection quality detection (2G/3G/4G/5G)
 - No UI indicators for poor connectivity
 
 #### 2. Offline-First Features
+
 - No offline mutation queue
 - No optimistic updates for critical operations
 - No local-first data for frequently accessed info
 
 #### 3. Data Optimization
+
 - No request/response compression
 - No image optimization for slow networks
 - No lazy loading for heavy screens
 
 #### 4. Adaptive Behavior
+
 - No timeout adjustment based on network quality
 - No retry strategy based on connection type
 - No graceful degradation
@@ -151,24 +166,28 @@ export const apiClient = axios.create({
 ### Common Scenarios
 
 #### 1. **Intermittent Connectivity** (Most Common)
+
 - **Description:** Network drops in and out frequently
 - **Affected Areas:** Rural areas, moving vehicles, crowded areas
 - **Impact:** Failed requests, incomplete transactions, poor UX
 - **Priority:** 🔴 CRITICAL
 
 #### 2. **Slow 2G/3G Networks**
+
 - **Description:** Connection available but very slow (< 100 kbps)
 - **Affected Areas:** Remote areas, network congestion
 - **Impact:** Timeouts, slow loading, user frustration
 - **Priority:** 🔴 CRITICAL
 
 #### 3. **High Latency**
+
 - **Description:** Long round-trip times (> 1000ms)
 - **Affected Areas:** Satellite connections, congested networks
 - **Impact:** Slow response times, perceived app slowness
 - **Priority:** 🟡 HIGH
 
 #### 4. **Expensive Data**
+
 - **Description:** Users on limited data plans
 - **Affected Areas:** Nationwide (cost-conscious users)
 - **Impact:** User reluctance to use app, data wastage
@@ -189,6 +208,7 @@ export const apiClient = axios.create({
 **Implementation:**
 
 **Step 1:** Create Network Store
+
 ```typescript
 // src/store/network.store.ts
 import { create } from 'zustand';
@@ -232,15 +252,17 @@ export const useNetworkStore = create<NetworkState>((set) => ({
 }));
 
 // Helper function to determine connection quality
-function getConnectionQuality(state: NetInfoState): 'excellent' | 'good' | 'poor' | 'offline' {
+function getConnectionQuality(
+  state: NetInfoState,
+): 'excellent' | 'good' | 'poor' | 'offline' {
   if (!state.isConnected) return 'offline';
-  
+
   const type = state.type;
   const cellular = state.details?.cellularGeneration;
-  
+
   // WiFi is usually good
   if (type === 'wifi') return 'excellent';
-  
+
   // Cellular quality based on generation
   if (type === 'cellular') {
     if (cellular === '5g') return 'excellent';
@@ -248,12 +270,13 @@ function getConnectionQuality(state: NetInfoState): 'excellent' | 'good' | 'poor
     if (cellular === '3g') return 'poor';
     if (cellular === '2g') return 'poor';
   }
-  
+
   return 'good'; // Default for unknown types
 }
 ```
 
 **Step 2:** Create Network Banner Component
+
 ```typescript
 // src/components/ui/NetworkBanner.tsx
 import { View, Text } from 'react-native';
@@ -291,6 +314,7 @@ export function NetworkBanner() {
 ```
 
 **Step 3:** Initialize in App Layout
+
 ```typescript
 // app/_layout.tsx
 import { useEffect } from 'react';
@@ -313,6 +337,7 @@ export default function RootLayout() {
 ```
 
 **Benefits:**
+
 - Users know when they're offline
 - Visual feedback for poor network
 - Prevents user frustration from "broken" app
@@ -364,7 +389,9 @@ class OfflineQueue {
     });
   }
 
-  async addToQueue(mutation: Omit<QueuedMutation, 'id' | 'timestamp' | 'retryCount'>) {
+  async addToQueue(
+    mutation: Omit<QueuedMutation, 'id' | 'timestamp' | 'retryCount'>,
+  ) {
     const queuedMutation: QueuedMutation = {
       ...mutation,
       id: `${Date.now()}-${Math.random()}`,
@@ -402,7 +429,7 @@ class OfflineQueue {
       try {
         // Execute the mutation
         await this.executeMutation(mutation);
-        
+
         // Success - remove from queue
         this.queue.shift();
         await this.saveQueue();
@@ -446,12 +473,13 @@ export const offlineQueue = new OfflineQueue();
 ```
 
 **Usage in Mutations:**
+
 ```typescript
 // Example: Airtime purchase with offline queue
 const purchaseAirtimeMutation = useMutation({
   mutationFn: async (data: PurchaseAirtimeDto) => {
     const { isConnected } = useNetworkStore.getState();
-    
+
     if (!isConnected) {
       // Queue for later
       await offlineQueue.addToQueue({
@@ -460,10 +488,10 @@ const purchaseAirtimeMutation = useMutation({
         data,
         priority: 'high', // Financial transactions are high priority
       });
-      
+
       throw new Error('QUEUED_OFFLINE');
     }
-    
+
     return apiClient.post('/vtu/airtime/purchase', data);
   },
   onError: (error) => {
@@ -475,6 +503,7 @@ const purchaseAirtimeMutation = useMutation({
 ```
 
 **Benefits:**
+
 - No lost transactions due to network drops
 - Automatic retry when connection restored
 - Priority-based processing
@@ -493,15 +522,16 @@ const purchaseAirtimeMutation = useMutation({
 
 SQLite provides the **single biggest performance improvement** for poor network conditions:
 
-| Benefit | Impact |
-|---------|--------|
-| ⚡ **20-50x faster** transaction history | 2-5s → < 100ms |
-| 💾 **Zero data loss** | All operations persisted locally |
-| 📱 **90% less data usage** | Fetch once, query locally |
-| 🚀 **Instant search/filter** | Works completely offline |
-| 💪 **Always available** | Core features work without network |
+| Benefit                                  | Impact                             |
+| ---------------------------------------- | ---------------------------------- |
+| ⚡ **20-50x faster** transaction history | 2-5s → < 100ms                     |
+| 💾 **Zero data loss**                    | All operations persisted locally   |
+| 📱 **90% less data usage**               | Fetch once, query locally          |
+| 🚀 **Instant search/filter**             | Works completely offline           |
+| 💪 **Always available**                  | Core features work without network |
 
 **Tables to Implement:**
+
 - `transactions` - Transaction history (biggest win!)
 - `wallet` - Wallet balance and limits
 - `vtu_orders` - VTU purchase history
@@ -512,16 +542,19 @@ SQLite provides the **single biggest performance improvement** for poor network 
 - `notifications` - In-app notifications
 
 **Implementation Timeline:**
+
 - **Week 1-2:** Foundation (transactions + wallet)
 - **Week 3-4:** Extended features (VTU + P2P + Circle)
 - **Week 5-6:** Polish (notifications + monitoring)
 
 **Quick Start:**
+
 ```bash
 npx expo install expo-sqlite
 ```
 
 See the [full implementation plan](./SQLITE_IMPLEMENTATION_PLAN.md) for:
+
 - Complete database schema (based on your Prisma schema)
 - Sync strategy (bidirectional with conflict resolution)
 - Code examples (hooks, services, queue)
@@ -587,18 +620,22 @@ const TIMEOUT_CONFIGS: Record<string, TimeoutConfig> = {
   },
 };
 
-export function getAdaptiveTimeout(operationType: keyof typeof TIMEOUT_CONFIGS): number {
+export function getAdaptiveTimeout(
+  operationType: keyof typeof TIMEOUT_CONFIGS,
+): number {
   const { connectionQuality } = useNetworkStore.getState();
   const config = TIMEOUT_CONFIGS[operationType];
-  
+
   const timeout = config.base * config.multiplier[connectionQuality];
-  
+
   // Return 0 for offline (will be caught by network check)
   return timeout;
 }
 
 // Update axios client to use adaptive timeout
-export function createAdaptiveRequest(operationType: keyof typeof TIMEOUT_CONFIGS) {
+export function createAdaptiveRequest(
+  operationType: keyof typeof TIMEOUT_CONFIGS,
+) {
   return {
     timeout: getAdaptiveTimeout(operationType),
   };
@@ -606,6 +643,7 @@ export function createAdaptiveRequest(operationType: keyof typeof TIMEOUT_CONFIG
 ```
 
 **Usage:**
+
 ```typescript
 // Quick operation
 const { data } = await apiClient.get('/wallet/balance', {
@@ -620,6 +658,7 @@ const { data } = await apiClient.post('/users/upload-avatar', formData, {
 ```
 
 **Benefits:**
+
 - Faster failures on poor networks (better UX)
 - Longer timeouts when needed
 - Network-aware behavior
@@ -642,8 +681,8 @@ export const apiClient = axios.create({
   baseURL: config.API_BASE_URL,
   timeout: 60000,
   headers: {
-    "Content-Type": "application/json",
-    "Accept-Encoding": "gzip, deflate", // Request compressed responses
+    'Content-Type': 'application/json',
+    'Accept-Encoding': 'gzip, deflate', // Request compressed responses
   },
   decompress: true, // Automatically decompress responses
 });
@@ -651,12 +690,14 @@ export const apiClient = axios.create({
 
 **Backend (Already Implemented):**
 Your NestJS API likely has compression enabled. Verify in `main.ts`:
+
 ```typescript
 import compression from 'compression';
 app.use(compression());
 ```
 
 **Benefits:**
+
 - 60-80% reduction in payload size
 - Faster load times on slow networks
 - Reduced data usage
@@ -684,7 +725,7 @@ interface OptimizedImageProps {
 
 export function OptimizedImage({ source, placeholder, className }: OptimizedImageProps) {
   const { connectionQuality } = useNetworkStore();
-  
+
   // Adjust image quality based on network
   const getImageQuality = () => {
     switch (connectionQuality) {
@@ -700,7 +741,7 @@ export function OptimizedImage({ source, placeholder, className }: OptimizedImag
   };
 
   const quality = getImageQuality();
-  
+
   // Construct optimized URL (if using image CDN like Cloudinary)
   const optimizedSource = source.includes('cloudinary')
     ? source.replace('/upload/', `/upload/q_${quality === 'low' ? '30' : quality === 'medium' ? '60' : '80'}/`)
@@ -719,6 +760,7 @@ export function OptimizedImage({ source, placeholder, className }: OptimizedImag
 ```
 
 **Benefits:**
+
 - Faster image loading
 - Reduced data consumption
 - Better UX on slow networks
@@ -736,25 +778,26 @@ export function OptimizedImage({ source, placeholder, className }: OptimizedImag
 ```typescript
 // Example: P2P Transfer with optimistic update
 const sendMoneyMutation = useMutation({
-  mutationFn: (data: SendMoneyDto) => apiClient.post('/transactions/send', data),
-  
+  mutationFn: (data: SendMoneyDto) =>
+    apiClient.post('/transactions/send', data),
+
   onMutate: async (data) => {
     // Cancel outgoing refetches
     await queryClient.cancelQueries({ queryKey: ['wallet', 'balance'] });
-    
+
     // Snapshot previous value
     const previousBalance = queryClient.getQueryData(['wallet', 'balance']);
-    
+
     // Optimistically update balance
     queryClient.setQueryData(['wallet', 'balance'], (old: any) => ({
       ...old,
       balance: (parseFloat(old.balance) - data.amount).toFixed(2),
     }));
-    
+
     // Return context for rollback
     return { previousBalance };
   },
-  
+
   onError: (error, variables, context) => {
     // Rollback on error
     if (context?.previousBalance) {
@@ -762,7 +805,7 @@ const sendMoneyMutation = useMutation({
     }
     toast.error('Transfer failed. Please try again.');
   },
-  
+
   onSuccess: () => {
     // Refetch to get accurate server state
     queryClient.invalidateQueries({ queryKey: ['wallet', 'balance'] });
@@ -772,6 +815,7 @@ const sendMoneyMutation = useMutation({
 ```
 
 **Benefits:**
+
 - Instant UI feedback
 - Better perceived performance
 - Graceful error handling
@@ -828,6 +872,7 @@ export default function TabLayout() {
 ```
 
 **Benefits:**
+
 - Faster app startup
 - Reduced initial download size
 - Better performance on low-end devices
@@ -871,6 +916,7 @@ export function useBanks() {
 ```
 
 **Benefits:**
+
 - Reduced API calls
 - Instant data availability
 - Works offline after first fetch
@@ -896,7 +942,7 @@ export function TransactionSkeleton() {
         <View className="flex-row items-center gap-3">
           {/* Icon skeleton */}
           <View className="w-10 h-10 bg-gray-200 rounded-full animate-pulse" />
-          
+
           <View className="gap-2">
             {/* Title skeleton */}
             <View className="w-32 h-4 bg-gray-200 rounded animate-pulse" />
@@ -904,7 +950,7 @@ export function TransactionSkeleton() {
             <View className="w-24 h-3 bg-gray-200 rounded animate-pulse" />
           </View>
         </View>
-        
+
         {/* Amount skeleton */}
         <View className="w-20 h-5 bg-gray-200 rounded animate-pulse" />
       </View>
@@ -925,6 +971,7 @@ export function TransactionSkeleton() {
 ```
 
 **Benefits:**
+
 - Better perceived performance
 - Reduced user anxiety
 - Professional feel
@@ -983,6 +1030,7 @@ export function useDataUsage() {
 ```
 
 **Benefits:**
+
 - User awareness
 - Trust building
 - Data-conscious users appreciate it
@@ -992,6 +1040,7 @@ export function useDataUsage() {
 ## Implementation Roadmap
 
 ### Phase 1: Foundation (Week 1-2)
+
 **Goal:** Basic network resilience
 
 - [ ] Implement network state monitoring
@@ -1000,6 +1049,7 @@ export function useDataUsage() {
 - [ ] Add adaptive timeout strategy
 
 **Expected Impact:**
+
 - Users aware of network status
 - 60-80% reduction in data usage
 - Faster failures on poor networks
@@ -1007,6 +1057,7 @@ export function useDataUsage() {
 ---
 
 ### Phase 2: Offline Support (Week 3-4)
+
 **Goal:** Work offline where possible
 
 - [ ] Implement offline mutation queue
@@ -1015,6 +1066,7 @@ export function useDataUsage() {
 - [ ] Add skeleton screens
 
 **Expected Impact:**
+
 - No lost transactions
 - Better perceived performance
 - Reduced API calls
@@ -1022,6 +1074,7 @@ export function useDataUsage() {
 ---
 
 ### Phase 3: Optimization (Week 5-6)
+
 **Goal:** Fine-tune for Nigerian networks
 
 - [ ] Implement image optimization
@@ -1030,6 +1083,7 @@ export function useDataUsage() {
 - [ ] Add retry strategies per operation type
 
 **Expected Impact:**
+
 - Faster app startup
 - Reduced data consumption
 - Better UX on 2G/3G
@@ -1037,6 +1091,7 @@ export function useDataUsage() {
 ---
 
 ### Phase 4: Polish (Week 7-8)
+
 **Goal:** Professional touches
 
 - [ ] Add data usage tracking
@@ -1045,6 +1100,7 @@ export function useDataUsage() {
 - [ ] Create offline mode documentation
 
 **Expected Impact:**
+
 - User trust
 - Data insights
 - Better support
@@ -1066,9 +1122,7 @@ interface NetworkAwareQueryOptions<T> extends UseQueryOptions<T> {
   showOfflineToast?: boolean;
 }
 
-export function useNetworkAwareQuery<T>(
-  options: NetworkAwareQueryOptions<T>
-) {
+export function useNetworkAwareQuery<T>(options: NetworkAwareQueryOptions<T>) {
   const { isConnected, connectionQuality } = useNetworkStore();
 
   const {
@@ -1095,7 +1149,9 @@ export function useNetworkAwareQuery<T>(
 
   return useQuery({
     ...queryOptions,
-    enabled: requiresNetwork ? isConnected && (queryOptions.enabled ?? true) : (queryOptions.enabled ?? true),
+    enabled: requiresNetwork
+      ? isConnected && (queryOptions.enabled ?? true)
+      : (queryOptions.enabled ?? true),
     retry: getRetryCount(),
     staleTime: getStaleTime(),
     onError: (error) => {
@@ -1115,12 +1171,14 @@ export function useNetworkAwareQuery<T>(
 ### Manual Testing Checklist
 
 #### Network Simulation
+
 - [ ] Test on 2G network (Chrome DevTools Network throttling)
 - [ ] Test with airplane mode on/off
 - [ ] Test with intermittent connectivity (toggle WiFi repeatedly)
 - [ ] Test with high latency (1000ms+ delay)
 
 #### Critical Flows
+
 - [ ] Login with poor network
 - [ ] Fund wallet on 2G
 - [ ] Purchase airtime offline → online
@@ -1128,6 +1186,7 @@ export function useNetworkAwareQuery<T>(
 - [ ] View transaction history on slow network
 
 #### Edge Cases
+
 - [ ] App startup with no network
 - [ ] Network drop during image upload
 - [ ] Multiple failed requests queuing
@@ -1153,7 +1212,7 @@ describe('Network Resilience', () => {
     });
 
     const { result } = renderHook(() => useNetworkStore());
-    
+
     await waitFor(() => {
       expect(result.current.isConnected).toBe(false);
       expect(result.current.connectionQuality).toBe('offline');
@@ -1168,7 +1227,7 @@ describe('Network Resilience', () => {
     });
 
     const { result } = renderHook(() => useNetworkStore());
-    
+
     await waitFor(() => {
       expect(result.current.connectionQuality).toBe('poor');
     });
@@ -1182,18 +1241,19 @@ describe('Network Resilience', () => {
 
 ### Key Performance Indicators (KPIs)
 
-| Metric | Current | Target | Priority |
-|--------|---------|--------|----------|
-| App crash rate on poor network | Unknown | < 0.1% | 🔴 Critical |
-| Failed transaction rate | Unknown | < 1% | 🔴 Critical |
-| Average load time (2G) | Unknown | < 5s | 🟡 High |
-| Data usage per session | Unknown | < 2MB | 🟢 Medium |
-| Offline feature usage | 0% | > 20% | 🟢 Medium |
-| User retention (poor network areas) | Unknown | > 70% | 🔴 Critical |
+| Metric                              | Current | Target | Priority    |
+| ----------------------------------- | ------- | ------ | ----------- |
+| App crash rate on poor network      | Unknown | < 0.1% | 🔴 Critical |
+| Failed transaction rate             | Unknown | < 1%   | 🔴 Critical |
+| Average load time (2G)              | Unknown | < 5s   | 🟡 High     |
+| Data usage per session              | Unknown | < 2MB  | 🟢 Medium   |
+| Offline feature usage               | 0%      | > 20%  | 🟢 Medium   |
+| User retention (poor network areas) | Unknown | > 70%  | 🔴 Critical |
 
 ### Monitoring
 
 **Sentry Custom Events:**
+
 ```typescript
 // Track network quality
 Sentry.addBreadcrumb({
@@ -1224,6 +1284,7 @@ Sentry.captureException(error, {
 Your mobile app has a good foundation with React Query persistence and retry logic, but lacks critical features for handling Nigeria's challenging network conditions.
 
 **Priority Actions:**
+
 1. ✅ Implement network state monitoring (Week 1)
 2. ✅ Add offline mutation queue (Week 2)
 3. ✅ Enable compression (Week 1)
@@ -1231,6 +1292,7 @@ Your mobile app has a good foundation with React Query persistence and retry log
 
 **Expected Outcome:**
 After implementing HIGH priority items, the app will:
+
 - Handle intermittent connectivity gracefully
 - Provide clear feedback to users
 - Reduce data usage by 60-80%

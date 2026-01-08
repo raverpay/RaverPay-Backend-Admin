@@ -1,11 +1,11 @@
 // src/components/crypto/CryptoTransactionItem.tsx
-import { Text } from "@/src/components/ui";
-import { formatRelativeTime } from "@/src/lib/utils/formatters";
-import { CryptoTransaction, TokenSymbol } from "@/src/types/crypto.types";
-import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import React from "react";
-import { TouchableOpacity, View } from "react-native";
+import { Text } from '@/src/components/ui';
+import { formatRelativeTime } from '@/src/lib/utils/formatters';
+import { CryptoTransaction, TokenSymbol } from '@/src/types/crypto.types';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import React from 'react';
+import { TouchableOpacity, View } from 'react-native';
 
 interface CryptoTransactionItemProps {
   transaction: CryptoTransaction;
@@ -13,16 +13,14 @@ interface CryptoTransactionItemProps {
 }
 
 const TOKEN_COLORS: Record<TokenSymbol, string> = {
-  MATIC: "#5B55F6",
-  USDT: "#10B981",
-  USDC: "#3B82F6",
+  MATIC: '#5B55F6',
+  USDT: '#10B981',
+  USDC: '#3B82F6',
 };
 
-export const CryptoTransactionItem: React.FC<CryptoTransactionItemProps> = ({
-  transaction,
-}) => {
-  const isIncoming = transaction.direction === "INCOMING";
-  const tokenColor = TOKEN_COLORS[transaction.tokenSymbol] || "#6B7280";
+export const CryptoTransactionItem: React.FC<CryptoTransactionItemProps> = ({ transaction }) => {
+  const isIncoming = transaction.direction === 'INCOMING';
+  const tokenColor = TOKEN_COLORS[transaction.tokenSymbol] || '#6B7280';
 
   const handlePress = () => {
     router.push(`/crypto/transaction-details?id=${transaction.id}`);
@@ -36,13 +34,11 @@ export const CryptoTransactionItem: React.FC<CryptoTransactionItemProps> = ({
             <View
               className="w-10 h-10 rounded-full items-center justify-center mr-3"
               style={{
-                backgroundColor: isIncoming
-                  ? `${tokenColor}20`
-                  : `${tokenColor}20`,
+                backgroundColor: isIncoming ? `${tokenColor}20` : `${tokenColor}20`,
               }}
             >
               <Ionicons
-                name={isIncoming ? "arrow-down" : "arrow-up"}
+                name={isIncoming ? 'arrow-down' : 'arrow-up'}
                 size={20}
                 color={tokenColor}
               />
@@ -63,9 +59,9 @@ export const CryptoTransactionItem: React.FC<CryptoTransactionItemProps> = ({
             <Text
               variant="body"
               weight="bold"
-              style={{ color: isIncoming ? "#10B981" : "#EF4444" }}
+              style={{ color: isIncoming ? '#10B981' : '#EF4444' }}
             >
-              {isIncoming ? "+" : "-"}
+              {isIncoming ? '+' : '-'}
               {parseFloat(transaction.amount).toFixed(2)}
             </Text>
             {/* <Text variant="caption" color="secondary">

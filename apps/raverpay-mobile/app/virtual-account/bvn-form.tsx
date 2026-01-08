@@ -1,22 +1,19 @@
 // app/virtual-account/bvn-form.tsx
-import { Button } from "@/src/components/ui/Button";
-import { Input } from "@/src/components/ui/Input";
-import { Text } from "@/src/components/ui/Text";
-import { handleApiError } from "@/src/lib/api/client";
-import { toast } from "@/src/lib/utils/toast";
+import { Button } from '@/src/components/ui/Button';
+import { Input } from '@/src/components/ui/Input';
+import { Text } from '@/src/components/ui/Text';
+import { handleApiError } from '@/src/lib/api/client';
+import { toast } from '@/src/lib/utils/toast';
 
-import { ScreenHeader } from "@/src/components/ui/ScreenHeader";
-import { useTheme } from "@/src/hooks/useTheme";
-import {
-  getBanks,
-  resolveAccountNumber,
-} from "@/src/services/virtual-account.service";
-import type { Bank } from "@/src/types/virtual-account";
-import { Ionicons } from "@expo/vector-icons";
-import { FlashList } from "@shopify/flash-list";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { router } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
+import { useTheme } from '@/src/hooks/useTheme';
+import { getBanks, resolveAccountNumber } from '@/src/services/virtual-account.service';
+import type { Bank } from '@/src/types/virtual-account';
+import { Ionicons } from '@expo/vector-icons';
+import { FlashList } from '@shopify/flash-list';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -24,20 +21,20 @@ import {
   ScrollView,
   TouchableOpacity,
   View,
-} from "react-native";
+} from 'react-native';
 
 export default function BVNFormScreen() {
   const { isDark } = useTheme();
   const [selectedBank, setSelectedBank] = useState<Bank | null>(null);
-  const [accountNumber, setAccountNumber] = useState("");
-  const [bvn, setBvn] = useState("");
-  const [accountName, setAccountName] = useState("");
+  const [accountNumber, setAccountNumber] = useState('');
+  const [bvn, setBvn] = useState('');
+  const [accountName, setAccountName] = useState('');
   const [showBankPicker, setShowBankPicker] = useState(false);
-  const [bankSearchQuery, setBankSearchQuery] = useState("");
+  const [bankSearchQuery, setBankSearchQuery] = useState('');
 
   // Fetch banks
   const { data: banks, isPending: banksLoading } = useQuery({
-    queryKey: ["banks"],
+    queryKey: ['banks'],
     queryFn: getBanks,
   });
 
@@ -52,33 +49,27 @@ export default function BVNFormScreen() {
 
   // Resolve account number mutation
   const resolveAccountMutation = useMutation({
-    mutationFn: ({
-      accountNumber,
-      bankCode,
-    }: {
-      accountNumber: string;
-      bankCode: string;
-    }) => resolveAccountNumber(accountNumber, bankCode),
+    mutationFn: ({ accountNumber, bankCode }: { accountNumber: string; bankCode: string }) =>
+      resolveAccountNumber(accountNumber, bankCode),
     onSuccess: (data) => {
       setAccountName(data.accountName);
 
       //  console.log({ data });
       toast.success({
-        title: "Account verified",
+        title: 'Account verified',
         message: `Account holder: ${data.accountName}`,
       });
     },
     onError: (error) => {
-      setAccountName("");
+      setAccountName('');
       const apiError = handleApiError(error);
       // Handle error message (can be string or array)
       const errorMessage = Array.isArray(apiError.message)
-        ? apiError.message.join(". ")
-        : apiError.message ||
-          "Could not verify account number. Please check and try again.";
+        ? apiError.message.join('. ')
+        : apiError.message || 'Could not verify account number. Please check and try again.';
 
       toast.error({
-        title: "Verification failed",
+        title: 'Verification failed',
         message: errorMessage,
       });
     },
@@ -87,7 +78,7 @@ export default function BVNFormScreen() {
   // Auto-resolve account when account number is complete
   useEffect(() => {
     if (accountNumber.length === 10 && selectedBank) {
-      setAccountName("");
+      setAccountName('');
       resolveAccountMutation.mutate({
         accountNumber,
         bankCode: selectedBank.code,
@@ -99,31 +90,31 @@ export default function BVNFormScreen() {
   const handleContinue = () => {
     if (!selectedBank || !accountNumber || !bvn || !accountName) {
       toast.error({
-        title: "Missing information",
-        message: "Please fill all required fields",
+        title: 'Missing information',
+        message: 'Please fill all required fields',
       });
       return;
     }
 
     if (accountNumber.length !== 10) {
       toast.error({
-        title: "Invalid account number",
-        message: "Account number must be 10 digits",
+        title: 'Invalid account number',
+        message: 'Account number must be 10 digits',
       });
       return;
     }
 
     if (bvn.length !== 11) {
       toast.error({
-        title: "Invalid BVN",
-        message: "BVN must be 11 digits",
+        title: 'Invalid BVN',
+        message: 'BVN must be 11 digits',
       });
       return;
     }
 
     // Navigate to bank selection with BVN data
     router.push({
-      pathname: "/virtual-account/select-bank",
+      pathname: '/virtual-account/select-bank',
       params: {
         bankCode: selectedBank.code,
         accountNumber,
@@ -142,7 +133,7 @@ export default function BVNFormScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1 bg-white dark:bg-gray-800"
     >
       {/* Header */}
@@ -155,10 +146,7 @@ export default function BVNFormScreen() {
         </View>
       </View> */}
 
-      <ScreenHeader
-        title="Verify your identity"
-        disabled={resolveAccountMutation.isPending}
-      />
+      <ScreenHeader title="Verify your identity" disabled={resolveAccountMutation.isPending} />
 
       <ScrollView className="flex-1 px-5 py-6">
         {/* Progress */}
@@ -188,8 +176,8 @@ export default function BVNFormScreen() {
             onPress={() => setShowBankPicker(true)}
             className="border border-gray-300 dark:border-gray-700 rounded-xl p-4 flex-row items-center justify-between"
           >
-            <Text variant="body" color={selectedBank ? "primary" : "secondary"}>
-              {selectedBank ? selectedBank.name : "Select Bank"}
+            <Text variant="body" color={selectedBank ? 'primary' : 'secondary'}>
+              {selectedBank ? selectedBank.name : 'Select Bank'}
             </Text>
             <Ionicons name="chevron-down" size={20} color="#9CA3AF" />
           </TouchableOpacity>
@@ -201,9 +189,7 @@ export default function BVNFormScreen() {
             label="Account Number"
             placeholder="0123456789"
             value={accountNumber}
-            onChangeText={(text) =>
-              setAccountNumber(text.replace(/[^0-9]/g, ""))
-            }
+            onChangeText={(text) => setAccountNumber(text.replace(/[^0-9]/g, ''))}
             keyboardType="number-pad"
             maxLength={10}
             required
@@ -233,7 +219,7 @@ export default function BVNFormScreen() {
             label="BVN (Bank Verification Number)"
             placeholder="22012000000"
             value={bvn}
-            onChangeText={(text) => setBvn(text.replace(/[^0-9]/g, ""))}
+            onChangeText={(text) => setBvn(text.replace(/[^0-9]/g, ''))}
             keyboardType="number-pad"
             maxLength={11}
             required
@@ -257,8 +243,8 @@ export default function BVNFormScreen() {
           />
           <View className="flex-1">
             <Text variant="body" color="secondary">
-              Make sure your BVN is linked to the bank account you provided.
-              This is required for compliance with CBN regulations.
+              Make sure your BVN is linked to the bank account you provided. This is required for
+              compliance with CBN regulations.
             </Text>
           </View>
         </View>
@@ -266,11 +252,7 @@ export default function BVNFormScreen() {
 
       {/* Footer Button */}
       <View className="px-5 pb-6 pt-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <Button
-          variant="primary"
-          onPress={handleContinue}
-          disabled={!isFormValid}
-        >
+        <Button variant="primary" onPress={handleContinue} disabled={!isFormValid}>
           Continue
         </Button>
       </View>
@@ -285,14 +267,10 @@ export default function BVNFormScreen() {
                 <TouchableOpacity
                   onPress={() => {
                     setShowBankPicker(false);
-                    setBankSearchQuery("");
+                    setBankSearchQuery('');
                   }}
                 >
-                  <Ionicons
-                    name="close"
-                    size={24}
-                    color={isDark ? "#FFFFFF" : "#111827"}
-                  />
+                  <Ionicons name="close" size={24} color={isDark ? '#FFFFFF' : '#111827'} />
                 </TouchableOpacity>
               </View>
 
@@ -306,7 +284,7 @@ export default function BVNFormScreen() {
                   style={{ paddingVertical: 0 }}
                 />
                 {bankSearchQuery.length > 0 && (
-                  <TouchableOpacity onPress={() => setBankSearchQuery("")}>
+                  <TouchableOpacity onPress={() => setBankSearchQuery('')}>
                     <Ionicons name="close-circle" size={20} color="#9CA3AF" />
                   </TouchableOpacity>
                 )}
@@ -328,28 +306,22 @@ export default function BVNFormScreen() {
               <View className="flex-1 h-[90%]">
                 <FlashList
                   data={filteredBanks}
-                  keyExtractor={(item, index) =>
-                    `${item.code}-${item.id}-${index}`
-                  }
+                  keyExtractor={(item, index) => `${item.code}-${item.id}-${index}`}
                   // estimatedItemSize={64}
                   renderItem={({ item: bank }) => (
                     <TouchableOpacity
                       onPress={() => {
                         setSelectedBank(bank);
                         setShowBankPicker(false);
-                        setBankSearchQuery("");
-                        setAccountNumber("");
-                        setAccountName("");
+                        setBankSearchQuery('');
+                        setAccountNumber('');
+                        setAccountName('');
                       }}
                       className="p-4 border-b border-gray-100 flex-row items-center justify-between"
                     >
                       <Text variant="body">{bank.name}</Text>
                       {selectedBank?.code === bank.code && (
-                        <Ionicons
-                          name="checkmark-circle"
-                          size={20}
-                          color="#5B55F6"
-                        />
+                        <Ionicons name="checkmark-circle" size={20} color="#5B55F6" />
                       )}
                     </TouchableOpacity>
                   )}

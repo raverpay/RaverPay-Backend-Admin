@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/react-native";
+import * as Sentry from '@sentry/react-native';
 
 /**
  * Wrap an async function with Sentry span tracking (Sentry v7 compatible)
@@ -7,7 +7,7 @@ export async function withSpan<T>(
   op: string,
   name: string,
   fn: () => Promise<T>,
-  data?: Record<string, any>
+  data?: Record<string, any>,
 ): Promise<T> {
   return Sentry.startSpan({ op, name, attributes: data }, async () => {
     try {
@@ -26,10 +26,10 @@ export async function trackApiCall<T>(
   endpoint: string,
   method: string,
   fn: () => Promise<T>,
-  additionalData?: Record<string, any>
+  additionalData?: Record<string, any>,
 ): Promise<T> {
   return withSpan(
-    "http.client",
+    'http.client',
     `${method} ${endpoint}`,
     async () => {
       try {
@@ -40,14 +40,14 @@ export async function trackApiCall<T>(
           tags: {
             endpoint,
             method,
-            status: error?.response?.status || "unknown",
+            status: error?.response?.status || 'unknown',
           },
           extra: additionalData,
         });
         throw error;
       }
     },
-    { endpoint, method, ...additionalData }
+    { endpoint, method, ...additionalData },
   );
 }
 
@@ -57,18 +57,18 @@ export async function trackApiCall<T>(
 export async function trackVtuOperation<T>(
   operation: string,
   provider: string,
-  fn: () => Promise<T>
+  fn: () => Promise<T>,
 ): Promise<T> {
   return withSpan(
-    "vtu.operation",
+    'vtu.operation',
     operation,
     async () => {
       try {
         const result = await fn();
-        Sentry.setTag("vtu.success", "true");
+        Sentry.setTag('vtu.success', 'true');
         return result;
       } catch (error: any) {
-        Sentry.setTag("vtu.success", "false");
+        Sentry.setTag('vtu.success', 'false');
         Sentry.captureException(error, {
           tags: {
             vtu_operation: operation,
@@ -78,7 +78,7 @@ export async function trackVtuOperation<T>(
         throw error;
       }
     },
-    { provider, operation }
+    { provider, operation },
   );
 }
 
@@ -88,48 +88,45 @@ export async function trackVtuOperation<T>(
 export async function trackCircleOperation<T>(
   operation: string,
   network?: string,
-  fn?: () => Promise<T>
+  fn?: () => Promise<T>,
 ): Promise<T | void> {
   return withSpan(
-    "circle.operation",
+    'circle.operation',
     operation,
     async () => {
       try {
         const result = fn ? await fn() : undefined;
-        Sentry.setTag("circle.success", "true");
+        Sentry.setTag('circle.success', 'true');
         return result;
       } catch (error: any) {
-        Sentry.setTag("circle.success", "false");
+        Sentry.setTag('circle.success', 'false');
         Sentry.captureException(error, {
           tags: {
             circle_operation: operation,
-            circle_network: network || "unknown",
+            circle_network: network || 'unknown',
           },
         });
         throw error;
       }
     },
-    { operation, network }
+    { operation, network },
   );
 }
 
 /**
  * Track P2P transfer operations
  */
-export async function trackP2pOperation<T>(
-  operation: string,
-  fn: () => Promise<T>
-): Promise<T> {
+export async function trackP2pOperation<T>(operation: string, fn: () => Promise<T>): Promise<T> {
   return withSpan(
-    "p2p.operation",
+    'p2p.operation',
     operation,
     async () => {
       try {
         const result = await fn();
-        Sentry.setTag("p2p.success", "true");
+        Sentry.setTag('p2p.success', 'true');
         return result;
       } catch (error: any) {
-        Sentry.setTag("p2p.success", "false");
+        Sentry.setTag('p2p.success', 'false');
         Sentry.captureException(error, {
           tags: {
             p2p_operation: operation,
@@ -138,27 +135,24 @@ export async function trackP2pOperation<T>(
         throw error;
       }
     },
-    { operation }
+    { operation },
   );
 }
 
 /**
  * Track authentication operations
  */
-export async function trackAuthOperation<T>(
-  operation: string,
-  fn: () => Promise<T>
-): Promise<T> {
+export async function trackAuthOperation<T>(operation: string, fn: () => Promise<T>): Promise<T> {
   return withSpan(
-    "auth.operation",
+    'auth.operation',
     operation,
     async () => {
       try {
         const result = await fn();
-        Sentry.setTag("auth.success", "true");
+        Sentry.setTag('auth.success', 'true');
         return result;
       } catch (error: any) {
-        Sentry.setTag("auth.success", "false");
+        Sentry.setTag('auth.success', 'false');
         Sentry.captureException(error, {
           tags: {
             auth_operation: operation,
@@ -167,7 +161,7 @@ export async function trackAuthOperation<T>(
         throw error;
       }
     },
-    { operation }
+    { operation },
   );
 }
 
@@ -177,18 +171,18 @@ export async function trackAuthOperation<T>(
 export async function trackWalletOperation<T>(
   operation: string,
   method: string,
-  fn: () => Promise<T>
+  fn: () => Promise<T>,
 ): Promise<T> {
   return withSpan(
-    "wallet.operation",
+    'wallet.operation',
     operation,
     async () => {
       try {
         const result = await fn();
-        Sentry.setTag("wallet.success", "true");
+        Sentry.setTag('wallet.success', 'true');
         return result;
       } catch (error: any) {
-        Sentry.setTag("wallet.success", "false");
+        Sentry.setTag('wallet.success', 'false');
         Sentry.captureException(error, {
           tags: {
             wallet_operation: operation,
@@ -198,6 +192,6 @@ export async function trackWalletOperation<T>(
         throw error;
       }
     },
-    { operation, method }
+    { operation, method },
   );
 }

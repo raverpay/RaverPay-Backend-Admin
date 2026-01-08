@@ -1,48 +1,44 @@
 // app/transaction-details/[id]/receipt.tsx
-import { Button, ScreenHeader, Text } from "@/src/components/ui";
-import { useTheme } from "@/src/hooks/useTheme";
-import { useTransactionDetails } from "@/src/hooks/useTransactions";
-import { formatCurrency, formatDateTime } from "@/src/lib/utils/formatters";
-import { useUserStore } from "@/src/store/user.store";
-import { Ionicons } from "@expo/vector-icons";
-import * as Print from "expo-print";
-import { router, useLocalSearchParams } from "expo-router";
-import * as Sharing from "expo-sharing";
-import { StatusBar } from "expo-status-bar";
-import React, { useRef, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { captureRef } from "react-native-view-shot";
+import { Button, ScreenHeader, Text } from '@/src/components/ui';
+import { useTheme } from '@/src/hooks/useTheme';
+import { useTransactionDetails } from '@/src/hooks/useTransactions';
+import { formatCurrency, formatDateTime } from '@/src/lib/utils/formatters';
+import { useUserStore } from '@/src/store/user.store';
+import { Ionicons } from '@expo/vector-icons';
+import * as Print from 'expo-print';
+import { router, useLocalSearchParams } from 'expo-router';
+import * as Sharing from 'expo-sharing';
+import { StatusBar } from 'expo-status-bar';
+import React, { useRef, useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { captureRef } from 'react-native-view-shot';
 
 export default function ReceiptPreviewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { user } = useUserStore();
-  const {
-    data: transaction,
-    isPending: isLoading,
-    isError,
-  } = useTransactionDetails(id);
+  const { data: transaction, isPending: isLoading, isError } = useTransactionDetails(id);
   const receiptRef = useRef<View>(null);
   const [isSharing, setIsSharing] = useState(false);
   const { isDark } = useTheme();
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "COMPLETED":
-        return "#22C55E";
-      case "PENDING":
-        return "#EAB308";
-      case "FAILED":
-        return "#EF4444";
-      case "REVERSED":
-        return "#6B7280";
+      case 'COMPLETED':
+        return '#22C55E';
+      case 'PENDING':
+        return '#EAB308';
+      case 'FAILED':
+        return '#EF4444';
+      case 'REVERSED':
+        return '#6B7280';
       default:
-        return "#6B7280";
+        return '#6B7280';
     }
   };
 
-  const creditTypes = ["DEPOSIT", "REFUND", "GIFTCARD_SELL", "CRYPTO_SELL"];
+  const creditTypes = ['DEPOSIT', 'REFUND', 'GIFTCARD_SELL', 'CRYPTO_SELL'];
   const isCredit = transaction ? creditTypes.includes(transaction.type) : false;
 
   const handleShareAsImage = async () => {
@@ -51,19 +47,19 @@ export default function ReceiptPreviewScreen() {
     setIsSharing(true);
     try {
       const uri = await captureRef(receiptRef, {
-        format: "png",
+        format: 'png',
         quality: 1.0,
-        result: "tmpfile",
+        result: 'tmpfile',
       });
 
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri);
       } else {
-        Alert.alert("Error", "Sharing is not available on this device");
+        Alert.alert('Error', 'Sharing is not available on this device');
       }
     } catch (error) {
-      console.error("Error sharing image:", error);
-      Alert.alert("Error", "Failed to share receipt as image");
+      console.error('Error sharing image:', error);
+      Alert.alert('Error', 'Failed to share receipt as image');
     } finally {
       setIsSharing(false);
     }
@@ -80,11 +76,11 @@ export default function ReceiptPreviewScreen() {
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri);
       } else {
-        Alert.alert("Error", "Sharing is not available on this device");
+        Alert.alert('Error', 'Sharing is not available on this device');
       }
     } catch (error) {
-      console.error("Error generating PDF:", error);
-      Alert.alert("Error", "Failed to generate PDF");
+      console.error('Error generating PDF:', error);
+      Alert.alert('Error', 'Failed to generate PDF');
     } finally {
       setIsSharing(false);
     }
@@ -105,18 +101,13 @@ export default function ReceiptPreviewScreen() {
   if (isError || !transaction) {
     return (
       <View className="flex-1 bg-gray-50 dark:bg-gray-900">
-        <StatusBar style={isDark ? "light" : "dark"} />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
         <ScreenHeader title="Receipt" />
         <View className="flex-1 items-center justify-center px-5">
           <Text variant="h3" className="mb-2">
             Receipt Not Available
           </Text>
-          <Text
-            variant="body"
-            color="secondary"
-            align="center"
-            className="mb-6"
-          >
+          <Text variant="body" color="secondary" align="center" className="mb-6">
             Unable to load transaction receipt.
           </Text>
           <Button variant="primary" onPress={() => router.back()}>
@@ -131,7 +122,7 @@ export default function ReceiptPreviewScreen() {
 
   return (
     <View className="flex-1 bg-gray-50 dark:bg-gray-900">
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* Header */}
       <ScreenHeader title="Receipt Preview" />
@@ -166,11 +157,8 @@ export default function ReceiptPreviewScreen() {
               <Text variant="caption" color="secondary" className="mb-2">
                 Amount
               </Text>
-              <Text
-                variant="h4"
-                className={isCredit ? "text-green-600" : "text-red-600"}
-              >
-                {isCredit ? "+" : "-"}
+              <Text variant="h4" className={isCredit ? 'text-green-600' : 'text-red-600'}>
+                {isCredit ? '+' : '-'}
                 {formatCurrency(amount)}
               </Text>
             </View>
@@ -180,10 +168,7 @@ export default function ReceiptPreviewScreen() {
                 backgroundColor: `${getStatusColor(transaction.status)}20`,
               }}
             >
-              <Text
-                variant="bodyMedium"
-                style={{ color: getStatusColor(transaction.status) }}
-              >
+              <Text variant="bodyMedium" style={{ color: getStatusColor(transaction.status) }}>
                 {transaction.status}
               </Text>
             </View>
@@ -200,15 +185,9 @@ export default function ReceiptPreviewScreen() {
             <ReceiptRow label="Reference" value={transaction.reference} />
             <ReceiptRow label="Type" value={transaction.type} />
             <ReceiptRow label="Description" value={transaction.description} />
-            <ReceiptRow
-              label="Date"
-              value={formatDateTime(transaction.createdAt)}
-            />
+            <ReceiptRow label="Date" value={formatDateTime(transaction.createdAt)} />
             {transaction.completedAt && (
-              <ReceiptRow
-                label="Completed At"
-                value={formatDateTime(transaction.completedAt)}
-              />
+              <ReceiptRow label="Completed At" value={formatDateTime(transaction.completedAt)} />
             )}
           </View>
 
@@ -239,10 +218,7 @@ export default function ReceiptPreviewScreen() {
                 Account Information
               </Text>
               {user.firstName && user.lastName && (
-                <ReceiptRow
-                  label="Name"
-                  value={`${user.firstName} ${user.lastName}`}
-                />
+                <ReceiptRow label="Name" value={`${user.firstName} ${user.lastName}`} />
               )}
               {user.email && <ReceiptRow label="Email" value={user.email} />}
               {user.phone && <ReceiptRow label="Phone" value={user.phone} />}
@@ -250,33 +226,21 @@ export default function ReceiptPreviewScreen() {
           )}
 
           {/* Metadata - Electricity Token */}
-          {transaction.metadata?.serviceType === "ELECTRICITY" &&
+          {transaction.metadata?.serviceType === 'ELECTRICITY' &&
             transaction.metadata?.meterToken && (
               <View className="mb-4 p-4 bg-green-50 rounded-lg border border-green-200">
                 <Text variant="h4" className="mb-3 text-green-800">
                   Electricity Token
                 </Text>
-                <ReceiptRow
-                  label="Token Number"
-                  value={transaction.metadata.meterToken}
-                />
+                <ReceiptRow label="Token Number" value={transaction.metadata.meterToken} />
                 {transaction.metadata?.customerName && (
-                  <ReceiptRow
-                    label="Customer Name"
-                    value={transaction.metadata.customerName}
-                  />
+                  <ReceiptRow label="Customer Name" value={transaction.metadata.customerName} />
                 )}
                 {transaction.metadata?.units && (
-                  <ReceiptRow
-                    label="Units"
-                    value={transaction.metadata.units}
-                  />
+                  <ReceiptRow label="Units" value={transaction.metadata.units} />
                 )}
                 {transaction.metadata?.recipient && (
-                  <ReceiptRow
-                    label="Meter Number"
-                    value={transaction.metadata.recipient}
-                  />
+                  <ReceiptRow label="Meter Number" value={transaction.metadata.recipient} />
                 )}
               </View>
             )}
@@ -313,11 +277,7 @@ export default function ReceiptPreviewScreen() {
             loading={isSharing}
             className="flex-1"
           >
-            <View>
-              {!isSharing && (
-                <Ionicons name="image-outline" size={20} color="white" />
-              )}
-            </View>
+            <View>{!isSharing && <Ionicons name="image-outline" size={20} color="white" />}</View>
 
             <View>
               <Text variant="button" className="text-white ml-2">
@@ -334,13 +294,7 @@ export default function ReceiptPreviewScreen() {
             className="flex-1"
           >
             <View>
-              {!isSharing && (
-                <Ionicons
-                  name="document-text-outline"
-                  size={20}
-                  color="white"
-                />
-              )}
+              {!isSharing && <Ionicons name="document-text-outline" size={20} color="white" />}
             </View>
             <View>
               <Text variant="button" className="text-white ml-2">
@@ -360,54 +314,46 @@ interface ReceiptRowProps {
   valueColor?: string;
 }
 
-const ReceiptRow: React.FC<ReceiptRowProps> = ({
-  label,
-  value,
-  valueColor,
-}) => (
+const ReceiptRow: React.FC<ReceiptRowProps> = ({ label, value, valueColor }) => (
   <View className="flex-row justify-between py-3 border-b border-gray-100">
     <Text variant="body" color="secondary" className="">
       {label}
     </Text>
-    <Text variant="h7" className={`flex-1 text-right ${valueColor || ""}`}>
-      {value.length > 35 ? value.slice(0, 35) + "..." : value}
+    <Text variant="h7" className={`flex-1 text-right ${valueColor || ''}`}>
+      {value.length > 35 ? value.slice(0, 35) + '...' : value}
     </Text>
   </View>
 );
 
 // Generate HTML for PDF
 function generateReceiptHTML(transaction: any, user: any) {
-  const creditTypes = ["DEPOSIT", "REFUND", "GIFTCARD_SELL", "CRYPTO_SELL"];
+  const creditTypes = ['DEPOSIT', 'REFUND', 'GIFTCARD_SELL', 'CRYPTO_SELL'];
   const isCredit = creditTypes.includes(transaction.type);
   const amount = parseFloat(transaction.amount);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "COMPLETED":
-        return "#22C55E";
-      case "PENDING":
-        return "#EAB308";
-      case "FAILED":
-        return "#EF4444";
-      case "REVERSED":
-        return "#6B7280";
+      case 'COMPLETED':
+        return '#22C55E';
+      case 'PENDING':
+        return '#EAB308';
+      case 'FAILED':
+        return '#EF4444';
+      case 'REVERSED':
+        return '#6B7280';
       default:
-        return "#6B7280";
+        return '#6B7280';
     }
   };
 
   // Pre-format all values
   const formattedAmount = formatCurrency(amount);
-  const formattedBalanceBefore = formatCurrency(
-    parseFloat(transaction.balanceBefore)
-  );
-  const formattedBalanceAfter = formatCurrency(
-    parseFloat(transaction.balanceAfter)
-  );
+  const formattedBalanceBefore = formatCurrency(parseFloat(transaction.balanceBefore));
+  const formattedBalanceAfter = formatCurrency(parseFloat(transaction.balanceAfter));
   const formattedCreatedAt = formatDateTime(transaction.createdAt);
   const formattedCompletedAt = transaction.completedAt
     ? formatDateTime(transaction.completedAt)
-    : "";
+    : '';
   const formattedGeneratedAt = formatDateTime(new Date().toISOString());
 
   return `
@@ -481,7 +427,7 @@ function generateReceiptHTML(transaction: any, user: any) {
             font-size: 36px;
             font-weight: bold;
             margin-bottom: 12px;
-            color: ${isCredit ? "#22C55E" : "#EF4444"};
+            color: ${isCredit ? '#22C55E' : '#EF4444'};
           }
           .status-badge {
             display: inline-block;
@@ -553,7 +499,7 @@ function generateReceiptHTML(transaction: any, user: any) {
 
           <div class="amount-section">
             <div class="amount-label">Amount</div>
-            <div class="amount-value">${isCredit ? "+" : "-"}${formattedAmount}</div>
+            <div class="amount-value">${isCredit ? '+' : '-'}${formattedAmount}</div>
             <div class="status-badge">${transaction.status}</div>
           </div>
 
@@ -585,7 +531,7 @@ function generateReceiptHTML(transaction: any, user: any) {
               <div class="row-value">${formattedCompletedAt}</div>
             </div>
             `
-                : ""
+                : ''
             }
           </div>
 
@@ -597,7 +543,7 @@ function generateReceiptHTML(transaction: any, user: any) {
             </div>
             <div class="row">
               <div class="row-label">Transaction Amount</div>
-              <div class="row-value" style="color: ${isCredit ? "#22C55E" : "#EF4444"}">${formattedAmount}</div>
+              <div class="row-value" style="color: ${isCredit ? '#22C55E' : '#EF4444'}">${formattedAmount}</div>
             </div>
             <div class="row">
               <div class="row-label">Balance After</div>
@@ -618,7 +564,7 @@ function generateReceiptHTML(transaction: any, user: any) {
               <div class="row-value">${user.firstName} ${user.lastName}</div>
             </div>
             `
-                : ""
+                : ''
             }
             ${
               user.email
@@ -628,7 +574,7 @@ function generateReceiptHTML(transaction: any, user: any) {
               <div class="row-value">${user.email}</div>
             </div>
             `
-                : ""
+                : ''
             }
             ${
               user.phone
@@ -638,16 +584,15 @@ function generateReceiptHTML(transaction: any, user: any) {
               <div class="row-value">${user.phone}</div>
             </div>
             `
-                : ""
+                : ''
             }
           </div>
           `
-              : ""
+              : ''
           }
 
           ${
-            transaction.metadata?.serviceType === "ELECTRICITY" &&
-            transaction.metadata?.meterToken
+            transaction.metadata?.serviceType === 'ELECTRICITY' && transaction.metadata?.meterToken
               ? `
           <div class="electricity-section">
             <div class="electricity-title">Electricity Token</div>
@@ -663,7 +608,7 @@ function generateReceiptHTML(transaction: any, user: any) {
               <div class="row-value">${transaction.metadata.customerName}</div>
             </div>
             `
-                : ""
+                : ''
             }
             ${
               transaction.metadata?.units
@@ -673,7 +618,7 @@ function generateReceiptHTML(transaction: any, user: any) {
               <div class="row-value">${transaction.metadata.units}</div>
             </div>
             `
-                : ""
+                : ''
             }
             ${
               transaction.metadata?.recipient
@@ -683,11 +628,11 @@ function generateReceiptHTML(transaction: any, user: any) {
               <div class="row-value">${transaction.metadata.recipient}</div>
             </div>
             `
-                : ""
+                : ''
             }
           </div>
           `
-              : ""
+              : ''
           }
 
           <div class="footer">

@@ -1,48 +1,31 @@
 // app/p2p-history.tsx
-import { Card, ScreenHeader, Text } from "@/src/components/ui";
-import { useP2PHistory } from "@/src/hooks/useP2P";
+import { Card, ScreenHeader, Text } from '@/src/components/ui';
+import { useP2PHistory } from '@/src/hooks/useP2P';
 
-import { useTheme } from "@/src/hooks/useTheme";
-import {
-  getRelativeTimeLabel,
-  groupItemsByDate,
-} from "@/src/lib/utils/dateGrouping";
-import { formatCurrency } from "@/src/lib/utils/formatters";
-import type { P2PTransfer } from "@/src/types/api.types";
-import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useMemo } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { useTheme } from '@/src/hooks/useTheme';
+import { getRelativeTimeLabel, groupItemsByDate } from '@/src/lib/utils/dateGrouping';
+import { formatCurrency } from '@/src/lib/utils/formatters';
+import type { P2PTransfer } from '@/src/types/api.types';
+import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useMemo } from 'react';
+import { ActivityIndicator, FlatList, RefreshControl, TouchableOpacity, View } from 'react-native';
 
-const DEFAULT_AVATAR =
-  "https://ui-avatars.com/api/?name=User&background=5B55F6&color=fff";
+const DEFAULT_AVATAR = 'https://ui-avatars.com/api/?name=User&background=5B55F6&color=fff';
 
 export default function P2PHistoryScreen() {
   const { isDark } = useTheme();
-  const {
-    data,
-    isLoading,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage,
-    refetch,
-    isRefetching,
-  } = useP2PHistory();
+  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, refetch, isRefetching } =
+    useP2PHistory();
 
   // const transfers = data?.pages.flatMap((page) => page.transfers) || [];
 
   // Group transfers by date
   const groupedTransfers = useMemo(() => {
     const transfersList = data?.pages.flatMap((page) => page.transfers) || [];
-    return groupItemsByDate(transfersList, "createdAt");
+    return groupItemsByDate(transfersList, 'createdAt');
   }, [data]);
 
   const handleLoadMore = () => {
@@ -55,11 +38,7 @@ export default function P2PHistoryScreen() {
     refetch();
   };
 
-  const renderSection = ({
-    item: section,
-  }: {
-    item: { title: string; data: P2PTransfer[] };
-  }) => (
+  const renderSection = ({ item: section }: { item: { title: string; data: P2PTransfer[] } }) => (
     <View>
       {/* Section Header */}
       <View className="py-3 mt-2">
@@ -103,17 +82,12 @@ export default function P2PHistoryScreen() {
         <Text variant="h3" className="mb-2">
           No P2P Transfers Yet
         </Text>
-        <Text
-          variant="body"
-          color="secondary"
-          align="center"
-          className="mb-6 px-8"
-        >
+        <Text variant="body" color="secondary" align="center" className="mb-6 px-8">
           Send money to other users with their @username
         </Text>
         <TouchableOpacity
           className="bg-[#5B55F6] px-6 py-3 rounded-xl"
-          onPress={() => router.push("/send-p2p")}
+          onPress={() => router.push('/send-p2p')}
         >
           <Text variant="bodyMedium" className="text-white">
             Send Money
@@ -125,7 +99,7 @@ export default function P2PHistoryScreen() {
 
   return (
     <View className="flex-1 bg-gray-50 dark:bg-gray-900">
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* Header */}
       <ScreenHeader title="P2P Transfers" />
@@ -139,11 +113,7 @@ export default function P2PHistoryScreen() {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={handleRefresh}
-            tintColor="#5B55F6"
-          />
+          <RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor="#5B55F6" />
         }
         ListEmptyComponent={renderEmpty}
         ListFooterComponent={renderFooter}
@@ -157,7 +127,7 @@ interface TransferItemProps {
 }
 
 const TransferItem: React.FC<TransferItemProps> = ({ transfer }) => {
-  const isSent = transfer.type === "SENT";
+  const isSent = transfer.type === 'SENT';
   const amount = parseFloat(transfer.amount);
 
   return (
@@ -178,12 +148,7 @@ const TransferItem: React.FC<TransferItemProps> = ({ transfer }) => {
             @{transfer.counterparty.tag}
           </Text>
           {transfer.message && (
-            <Text
-              variant="caption"
-              color="secondary"
-              numberOfLines={1}
-              className="mt-1"
-            >
+            <Text variant="caption" color="secondary" numberOfLines={1} className="mt-1">
               {transfer.message}
             </Text>
           )}
@@ -197,15 +162,15 @@ const TransferItem: React.FC<TransferItemProps> = ({ transfer }) => {
           <Text
             variant="bodyMedium"
             weight="bold"
-            className={isSent ? "text-red-600" : "text-green-600"}
+            className={isSent ? 'text-red-600' : 'text-green-600'}
           >
-            {isSent ? "-" : "+"}
+            {isSent ? '-' : '+'}
             {formatCurrency(amount)}
           </Text>
           <Text variant="caption" color="secondary" className="mt-1">
-            {isSent ? "Sent" : "Received"}
+            {isSent ? 'Sent' : 'Received'}
           </Text>
-          {transfer.status === "COMPLETED" && (
+          {transfer.status === 'COMPLETED' && (
             <View className="flex-row items-center mt-1">
               <Ionicons name="checkmark-circle" size={12} color="#10B981" />
               <Text variant="caption" className="text-green-600 ml-1">

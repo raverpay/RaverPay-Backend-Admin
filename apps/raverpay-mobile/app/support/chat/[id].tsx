@@ -1,6 +1,6 @@
-import { MessageBubble } from "@/src/components/support/MessageBubble";
-import { RatingModal } from "@/src/components/support/RatingModal";
-import { ScreenHeader, Text } from "@/src/components/ui";
+import { MessageBubble } from '@/src/components/support/MessageBubble';
+import { RatingModal } from '@/src/components/support/RatingModal';
+import { ScreenHeader, Text } from '@/src/components/ui';
 import {
   supportKeys,
   useConversation,
@@ -8,16 +8,16 @@ import {
   useMarkMessagesAsRead,
   useRateConversation,
   useSendMessage,
-} from "@/src/hooks/useSupport";
-import { useTheme } from "@/src/hooks/useTheme";
-import { toast } from "@/src/lib/utils/toast";
-import { socketService } from "@/src/services/socket.service";
-import { ConversationStatus, Message, QuickReply } from "@/src/types/support";
-import { Ionicons } from "@expo/vector-icons";
-import { useQueryClient } from "@tanstack/react-query";
-import { router, useLocalSearchParams } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+} from '@/src/hooks/useSupport';
+import { useTheme } from '@/src/hooks/useTheme';
+import { toast } from '@/src/lib/utils/toast';
+import { socketService } from '@/src/services/socket.service';
+import { ConversationStatus, Message, QuickReply } from '@/src/types/support';
+import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
+import { router, useLocalSearchParams } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -26,13 +26,13 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from "react-native";
+} from 'react-native';
 
 export default function ChatScreen() {
   const { isDark } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const queryClient = useQueryClient();
-  const [messageText, setMessageText] = useState("");
+  const [messageText, setMessageText] = useState('');
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [isAgentTyping, setIsAgentTyping] = useState(false);
@@ -41,8 +41,7 @@ export default function ChatScreen() {
   const flatListRef = useRef<FlatList>(null);
 
   // Queries
-  const { data: conversation, isPending: loadingConversation } =
-    useConversation(id);
+  const { data: conversation, isPending: loadingConversation } = useConversation(id);
   const {
     data: messagesData,
     isPending: loadingMessages,
@@ -62,8 +61,7 @@ export default function ChatScreen() {
 
   // Merge server messages with locally received socket messages
   const messages = useCallback(() => {
-    const server: Message[] =
-      messagesData?.pages.flatMap((page) => page.data) || [];
+    const server: Message[] = messagesData?.pages.flatMap((page) => page.data) || [];
     const allMessages = [...server];
     // Add local messages that aren't in server messages yet
     localMessages.forEach((localMsg) => {
@@ -73,8 +71,7 @@ export default function ChatScreen() {
     });
     // Sort by createdAt
     return allMessages.sort(
-      (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
   }, [messagesData, localMessages])();
 
@@ -116,16 +113,13 @@ export default function ChatScreen() {
     });
 
     // Listen for conversation status updates (e.g., when agent ends conversation)
-    const unsubscribeConversationUpdate = socketService.onConversationUpdate(
-      id,
-      (data) => {
-        //  console.log("[Chat] Conversation status updated:", data.status);
-        // Invalidate conversation query to get updated status
-        queryClient.invalidateQueries({
-          queryKey: supportKeys.conversationDetail(id),
-        });
-      }
-    );
+    const unsubscribeConversationUpdate = socketService.onConversationUpdate(id, (data) => {
+      //  console.log("[Chat] Conversation status updated:", data.status);
+      // Invalidate conversation query to get updated status
+      queryClient.invalidateQueries({
+        queryKey: supportKeys.conversationDetail(id),
+      });
+    });
 
     // Cleanup on unmount
     return () => {
@@ -167,7 +161,7 @@ export default function ChatScreen() {
     if (!messageText.trim()) return;
 
     const text = messageText.trim();
-    setMessageText("");
+    setMessageText('');
 
     // Stop typing indicator
     socketService.sendTyping(id, false);
@@ -182,7 +176,7 @@ export default function ChatScreen() {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     } catch {
-      toast.error("Failed to send message");
+      toast.error('Failed to send message');
       setMessageText(text); // Restore message if failed
     }
   };
@@ -200,7 +194,7 @@ export default function ChatScreen() {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     } catch {
-      toast.error("Failed to send message");
+      toast.error('Failed to send message');
     } finally {
       setProcessingQuickReply(false);
     }
@@ -208,16 +202,16 @@ export default function ChatScreen() {
 
   const handleAction = async (action: string, data?: any) => {
     // Handle different actions
-    let actionMessage = "";
+    let actionMessage = '';
     switch (action) {
-      case "refund":
-        actionMessage = "I would like to request a refund.";
+      case 'refund':
+        actionMessage = 'I would like to request a refund.';
         break;
-      case "retry":
-        actionMessage = "I would like to retry this transaction.";
+      case 'retry':
+        actionMessage = 'I would like to retry this transaction.';
         break;
-      case "escalate":
-        actionMessage = "I would like to speak to an agent.";
+      case 'escalate':
+        actionMessage = 'I would like to speak to an agent.';
         break;
       default:
         // console.log("Unknown action:", action);
@@ -228,7 +222,7 @@ export default function ChatScreen() {
       // Send via REST API only
       await sendMessage.mutateAsync({ content: actionMessage });
     } catch {
-      toast.error("Failed to perform action");
+      toast.error('Failed to perform action');
     }
   };
 
@@ -236,10 +230,10 @@ export default function ChatScreen() {
     try {
       await rateConversation.mutateAsync({ rating, comment });
       setShowRatingModal(false);
-      toast.success("Thank you for your feedback!");
+      toast.success('Thank you for your feedback!');
       router.back();
     } catch {
-      toast.error("Failed to submit rating");
+      toast.error('Failed to submit rating');
     }
   };
 
@@ -247,34 +241,34 @@ export default function ChatScreen() {
     setSelectedRating(rating);
     try {
       await rateConversation.mutateAsync({ rating });
-      toast.success("Thank you for your feedback!");
+      toast.success('Thank you for your feedback!');
       // Invalidate to update conversation status
       queryClient.invalidateQueries({
         queryKey: supportKeys.conversationDetail(id),
       });
     } catch {
-      toast.error("Failed to submit rating");
+      toast.error('Failed to submit rating');
       setSelectedRating(null);
     }
   };
 
   const getStatusLabel = () => {
     if (isAgentTyping) {
-      return "Agent is typing...";
+      return 'Agent is typing...';
     }
     switch (conversation?.status) {
       case ConversationStatus.BOT_HANDLING:
-        return "Bot is helping you";
+        return 'Bot is helping you';
       case ConversationStatus.AWAITING_AGENT:
-        return "Waiting for agent...";
+        return 'Waiting for agent...';
       case ConversationStatus.AGENT_ASSIGNED:
-        return "Agent connected";
+        return 'Agent connected';
       case ConversationStatus.AWAITING_RATING:
-        return "Conversation resolved";
+        return 'Conversation resolved';
       case ConversationStatus.ENDED:
-        return "Conversation ended";
+        return 'Conversation ended';
       default:
-        return "Support Chat";
+        return 'Support Chat';
     }
   };
 
@@ -291,12 +285,12 @@ export default function ChatScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1"
       keyboardVerticalOffset={0}
     >
       <View className="flex-1 bg-gray-50 dark:bg-gray-900">
-        <StatusBar style={isDark ? "light" : "dark"} />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
 
         {/* Header */}
         <ScreenHeader
@@ -318,12 +312,12 @@ export default function ChatScreen() {
             <View
               className={`w-2 h-2 rounded-full mr-2 ${
                 isAgentTyping
-                  ? "bg-blue-500"
+                  ? 'bg-blue-500'
                   : conversation?.status === ConversationStatus.AGENT_ASSIGNED
-                    ? "bg-green-500"
+                    ? 'bg-green-500'
                     : conversation?.status === ConversationStatus.AWAITING_AGENT
-                      ? "bg-yellow-500"
-                      : "bg-gray-400"
+                      ? 'bg-yellow-500'
+                      : 'bg-gray-400'
               }`}
             />
             <Text variant="caption" color="secondary">
@@ -363,11 +357,7 @@ export default function ChatScreen() {
           ListEmptyComponent={
             <View className="flex-1 items-center justify-center py-20">
               <View className="w-16 h-16 rounded-full bg-[#5B55F6]/10 items-center justify-center mb-4">
-                <Ionicons
-                  name="chatbubbles-outline"
-                  size={32}
-                  color="#5B55F6"
-                />
+                <Ionicons name="chatbubbles-outline" size={32} color="#5B55F6" />
               </View>
               <Text variant="body" color="secondary" className="text-center">
                 Start by sending a message
@@ -405,12 +395,7 @@ export default function ChatScreen() {
         {/* Input Area */}
         {conversation?.status === ConversationStatus.AWAITING_RATING ? (
           <View className="bg-white dark:bg-gray-800 px-5 py-6 border-t border-gray-200 dark:border-gray-700">
-            <Text
-              variant="body"
-              weight="medium"
-              color="primary"
-              className="text-center mb-4"
-            >
+            <Text variant="body" weight="medium" color="primary" className="text-center mb-4">
               How was your experience?
             </Text>
             <View className="flex-row justify-center items-center space-x-4">
@@ -418,27 +403,25 @@ export default function ChatScreen() {
                 <TouchableOpacity
                   key={rating}
                   onPress={() => handleInlineRating(rating)}
-                  disabled={
-                    selectedRating !== null || rateConversation.isPending
-                  }
+                  disabled={selectedRating !== null || rateConversation.isPending}
                   className={`w-12 h-12 rounded-full items-center justify-center ${
                     selectedRating === rating
-                      ? "bg-[#5B55F6]"
+                      ? 'bg-[#5B55F6]'
                       : selectedRating !== null
-                        ? "bg-gray-100 dark:bg-gray-700"
-                        : "bg-gray-100 dark:bg-gray-700"
+                        ? 'bg-gray-100 dark:bg-gray-700'
+                        : 'bg-gray-100 dark:bg-gray-700'
                   }`}
                 >
                   <Text variant="h3" weight="medium" color="primary">
                     {rating === 1
-                      ? "😞"
+                      ? '😞'
                       : rating === 2
-                        ? "😕"
+                        ? '😕'
                         : rating === 3
-                          ? "😐"
+                          ? '😐'
                           : rating === 4
-                            ? "😊"
-                            : "😍"}
+                            ? '😊'
+                            : '😍'}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -449,11 +432,7 @@ export default function ChatScreen() {
               </View>
             )}
             {selectedRating !== null && !rateConversation.isPending && (
-              <Text
-                variant="caption"
-                color="secondary"
-                className="text-center mt-3"
-              >
+              <Text variant="caption" color="secondary" className="text-center mt-3">
                 Thanks for your feedback!
               </Text>
             )}
@@ -468,11 +447,7 @@ export default function ChatScreen() {
           <View className="bg-white dark:bg-gray-800 px-4 py-3 border-t border-gray-200 dark:border-gray-700">
             <View className="flex-row items-end">
               <TouchableOpacity className="w-10 h-10 items-center justify-center">
-                <Ionicons
-                  name="attach"
-                  size={24}
-                  color={isDark ? "#9CA3AF" : "#6B7280"}
-                />
+                <Ionicons name="attach" size={24} color={isDark ? '#9CA3AF' : '#6B7280'} />
               </TouchableOpacity>
               <View className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-2xl px-4 py-2 mx-2 max-h-32">
                 <TextInput
@@ -489,9 +464,7 @@ export default function ChatScreen() {
                 onPress={handleSendMessage}
                 disabled={!messageText.trim() || sendMessage.isPending}
                 className={`w-10 h-10 rounded-full items-center justify-center ${
-                  messageText.trim()
-                    ? "bg-[#5B55F6]"
-                    : "bg-gray-200 dark:bg-gray-700"
+                  messageText.trim() ? 'bg-[#5B55F6]' : 'bg-gray-200 dark:bg-gray-700'
                 }`}
               >
                 {sendMessage.isPending ? (
@@ -500,7 +473,7 @@ export default function ChatScreen() {
                   <Ionicons
                     name="send"
                     size={18}
-                    color={messageText.trim() ? "white" : "#9CA3AF"}
+                    color={messageText.trim() ? 'white' : '#9CA3AF'}
                   />
                 )}
               </TouchableOpacity>

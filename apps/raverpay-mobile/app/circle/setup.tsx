@@ -1,31 +1,28 @@
 // app/circle/setup.tsx
-import { BlockchainSelector } from "@/src/components/circle";
-import { Button, Card, ScreenHeader, Text } from "@/src/components/ui";
+import { BlockchainSelector } from '@/src/components/circle';
+import { Button, Card, ScreenHeader, Text } from '@/src/components/ui';
 import {
   useCircleChains,
   useCircleConfig,
   useCreateCircleWallet,
-} from "@/src/hooks/useCircleWallet";
-import { useTheme } from "@/src/hooks/useTheme";
-import { CircleBlockchain } from "@/src/types/circle.types";
-import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+} from '@/src/hooks/useCircleWallet';
+import { useTheme } from '@/src/hooks/useTheme';
+import { CircleBlockchain } from '@/src/types/circle.types';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function CircleSetupScreen() {
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { data: config, isLoading: isLoadingConfig } = useCircleConfig();
   const { data: chainsData, isLoading: isLoadingChains } = useCircleChains();
-  const { mutateAsync: createWallet, isPending: isCreating } =
-    useCreateCircleWallet();
+  const { mutateAsync: createWallet, isPending: isCreating } = useCreateCircleWallet();
 
-  const [selectedBlockchain, setSelectedBlockchain] = useState<
-    CircleBlockchain | undefined
-  >();
+  const [selectedBlockchain, setSelectedBlockchain] = useState<CircleBlockchain | undefined>();
 
   // Set default selection when chains load
   useEffect(() => {
@@ -43,7 +40,7 @@ export default function CircleSetupScreen() {
     try {
       await createWallet({
         blockchain: selectedBlockchain || config?.defaultBlockchain,
-        accountType: config?.defaultAccountType || "EOA",
+        accountType: config?.defaultAccountType || 'EOA',
       });
       router.back();
     } catch {
@@ -65,12 +62,9 @@ export default function CircleSetupScreen() {
 
   return (
     <View className="flex-1 bg-gray-50 dark:bg-gray-900">
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
-      <ScreenHeader
-        title="Create USDC Wallet"
-        subtitleText="Select your preferred blockchain"
-      />
+      <ScreenHeader title="Create USDC Wallet" subtitleText="Select your preferred blockchain" />
 
       <ScrollView
         className="flex-1 p-4"
@@ -84,8 +78,8 @@ export default function CircleSetupScreen() {
             onSelect={setSelectedBlockchain}
           />
           <Text variant="caption" color="tertiary" className="mt-3">
-            Each network has different gas fees and transaction speeds. You can
-            create wallets on multiple networks.
+            Each network has different gas fees and transaction speeds. You can create wallets on
+            multiple networks.
           </Text>
         </Card>
 
@@ -94,17 +88,12 @@ export default function CircleSetupScreen() {
           <View className="flex-row items-start">
             <Ionicons name="information-circle" size={20} color="#2775CA" />
             <View className="ml-3 flex-1">
-              <Text
-                variant="bodyMedium"
-                weight="semibold"
-                className="mb-1 dark:text-white"
-              >
+              <Text variant="bodyMedium" weight="semibold" className="mb-1 dark:text-white">
                 About USDC
               </Text>
               <Text variant="caption" color="secondary">
-                USDC is a fully reserved stablecoin pegged 1:1 to the US dollar.
-                It&apos;s issued by Circle and backed by cash and short-term
-                U.S. Treasury bonds.
+                USDC is a fully reserved stablecoin pegged 1:1 to the US dollar. It&apos;s issued by
+                Circle and backed by cash and short-term U.S. Treasury bonds.
               </Text>
             </View>
           </View>
@@ -114,16 +103,12 @@ export default function CircleSetupScreen() {
           <View className="flex-row items-start">
             <Ionicons name="shield-checkmark" size={20} color="#10B981" />
             <View className="ml-3 flex-1">
-              <Text
-                variant="bodyMedium"
-                weight="semibold"
-                className="mb-1 dark:text-white"
-              >
+              <Text variant="bodyMedium" weight="semibold" className="mb-1 dark:text-white">
                 Secure & Compliant
               </Text>
               <Text variant="caption" color="secondary">
-                Your wallet is secured by Circle&apos;s enterprise-grade
-                infrastructure with multi-party computation (MPC) technology.
+                Your wallet is secured by Circle&apos;s enterprise-grade infrastructure with
+                multi-party computation (MPC) technology.
               </Text>
             </View>
           </View>
@@ -133,17 +118,12 @@ export default function CircleSetupScreen() {
           <View className="flex-row items-start">
             <Ionicons name="git-compare" size={20} color="#9333EA" />
             <View className="ml-3 flex-1">
-              <Text
-                variant="bodyMedium"
-                weight="semibold"
-                className="mb-1 dark:text-white"
-              >
+              <Text variant="bodyMedium" weight="semibold" className="mb-1 dark:text-white">
                 Cross-Chain Transfers
               </Text>
               <Text variant="caption" color="secondary">
-                Move USDC between blockchains using Circle&apos;s CCTP
-                (Cross-Chain Transfer Protocol) with no slippage or bridging
-                fees.
+                Move USDC between blockchains using Circle&apos;s CCTP (Cross-Chain Transfer
+                Protocol) with no slippage or bridging fees.
               </Text>
             </View>
           </View>
@@ -190,10 +170,10 @@ export default function CircleSetupScreen() {
           loading={isCreating}
           className="bg-[#2775CA]"
         >
-          {isCreating ? "Creating Wallet..." : "Create Wallet"}
+          {isCreating ? 'Creating Wallet...' : 'Create Wallet'}
         </Button>
 
-        {config?.environment === "testnet" && (
+        {config?.environment === 'testnet' && (
           <View className="flex-row items-center justify-center mt-4">
             <Ionicons name="flask-outline" size={16} color="#F59E0B" />
             <Text variant="caption" color="secondary" className="ml-1">

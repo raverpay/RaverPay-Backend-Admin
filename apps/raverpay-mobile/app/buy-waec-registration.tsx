@@ -9,35 +9,26 @@ import {
   ScreenHeader,
   Skeleton,
   Text,
-} from "@/src/components/ui";
-import {
-  useCalculateCashback,
-  useCashbackWallet,
-} from "@/src/hooks/useCashback";
+} from '@/src/components/ui';
+import { useCalculateCashback, useCashbackWallet } from '@/src/hooks/useCashback';
 import {
   usePurchaseWAECRegistration,
   useWAECRegistrationVariations,
-} from "@/src/hooks/useEducation";
-import { useTheme } from "@/src/hooks/useTheme";
-import { formatCurrency } from "@/src/lib/utils/formatters";
-import { checkPinSetOrPrompt } from "@/src/lib/utils/pin-helper";
-import { handleSuccessfulTransaction } from "@/src/lib/utils/rating-helper";
-import { useUserStore } from "@/src/store/user.store";
-import { useWalletStore } from "@/src/store/wallet.store";
-import { Ionicons } from "@expo/vector-icons";
-import { useQueryClient } from "@tanstack/react-query";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { TransactionDetail } from "./transaction-success";
+} from '@/src/hooks/useEducation';
+import { useTheme } from '@/src/hooks/useTheme';
+import { formatCurrency } from '@/src/lib/utils/formatters';
+import { checkPinSetOrPrompt } from '@/src/lib/utils/pin-helper';
+import { handleSuccessfulTransaction } from '@/src/lib/utils/rating-helper';
+import { useUserStore } from '@/src/store/user.store';
+import { useWalletStore } from '@/src/store/wallet.store';
+import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useState } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { TransactionDetail } from './transaction-success';
 
 export default function BuyWAECRegistrationScreen() {
   const { isDark } = useTheme();
@@ -46,7 +37,7 @@ export default function BuyWAECRegistrationScreen() {
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
 
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState('');
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [showPINModal, setShowPINModal] = useState(false);
   const [pendingCashback, setPendingCashback] = useState<{
@@ -54,16 +45,14 @@ export default function BuyWAECRegistrationScreen() {
     amount: number;
   }>({ use: false, amount: 0 });
 
-  const { data: variationsData, isPending: loadingVariations } =
-    useWAECRegistrationVariations();
+  const { data: variationsData, isPending: loadingVariations } = useWAECRegistrationVariations();
 
-  const { mutate: purchaseRegistration, isPending: isPurchasing } =
-    usePurchaseWAECRegistration();
+  const { mutate: purchaseRegistration, isPending: isPurchasing } = usePurchaseWAECRegistration();
 
   const variations = variationsData || [];
   const product = variations[0]; // Only one variation
 
-  console.log(product, "product");
+  console.log(product, 'product');
   const amount = product ? parseFloat(product.variation_amount) : 0;
 
   // Cashback hooks
@@ -77,8 +66,8 @@ export default function BuyWAECRegistrationScreen() {
     if (amount > 0) {
       calculateCashback(
         {
-          serviceType: "WAEC_REGISTRATION",
-          provider: "WAEC",
+          serviceType: 'WAEC_REGISTRATION',
+          provider: 'WAEC',
           amount: amount,
         },
         {
@@ -92,13 +81,13 @@ export default function BuyWAECRegistrationScreen() {
           onError: () => {
             setCashbackToEarn(0);
           },
-        }
+        },
       );
     }
   }, [amount, calculateCashback]);
 
   const handlePhoneChange = (value: string) => {
-    const numericValue = value.replace(/[^0-9]/g, "").slice(0, 11);
+    const numericValue = value.replace(/[^0-9]/g, '').slice(0, 11);
     setPhone(numericValue);
   };
 
@@ -106,22 +95,14 @@ export default function BuyWAECRegistrationScreen() {
 
   const handlePayment = () => {
     if (!isValidPhone) {
-      Alert.alert(
-        "Invalid Phone",
-        "Please enter a valid Nigerian phone number"
-      );
+      Alert.alert('Invalid Phone', 'Please enter a valid Nigerian phone number');
       return;
     }
 
-    const amountToPay = pendingCashback.use
-      ? amount - pendingCashback.amount
-      : amount;
+    const amountToPay = pendingCashback.use ? amount - pendingCashback.amount : amount;
 
     if (amountToPay > balance) {
-      Alert.alert(
-        "Insufficient Balance",
-        "Please fund your wallet to continue"
-      );
+      Alert.alert('Insufficient Balance', 'Please fund your wallet to continue');
       return;
     }
 
@@ -140,60 +121,58 @@ export default function BuyWAECRegistrationScreen() {
       {
         phone,
         pin,
-        variationCode: product?.variation_code || "waec-registraion",
+        variationCode: product?.variation_code || 'waec-registraion',
         useCashback: pendingCashback.use,
         cashbackAmount: pendingCashback.amount,
       },
       {
         onSuccess: async (data) => {
           setShowPINModal(false);
-          setPurchasedToken(data.token);
+          //setPurchasedToken(data.token);
 
-          queryClient.invalidateQueries({ queryKey: ["wallet"] });
-          queryClient.invalidateQueries({ queryKey: ["transactions"] });
-          queryClient.invalidateQueries({ queryKey: ["vtu-orders"] });
-          queryClient.invalidateQueries({ queryKey: ["cashback-wallet"] });
-          queryClient.invalidateQueries({ queryKey: ["cashback", "wallet"] });
-          queryClient.invalidateQueries({ queryKey: ["cashback", "history"] });
+          queryClient.invalidateQueries({ queryKey: ['wallet'] });
+          queryClient.invalidateQueries({ queryKey: ['transactions'] });
+          queryClient.invalidateQueries({ queryKey: ['vtu-orders'] });
+          queryClient.invalidateQueries({ queryKey: ['cashback-wallet'] });
+          queryClient.invalidateQueries({ queryKey: ['cashback', 'wallet'] });
+          queryClient.invalidateQueries({ queryKey: ['cashback', 'history'] });
 
           await handleSuccessfulTransaction();
 
           // Navigate to success screen
           const successDetails: TransactionDetail[] = [
             {
-              label: "Service",
-              value: "WAEC Registration PIN",
+              label: 'Service',
+              value: 'WAEC Registration PIN',
             },
             {
-              label: "Phone Number",
+              label: 'Phone Number',
               value: phone,
             },
             {
-              label: "Amount",
+              label: 'Amount',
               value: formatCurrency(amount),
               highlight: true,
             },
           ];
 
           router.push({
-            pathname: "/transaction-success",
+            pathname: '/transaction-success',
             params: {
-              serviceType: "WAEC Registration",
+              serviceType: 'WAEC Registration',
               amount: amount.toString(),
-              reference: data.reference || "",
+              reference: data.reference || '',
               cashbackEarned: (data.cashbackEarned || 0).toString(),
-              cashbackRedeemed: pendingCashback.use
-                ? pendingCashback.amount.toString()
-                : "0",
+              cashbackRedeemed: pendingCashback.use ? pendingCashback.amount.toString() : '0',
               details: JSON.stringify(successDetails),
-              waecToken: data.token || "",
+              waecToken: data.token || '',
             },
           });
         },
         onError: () => {
           setShowPINModal(false);
         },
-      }
+      },
     );
   };
 
@@ -203,14 +182,14 @@ export default function BuyWAECRegistrationScreen() {
     <View
       style={{
         flex: 1,
-        backgroundColor: isDark ? "#000000" : "#FFFFFF",
+        backgroundColor: isDark ? '#000000' : '#FFFFFF',
       }}
     >
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <ScreenHeader title="WAEC Registration" subtitle={balance} />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
         <ScrollView
@@ -231,9 +210,7 @@ export default function BuyWAECRegistrationScreen() {
               <View className="flex-row items-center mb-2">
                 <Ionicons name="school" size={24} color="#3b82f6" />
                 <View className="flex-row  max-w-[90%] justify-between items-center">
-                  <Text className="ml-2 font-bold text-lg w-[80%]">
-                    {product.name}
-                  </Text>
+                  <Text className="ml-2 font-bold text-lg w-[80%]">{product.name}</Text>
                   <Text className=" font-bold text-primary ml-2" variant="h4">
                     {formatCurrency(amount)}
                   </Text>
@@ -253,9 +230,7 @@ export default function BuyWAECRegistrationScreen() {
               maxLength={11}
             />
             {phone.length === 11 && !isValidPhone && (
-              <Text className="text-sm text-red-500 mt-2">
-                Invalid Nigerian phone number
-              </Text>
+              <Text className="text-sm text-red-500 mt-2">Invalid Nigerian phone number</Text>
             )}
           </Card>
 
@@ -367,9 +342,9 @@ export default function BuyWAECRegistrationScreen() {
         }}
         serviceType="WAEC Registration"
         details={[
-          { label: "Service", value: "WAEC Registration PIN" },
-          { label: "Phone Number", value: phone },
-          { label: "Amount", value: formatCurrency(amount), highlight: true },
+          { label: 'Service', value: 'WAEC Registration PIN' },
+          { label: 'Phone Number', value: phone },
+          { label: 'Amount', value: formatCurrency(amount), highlight: true },
         ]}
         amount={amount}
         currentBalance={balance}

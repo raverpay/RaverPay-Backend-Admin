@@ -1,21 +1,15 @@
 // app/(auth)/forgot-password.tsx
-import { Button, Input, Text } from "@/src/components/ui";
-import { usePasswordReset } from "@/src/hooks/usePasswordReset";
-import { useTheme } from "@/src/hooks/useTheme";
-import { emailSchema } from "@/src/lib/utils/validators";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React from "react";
-import { Controller, useForm } from "react-hook-form";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { z } from "zod";
+import { Button, Input, Text } from '@/src/components/ui';
+import { usePasswordReset } from '@/src/hooks/usePasswordReset';
+import { useTheme } from '@/src/hooks/useTheme';
+import { emailSchema } from '@/src/lib/utils/validators';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
+import { z } from 'zod';
 
 const forgotPasswordSchema = z.object({
   email: emailSchema,
@@ -34,7 +28,7 @@ export default function ForgotPasswordScreen() {
   } = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
-      email: "",
+      email: '',
     },
   });
 
@@ -43,7 +37,7 @@ export default function ForgotPasswordScreen() {
       await forgotPassword(data);
       // Navigate to verify code screen
       router.push({
-        pathname: "/(auth)/verify-reset-code",
+        pathname: '/(auth)/verify-reset-code',
         params: { email: data.email },
       });
     } catch {
@@ -53,10 +47,10 @@ export default function ForgotPasswordScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1 bg-gray-50 dark:bg-gray-900"
     >
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <ScrollView
         className="flex-1"
         contentContainerClassName="p-5"
@@ -114,7 +108,7 @@ export default function ForgotPasswordScreen() {
         {/* Footer */}
         <View className="flex-row justify-center items-center">
           <Text variant="body" color="secondary">
-            Remember your password?{" "}
+            Remember your password?{' '}
           </Text>
           <TouchableOpacity onPress={() => router.back()}>
             <Text variant="bodyMedium" className="text-[#5B55F6]">

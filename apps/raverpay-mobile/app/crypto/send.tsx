@@ -1,24 +1,17 @@
 // app/crypto/send.tsx
-import {
-  Button,
-  Card,
-  Input,
-  PINModal,
-  ScreenHeader,
-  Text,
-} from "@/src/components/ui";
-import { useCryptoWallet, useSendCrypto } from "@/src/hooks/useCryptoWallet";
-import { useTheme } from "@/src/hooks/useTheme";
-import { toast } from "@/src/lib/utils/toast";
-import { TokenSymbol } from "@/src/types/crypto.types";
-import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
-import { ScrollView, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Button, Card, Input, PINModal, ScreenHeader, Text } from '@/src/components/ui';
+import { useCryptoWallet, useSendCrypto } from '@/src/hooks/useCryptoWallet';
+import { useTheme } from '@/src/hooks/useTheme';
+import { toast } from '@/src/lib/utils/toast';
+import { CryptoBalance, TokenSymbol } from '@/src/types/crypto.types';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useState } from 'react';
+import { ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const TOKENS: TokenSymbol[] = ["USDT", "USDC", "MATIC"];
+const TOKENS: TokenSymbol[] = ['USDT', 'USDC', 'MATIC'];
 
 export default function SendCryptoScreen() {
   const { isDark } = useTheme();
@@ -26,38 +19,35 @@ export default function SendCryptoScreen() {
   const { isPending: isPurchasing, mutateAsync: sendCrypto } = useSendCrypto();
   const balances = wallet?.balances || [];
 
-  const [selectedToken, setSelectedToken] = useState<TokenSymbol>("USDT");
-  const [toAddress, setToAddress] = useState("");
-  const [amount, setAmount] = useState("");
-  const [memo, setMemo] = useState("");
+  const [selectedToken, setSelectedToken] = useState<TokenSymbol>('USDT');
+  const [toAddress, setToAddress] = useState('');
+  const [amount, setAmount] = useState('');
+  const [memo, setMemo] = useState('');
   const [showPinModal, setShowPinModal] = useState(false);
   const insets = useSafeAreaInsets();
-  const selectedBalance = balances.find((b) => b.tokenSymbol === selectedToken);
+  const selectedBalance = balances.find((b: CryptoBalance) => b.tokenSymbol === selectedToken);
 
   const handleSend = () => {
     // Validation
-    if (!toAddress || toAddress.length !== 42 || !toAddress.startsWith("0x")) {
+    if (!toAddress || toAddress.length !== 42 || !toAddress.startsWith('0x')) {
       toast.error({
-        title: "Invalid Address",
-        message: "Please enter a valid wallet address (0x...)",
+        title: 'Invalid Address',
+        message: 'Please enter a valid wallet address (0x...)',
       });
       return;
     }
 
     if (!amount || parseFloat(amount) <= 0) {
       toast.error({
-        title: "Invalid Amount",
-        message: "Please enter a valid amount",
+        title: 'Invalid Amount',
+        message: 'Please enter a valid amount',
       });
       return;
     }
 
-    if (
-      selectedBalance &&
-      parseFloat(amount) > parseFloat(selectedBalance.balance)
-    ) {
+    if (selectedBalance && parseFloat(amount) > parseFloat(selectedBalance.balance)) {
       toast.error({
-        title: "Insufficient Balance",
+        title: 'Insufficient Balance',
         message: "You don't have enough balance for this transaction",
       });
       return;
@@ -77,7 +67,7 @@ export default function SendCryptoScreen() {
       });
 
       toast.success({
-        title: "Transaction Submitted",
+        title: 'Transaction Submitted',
         message: `Sending ${amount} ${selectedToken}...`,
       });
       setShowPinModal(false);
@@ -90,7 +80,7 @@ export default function SendCryptoScreen() {
 
   return (
     <View className="flex-1 bg-gray-50 dark:bg-gray-900">
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* Header */}
       <ScreenHeader title="Send Stablecoin" />
@@ -110,7 +100,7 @@ export default function SendCryptoScreen() {
             {TOKENS.map((token) => (
               <Button
                 key={token}
-                variant={selectedToken === token ? "primary" : "outline"}
+                variant={selectedToken === token ? 'primary' : 'outline'}
                 size="md"
                 onPress={() => setSelectedToken(token)}
                 className="flex-1"

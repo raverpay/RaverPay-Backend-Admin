@@ -1,31 +1,31 @@
-import { RatingPromptModal } from "@/src/components/rating";
-import { CircleSDKProvider } from "@/src/contexts/CircleSDKContext";
-import { ThemeProvider } from "@/src/contexts/ThemeContext";
-import { usePushNotifications } from "@/src/hooks/usePushNotifications";
-import { useRatingConfig } from "@/src/hooks/useRatingPrompt";
-import { useShowRatingPrompt } from "@/src/hooks/useShowRatingPrompt";
-import { queryClient } from "@/src/lib/api/query-client";
-import { ratingService } from "@/src/services/rating.service";
-import { useAuthStore } from "@/src/store/auth.store";
-import { useRatingStore } from "@/src/store/rating.store";
+import { RatingPromptModal } from '@/src/components/rating';
+import { CircleSDKProvider } from '@/src/contexts/CircleSDKContext';
+import { ThemeProvider } from '@/src/contexts/ThemeContext';
+import { usePushNotifications } from '@/src/hooks/usePushNotifications';
+import { useRatingConfig } from '@/src/hooks/useRatingPrompt';
+import { useShowRatingPrompt } from '@/src/hooks/useShowRatingPrompt';
+import { queryClient } from '@/src/lib/api/query-client';
+import { ratingService } from '@/src/services/rating.service';
+import { useAuthStore } from '@/src/store/auth.store';
+import { useRatingStore } from '@/src/store/rating.store';
 import {
   Urbanist_400Regular,
   Urbanist_500Medium,
   Urbanist_600SemiBold,
   Urbanist_700Bold,
-} from "@expo-google-fonts/urbanist";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+} from '@expo-google-fonts/urbanist';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { useFonts } from 'expo-font';
+import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { useEffect } from 'react';
 // import { LogLevel, OneSignal } from "react-native-onesignal";
-import Toast from "react-native-toast-message";
-import "../global.css";
+import Toast from 'react-native-toast-message';
+import '../global.css';
 
 // Import and initialize Sentry FIRST before any other code
-import { initializeSentry } from "@/src/utils/sentryConfig";
-import * as Sentry from "@sentry/react-native";
+import { initializeSentry } from '@/src/utils/sentryConfig';
+import * as Sentry from '@sentry/react-native';
 
 // Initialize Sentry immediately
 initializeSentry();
@@ -71,8 +71,8 @@ function AppContent() {
         <Stack.Screen
           name="notifications"
           options={{
-            presentation: "transparentModal",
-            animation: "slide_from_right",
+            presentation: 'transparentModal',
+            animation: 'slide_from_right',
           }}
         />
       </Stack>

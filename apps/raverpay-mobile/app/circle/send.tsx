@@ -1,5 +1,5 @@
 // app/circle/send.tsx
-import { CircleWalletCard } from "@/src/components/circle";
+import { CircleWalletCard } from '@/src/components/circle';
 import {
   Button,
   Card,
@@ -8,8 +8,8 @@ import {
   PINModal,
   ScreenHeader,
   Text,
-} from "@/src/components/ui";
-import { useCircleSDK } from "@/src/contexts/CircleSDKContext";
+} from '@/src/components/ui';
+import { useCircleSDK } from '@/src/contexts/CircleSDKContext';
 import {
   useCircleChains,
   useCircleWalletBalance,
@@ -17,19 +17,19 @@ import {
   useEstimateFee,
   useTransferUsdc,
   useValidateAddress,
-} from "@/src/hooks/useCircleWallet";
-import { usePaymaster } from "@/src/hooks/usePaymaster";
-import { useTheme } from "@/src/hooks/useTheme";
-import { apiClient } from "@/src/lib/api/client";
-import { paymasterService } from "@/src/services/paymaster.service";
-import { userControlledWalletService } from "@/src/services/user-controlled-wallet.service";
-import { useCircleStore } from "@/src/store/circle.store";
-import { CircleFeeLevel } from "@/src/types/circle.types";
-import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import * as SecureStore from "expo-secure-store";
-import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useRef, useState } from "react";
+} from '@/src/hooks/useCircleWallet';
+import { usePaymaster } from '@/src/hooks/usePaymaster';
+import { useTheme } from '@/src/hooks/useTheme';
+import { apiClient } from '@/src/lib/api/client';
+import { paymasterService } from '@/src/services/paymaster.service';
+import { userControlledWalletService } from '@/src/services/user-controlled-wallet.service';
+import { useCircleStore } from '@/src/store/circle.store';
+import { CircleFeeLevel } from '@/src/types/circle.types';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -40,17 +40,17 @@ import {
   Switch,
   TouchableOpacity,
   View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const FEE_LEVELS: {
   level: CircleFeeLevel;
   label: string;
   description: string;
 }[] = [
-  { level: "LOW", label: "Slow", description: "~5 min" },
-  { level: "MEDIUM", label: "Standard", description: "~2 min" },
-  { level: "HIGH", label: "Fast", description: "~30 sec" },
+  { level: 'LOW', label: 'Slow', description: '~5 min' },
+  { level: 'MEDIUM', label: 'Standard', description: '~2 min' },
+  { level: 'HIGH', label: 'Fast', description: '~30 sec' },
 ];
 
 export default function CircleSendScreen() {
@@ -58,21 +58,20 @@ export default function CircleSendScreen() {
   const insets = useSafeAreaInsets();
   const { data: wallets, isLoading: isLoadingWallets } = useCircleWallets();
   const { data: chainsData } = useCircleChains();
-  const { selectedWallet, setSelectedWallet, getUsdcBalance } =
-    useCircleStore();
-  const { mutateAsync: transfer, isPending: isTransferring } =
-    useTransferUsdc();
+  const { selectedWallet, setSelectedWallet, getUsdcBalance } = useCircleStore();
+  const { mutateAsync: transfer, isPending: isTransferring } = useTransferUsdc();
   const { mutateAsync: estimateFee } = useEstimateFee();
   const { mutateAsync: validateAddress } = useValidateAddress();
   const { generatePermit, submitUserOp, signPermitChallenge } = usePaymaster();
   const { executeChallenge, isInitialized: sdkInitialized } = useCircleSDK();
 
   // Load balance for selected wallet
-  useCircleWalletBalance(selectedWallet?.id || "");
+  useCircleWalletBalance(selectedWallet?.id || '');
 
-  const [destinationAddress, setDestinationAddress] = useState("");
-  const [amount, setAmount] = useState("");
-  const [feeLevel, setFeeLevel] = useState<CircleFeeLevel>("MEDIUM");
+  const [destinationAddress, setDestinationAddress] = useState('');
+  const [amount, setAmount] = useState('');
+  const [memo] = useState('');
+  const [feeLevel, setFeeLevel] = useState<CircleFeeLevel>('MEDIUM');
   const [estimatedFee, setEstimatedFee] = useState<string | null>(null);
   const [addressValid, setAddressValid] = useState<boolean | null>(null);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
@@ -96,22 +95,20 @@ export default function CircleSendScreen() {
   const [isPaymasterCompatible, setIsPaymasterCompatible] = useState(false);
   const [isSigningPermit, setIsSigningPermit] = useState(false); // Loading state for Paymaster flow
 
-  const chainMeta = chainsData?.chains?.find(
-    (c) => c.blockchain === selectedWallet?.blockchain
-  );
-  const isSponsoredChain = chainMeta?.feeLabel?.includes("Free");
+  const chainMeta = chainsData?.chains?.find((c) => c.blockchain === selectedWallet?.blockchain);
+  const isSponsoredChain = chainMeta?.feeLabel?.includes('Free');
 
   // Fetch fee configuration on mount
   useEffect(() => {
     const fetchFeeConfig = async () => {
       try {
-        const response = await apiClient.get("/circle/fees/config");
+        const response = await apiClient.get('/circle/fees/config');
 
         if (response.data.success) {
           setFeeConfig(response.data.data);
         }
       } catch (error) {
-        console.error("❌ Failed to fetch fee config:", error);
+        console.error('❌ Failed to fetch fee config:', error);
       }
     };
     fetchFeeConfig();
@@ -179,12 +176,12 @@ export default function CircleSendScreen() {
       ) {
         // Check if chain is sponsored
         const chainMeta = chainsData?.chains?.find(
-          (c) => c.blockchain === selectedWallet.blockchain
+          (c) => c.blockchain === selectedWallet.blockchain,
         );
-        const isSponsored = chainMeta?.feeLabel?.includes("Free");
+        const isSponsored = chainMeta?.feeLabel?.includes('Free');
 
         if (isSponsored) {
-          setEstimatedFee("0.00");
+          setEstimatedFee('0.00');
           return;
         }
 
@@ -202,14 +199,7 @@ export default function CircleSendScreen() {
       }
     };
     estimate();
-  }, [
-    amount,
-    destinationAddress,
-    selectedWallet,
-    addressValid,
-    estimateFee,
-    chainsData,
-  ]);
+  }, [amount, destinationAddress, selectedWallet, addressValid, estimateFee, chainsData]);
 
   // Check Paymaster compatibility when wallet changes
   // Paymaster is available for:
@@ -218,13 +208,13 @@ export default function CircleSendScreen() {
   useEffect(() => {
     const checkCompatibility = async () => {
       // Check if it's a modular wallet (always supports paymaster)
-      const isModularWallet = (selectedWallet as any)?.type === "MODULAR";
+      const isModularWallet = (selectedWallet as any)?.type === 'MODULAR';
 
       // Paymaster requires: SCA account type AND USER custody type (not developer-controlled)
       const isUserControlledSCA =
         selectedWallet &&
-        selectedWallet.accountType === "SCA" &&
-        selectedWallet.custodyType === "USER";
+        selectedWallet.accountType === 'SCA' &&
+        selectedWallet.custodyType === 'USER';
 
       if (isModularWallet) {
         // Modular wallets always support paymaster
@@ -232,9 +222,7 @@ export default function CircleSendScreen() {
         setUsePaymasterGas(true); // Auto-enable for modular wallets
       } else if (isUserControlledSCA) {
         try {
-          const { data } = await paymasterService.checkCompatibility(
-            selectedWallet.id
-          );
+          const { data } = await paymasterService.checkCompatibility(selectedWallet.id);
           setIsPaymasterCompatible(data.isPaymasterCompatible);
 
           // Auto-enable Paymaster for user-controlled wallets
@@ -254,9 +242,7 @@ export default function CircleSendScreen() {
 
   // Estimate Paymaster fee in USDC when enabled (debounced)
   // Use a simple estimate instead of calling generatePermit repeatedly
-  const estimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
-  );
+  const estimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Clear any pending estimation
@@ -276,13 +262,13 @@ export default function CircleSendScreen() {
         // Use a simple estimate based on blockchain
         // Actual gas will be calculated when user confirms
         const estimatedGas: Record<string, string> = {
-          "ETH-SEPOLIA": "0.60",
-          "MATIC-AMOY": "0.10",
-          "ARB-SEPOLIA": "0.30",
-          "BASE-SEPOLIA": "0.30",
-          "AVAX-FUJI": "0.40",
+          'ETH-SEPOLIA': '0.60',
+          'MATIC-AMOY': '0.10',
+          'ARB-SEPOLIA': '0.30',
+          'BASE-SEPOLIA': '0.30',
+          'AVAX-FUJI': '0.40',
         };
-        setPaymasterFeeUsdc(estimatedGas[selectedWallet.blockchain] || "0.60");
+        setPaymasterFeeUsdc(estimatedGas[selectedWallet.blockchain] || '0.60');
       } else {
         setPaymasterFeeUsdc(null);
       }
@@ -296,17 +282,9 @@ export default function CircleSendScreen() {
         clearTimeout(estimationTimeoutRef.current);
       }
     };
-  }, [
-    usePaymasterGas,
-    amount,
-    destinationAddress,
-    selectedWallet,
-    addressValid,
-  ]);
+  }, [usePaymasterGas, amount, destinationAddress, selectedWallet, addressValid]);
 
-  const currentBalance = selectedWallet
-    ? getUsdcBalance(selectedWallet.id)
-    : "0";
+  const currentBalance = selectedWallet ? getUsdcBalance(selectedWallet.id) : '0';
 
   const handleMaxAmount = () => {
     setAmount(currentBalance);
@@ -321,7 +299,7 @@ export default function CircleSendScreen() {
 
     // For user-controlled wallets, ALL transactions need Circle SDK WebView for signing
     // The app PIN modal is only for developer-controlled wallets
-    if (selectedWallet?.custodyType === "USER") {
+    if (selectedWallet?.custodyType === 'USER') {
       handleSend();
     } else {
       // For developer-controlled wallets, show app PIN modal
@@ -333,35 +311,31 @@ export default function CircleSendScreen() {
     if (!selectedWallet || !destinationAddress || !amount) return;
 
     // Show loading for User-controlled flow (both Paymaster and Regular)
-    if (selectedWallet.custodyType === "USER") {
+    if (selectedWallet.custodyType === 'USER') {
       setIsSigningPermit(true);
     }
 
     try {
-      if (selectedWallet.custodyType === "USER") {
+      if (selectedWallet.custodyType === 'USER') {
         // User-controlled wallet flow (ALWAYS requires Circle SDK WebView)
         setShowPinModal(false);
 
         // Get user token from secure storage
-        const userToken = await SecureStore.getItemAsync("circle_user_token");
-        const encryptionKey = await SecureStore.getItemAsync(
-          "circle_encryption_key"
-        );
+        const userToken = await SecureStore.getItemAsync('circle_user_token');
+        const encryptionKey = await SecureStore.getItemAsync('circle_encryption_key');
 
         if (!userToken || !encryptionKey) {
-          Alert.alert(
-            "Authentication Required",
-            "Please set up your Circle wallet first.",
-            [{ text: "OK" }]
-          );
+          Alert.alert('Authentication Required', 'Please set up your Circle wallet first.', [
+            { text: 'OK' },
+          ]);
           return;
         }
 
         if (!sdkInitialized) {
           Alert.alert(
-            "SDK Not Ready",
-            "Circle SDK is still initializing. Please wait a moment and try again.",
-            [{ text: "OK" }]
+            'SDK Not Ready',
+            'Circle SDK is still initializing. Please wait a moment and try again.',
+            [{ text: 'OK' }],
           );
           return;
         }
@@ -374,7 +348,7 @@ export default function CircleSendScreen() {
 
         if (usePaymasterGas) {
           // --- Paymaster Flow ---
-          console.log("[PaymasterFlow] Getting sign permit challenge...");
+          console.log('[PaymasterFlow] Getting sign permit challenge...');
           const challengeResult = await signPermitChallenge({
             walletId: selectedWallet.id,
             amount,
@@ -384,16 +358,13 @@ export default function CircleSendScreen() {
           });
 
           if (!challengeResult) {
-            throw new Error("Failed to create signing challenge");
+            throw new Error('Failed to create signing challenge');
           }
-          console.log(
-            "[PaymasterFlow] Got challengeId:",
-            challengeResult.challengeId
-          );
+          console.log('[PaymasterFlow] Got challengeId:', challengeResult.challengeId);
           sdkInput = challengeResult;
         } else {
           // --- Regular Flow (Deploy Wallet / Normal Transfer) ---
-          console.log("[RegularFlow] Creating transaction for signing...");
+          console.log('[RegularFlow] Creating transaction for signing...');
           const txResult = await userControlledWalletService.createTransaction({
             walletId: selectedWallet.id,
             destinationAddress,
@@ -401,7 +372,7 @@ export default function CircleSendScreen() {
             feeLevel,
             memo: memo || undefined,
           });
-          console.log("[RegularFlow] Got challengeId:", txResult.challengeId);
+          console.log('[RegularFlow] Got challengeId:', txResult.challengeId);
           sdkInput = txResult;
         }
 
@@ -411,35 +382,27 @@ export default function CircleSendScreen() {
 
         // Update SecureStore with fresh tokens
         if (sdkInput.userToken) {
-          await SecureStore.setItemAsync(
-            "circle_user_token",
-            sdkInput.userToken
-          );
+          await SecureStore.setItemAsync('circle_user_token', sdkInput.userToken);
         }
         if (sdkInput.encryptionKey) {
-          await SecureStore.setItemAsync(
-            "circle_encryption_key",
-            sdkInput.encryptionKey
-          );
+          await SecureStore.setItemAsync('circle_encryption_key', sdkInput.encryptionKey);
         }
 
         // Execute challenge via Circle SDK WebView
-        console.log("[CircleFlow] Executing challenge via WebView...");
-        const sdkResult = await executeChallenge(
-          freshUserToken,
-          freshEncryptionKey,
-          [sdkInput.challengeId]
-        );
+        console.log('[CircleFlow] Executing challenge via WebView...');
+        const sdkResult = await executeChallenge(freshUserToken, freshEncryptionKey, [
+          sdkInput.challengeId,
+        ]);
 
-        console.log("[CircleFlow] SDK result:", sdkResult);
+        console.log('[CircleFlow] SDK result:', sdkResult);
 
-        if (sdkResult.result.resultType !== "success") {
-          throw new Error(sdkResult.result.error?.message || "Signing failed");
+        if (sdkResult.result.resultType !== 'success') {
+          throw new Error(sdkResult.result.error?.message || 'Signing failed');
         }
 
         if (usePaymasterGas) {
           // For Paymaster, we need to submit the UserOp after signing
-          console.log("[PaymasterFlow] Submitting UserOperation...");
+          console.log('[PaymasterFlow] Submitting UserOperation...');
           const result = await submitUserOp({
             walletId: selectedWallet.id,
             destinationAddress,
@@ -452,18 +415,16 @@ export default function CircleSendScreen() {
           });
 
           if (result?.userOpHash) {
-            router.replace(
-              `/circle/paymaster-status?userOpHash=${result.userOpHash}` as any
-            );
+            router.replace(`/circle/paymaster-status?userOpHash=${result.userOpHash}` as any);
           } else {
-            router.replace("/(tabs)/circle-wallet");
+            router.replace('/circle');
           }
         } else {
           // For Regular transfers, Circle handles submission after signing
           // Just show success
           // Wait a moment for backend to sync (optional, but good UX)
-          router.replace("/(tabs)/circle-wallet");
-          Alert.alert("Success", "Transaction sent successfully!");
+          router.replace('/circle');
+          Alert.alert('Success', 'Transaction sent successfully!');
         }
       } else if (usePaymasterGas) {
         // Developer-controlled wallet Paymaster flow (no WebView needed)
@@ -474,7 +435,7 @@ export default function CircleSendScreen() {
         });
 
         if (!permitData) {
-          throw new Error("Failed to generate permit");
+          throw new Error('Failed to generate permit');
         }
 
         const result = await submitUserOp({
@@ -490,11 +451,9 @@ export default function CircleSendScreen() {
         setShowPinModal(false);
 
         if (result?.userOpHash) {
-          router.replace(
-            `/circle/paymaster-status?userOpHash=${result.userOpHash}` as any
-          );
+          router.replace(`/circle/paymaster-status?userOpHash=${result.userOpHash}` as any);
         } else {
-          router.replace("/(tabs)/circle-wallet");
+          router.replace('/circle');
         }
       } else {
         // Regular transfer (developer-controlled, native gas)
@@ -509,46 +468,44 @@ export default function CircleSendScreen() {
 
         if (result?.data?.transactionId) {
           console.log({ result });
-          router.replace(
-            `/circle/transaction-status?transactionId=${result.data.transactionId}`
-          );
+          router.replace(`/circle/transaction-status?transactionId=${result.data.transactionId}`);
         } else {
-          router.replace("/(tabs)/circle-wallet");
+          router.replace('/circle');
         }
       }
     } catch (error: any) {
-      console.error("[PaymasterFlow] Error:", error);
+      console.error('[PaymasterFlow] Error:', error);
 
       // Check for wallet not deployed error
-      const errorMessage = error.message || "";
+      const errorMessage = error.message || '';
       const isWalletNotDeployed =
-        errorMessage.includes("undeployed wallet") ||
-        errorMessage.includes("Cannot generate a signature");
+        errorMessage.includes('undeployed wallet') ||
+        errorMessage.includes('Cannot generate a signature');
 
       if (isWalletNotDeployed) {
         Alert.alert(
-          "Wallet Not Activated",
-          "Your self-custody wallet needs to be activated before using gas-free transfers.\n\n" +
-            "To activate:\n" +
-            "1. Get some test ETH from a faucet\n" +
-            "2. Make a small transfer first\n\n" +
-            "After your first transfer, gas-free transactions will work!",
+          'Wallet Not Activated',
+          'Your self-custody wallet needs to be activated before using gas-free transfers.\n\n' +
+            'To activate:\n' +
+            '1. Get some test ETH from a faucet\n' +
+            '2. Make a small transfer first\n\n' +
+            'After your first transfer, gas-free transactions will work!',
           [
             {
-              text: "Get Test ETH",
+              text: 'Get Test ETH',
               onPress: () => {
                 // Open Circle faucet
-                Linking.openURL("https://faucet.circle.com/");
+                Linking.openURL('https://faucet.circle.com/');
               },
             },
-            { text: "OK" },
-          ]
+            { text: 'OK' },
+          ],
         );
       } else {
         Alert.alert(
-          "Transaction Failed",
-          error.message || "Failed to send transaction. Please try again.",
-          [{ text: "OK" }]
+          'Transaction Failed',
+          error.message || 'Failed to send transaction. Please try again.',
+          [{ text: 'OK' }],
         );
       }
     } finally {
@@ -575,10 +532,10 @@ export default function CircleSendScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1 bg-gray-50 dark:bg-gray-900"
     >
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <ScreenHeader title="Send USDC" subtitleText="Transfer to any address" />
 
       <ScrollView
@@ -587,22 +544,12 @@ export default function CircleSendScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Source Wallet */}
-        <Text
-          variant="bodyMedium"
-          weight="semibold"
-          className="mb-2 dark:text-white"
-        >
+        <Text variant="bodyMedium" weight="semibold" className="mb-2 dark:text-white">
           From Wallet
         </Text>
-        <TouchableOpacity
-          onPress={() => setShowWalletPicker(!showWalletPicker)}
-        >
+        <TouchableOpacity onPress={() => setShowWalletPicker(!showWalletPicker)}>
           {selectedWallet && (
-            <CircleWalletCard
-              wallet={selectedWallet}
-              usdcBalance={currentBalance}
-              isSelected
-            />
+            <CircleWalletCard wallet={selectedWallet} usdcBalance={currentBalance} isSelected />
           )}
         </TouchableOpacity>
 
@@ -629,11 +576,7 @@ export default function CircleSendScreen() {
 
         {/* Destination Address */}
         <Card variant="elevated" className="p-4 mb-4">
-          <Text
-            variant="bodyMedium"
-            weight="semibold"
-            className="mb-2 dark:text-white"
-          >
+          <Text variant="bodyMedium" weight="semibold" className="mb-2 dark:text-white">
             Recipient Address
           </Text>
           <Input
@@ -667,11 +610,7 @@ export default function CircleSendScreen() {
         {/* Amount */}
         <Card variant="elevated" className="p-4 mb-4">
           <View className="flex-row justify-between items-center mb-2">
-            <Text
-              variant="bodyMedium"
-              weight="semibold"
-              className="dark:text-white"
-            >
+            <Text variant="bodyMedium" weight="semibold" className="dark:text-white">
               Amount
             </Text>
             <TouchableOpacity onPress={handleMaxAmount}>
@@ -697,15 +636,12 @@ export default function CircleSendScreen() {
           </View>
           {totalAmount > parseFloat(currentBalance) && (
             <Text variant="caption" className="text-red-500 mt-2">
-              Insufficient balance. Need {totalAmount.toFixed(6)} USDC ({amount}{" "}
-              + {serviceFee.toFixed(6)} fee), Available: {currentBalance} USDC
+              Insufficient balance. Need {totalAmount.toFixed(6)} USDC ({amount} +{' '}
+              {serviceFee.toFixed(6)} fee), Available: {currentBalance} USDC
             </Text>
           )}
           {serviceFee > 0 && totalAmount <= parseFloat(currentBalance) && (
-            <Text
-              variant="caption"
-              className="text-gray-600 dark:text-gray-400 mt-2"
-            >
+            <Text variant="caption" className="text-gray-600 dark:text-gray-400 mt-2">
               + {serviceFee.toFixed(6)} USDC service fee
             </Text>
           )}
@@ -713,11 +649,7 @@ export default function CircleSendScreen() {
 
         {/* Fee Level */}
         <Card variant="elevated" className="p-4 mb-4">
-          <Text
-            variant="bodyMedium"
-            weight="semibold"
-            className="mb-3 dark:text-white"
-          >
+          <Text variant="bodyMedium" weight="semibold" className="mb-3 dark:text-white">
             Transaction Speed
           </Text>
           <View className="flex-row justify-between">
@@ -727,19 +659,15 @@ export default function CircleSendScreen() {
                 onPress={() => setFeeLevel(fee.level)}
                 className={`flex-1 mx-1 p-3 rounded-lg border ${
                   feeLevel === fee.level
-                    ? "border-[#2775CA] bg-[#2775CA]/10"
-                    : "border-gray-200 dark:border-gray-700"
+                    ? 'border-[#2775CA] bg-[#2775CA]/10'
+                    : 'border-gray-200 dark:border-gray-700'
                 }`}
               >
                 <Text
                   variant="caption"
                   weight="semibold"
                   align="center"
-                  className={
-                    feeLevel === fee.level
-                      ? "text-[#2775CA]"
-                      : "dark:text-white"
-                  }
+                  className={feeLevel === fee.level ? 'text-[#2775CA]' : 'dark:text-white'}
                 >
                   {fee.label}
                 </Text>
@@ -764,23 +692,18 @@ export default function CircleSendScreen() {
           <Card variant="elevated" className="p-4 mb-4">
             <View className="flex-row justify-between items-center mb-2">
               <View className="flex-1">
-                <Text
-                  variant="bodyMedium"
-                  weight="semibold"
-                  className="dark:text-white"
-                >
+                <Text variant="bodyMedium" weight="semibold" className="dark:text-white">
                   Pay Gas in USDC
                 </Text>
                 <Text variant="caption" color="secondary" className="mt-1">
-                  Use USDC instead of {selectedWallet?.blockchain.split("-")[0]}{" "}
-                  for gas fees
+                  Use USDC instead of {selectedWallet?.blockchain.split('-')[0]} for gas fees
                 </Text>
               </View>
               <Switch
                 value={usePaymasterGas}
                 onValueChange={setUsePaymasterGas}
-                trackColor={{ false: "#D1D5DB", true: "#2775CA" }}
-                thumbColor={usePaymasterGas ? "#FFFFFF" : "#F3F4F6"}
+                trackColor={{ false: '#D1D5DB', true: '#2775CA' }}
+                thumbColor={usePaymasterGas ? '#FFFFFF' : '#F3F4F6'}
               />
             </View>
             {usePaymasterGas && paymasterFeeUsdc && (
@@ -811,22 +734,14 @@ export default function CircleSendScreen() {
         {/* Summary */}
         {canSubmit && (
           <Card variant="filled" className="p-4 mb-6">
-            <Text
-              variant="bodyMedium"
-              weight="semibold"
-              className="mb-2 dark:text-white"
-            >
+            <Text variant="bodyMedium" weight="semibold" className="mb-2 dark:text-white">
               Summary
             </Text>
             <View className="flex-row justify-between mb-1">
               <Text variant="body" color="secondary">
                 Amount
               </Text>
-              <Text
-                variant="body"
-                weight="semibold"
-                className="dark:text-white"
-              >
+              <Text variant="body" weight="semibold" className="dark:text-white">
                 ${amount} USDC
               </Text>
             </View>
@@ -842,19 +757,15 @@ export default function CircleSendScreen() {
             )}
             <View className="flex-row justify-between mb-1">
               <Text variant="body" color="secondary">
-                Network Fee {usePaymasterGas && "(USDC)"}
+                Network Fee {usePaymasterGas && '(USDC)'}
               </Text>
               <Text
                 variant="body"
-                className={
-                  isSponsoredChain
-                    ? "text-green-600 font-semibold"
-                    : "dark:text-white"
-                }
+                className={isSponsoredChain ? 'text-green-600 font-semibold' : 'dark:text-white'}
               >
                 {isSponsoredChain
-                  ? "⚡ Free (Sponsored)"
-                  : `~$${usePaymasterGas ? paymasterFeeUsdc || "0.00" : estimatedFee || "0.00"}`}
+                  ? '⚡ Free (Sponsored)'
+                  : `~$${usePaymasterGas ? paymasterFeeUsdc || '0.00' : estimatedFee || '0.00'}`}
               </Text>
             </View>
             <View className="border-t border-gray-200 dark:border-gray-700 my-2" />
@@ -862,11 +773,7 @@ export default function CircleSendScreen() {
               <Text variant="body" color="secondary">
                 Total
               </Text>
-              <Text
-                variant="bodyMedium"
-                weight="bold"
-                className="dark:text-white"
-              >
+              <Text variant="bodyMedium" weight="bold" className="dark:text-white">
                 ${totalAmount.toFixed(6)} USDC
               </Text>
             </View>
@@ -876,17 +783,14 @@ export default function CircleSendScreen() {
         {/* Send Button */}
         {(() => {
           const chainMeta = chainsData?.chains?.find(
-            (c) => c.blockchain === selectedWallet?.blockchain
+            (c) => c.blockchain === selectedWallet?.blockchain,
           );
           const isSupported = !!chainMeta;
 
           return (
             <View>
               {!isSupported && selectedWallet && (
-                <Text
-                  variant="caption"
-                  className="text-red-500 mb-2 text-center"
-                >
+                <Text variant="caption" className="text-red-500 mb-2 text-center">
                   This blockchain is no longer supported for new transactions.
                 </Text>
               )}
@@ -914,36 +818,34 @@ export default function CircleSendScreen() {
         serviceType="USDC Transfer"
         details={[
           {
-            label: "Network",
-            value: selectedWallet?.blockchain || "",
+            label: 'Network',
+            value: selectedWallet?.blockchain || '',
           },
           {
-            label: "To Address",
+            label: 'To Address',
             value: `${destinationAddress.slice(0, 10)}...${destinationAddress.slice(-8)}`,
           },
           {
-            label: "Amount",
+            label: 'Amount',
             value: `$${amount} USDC`,
             highlight: true,
           },
           ...(serviceFee > 0
             ? [
                 {
-                  label: "Service Fee",
+                  label: 'Service Fee',
                   value: `$${serviceFee.toFixed(6)} USDC`,
                 },
               ]
             : []),
           {
-            label: "Network Fee",
-            value: isSponsoredChain
-              ? "⚡ Free (Sponsored)"
-              : `~$${estimatedFee || "0.00"}`,
+            label: 'Network Fee',
+            value: isSponsoredChain ? '⚡ Free (Sponsored)' : `~$${estimatedFee || '0.00'}`,
           },
           ...(serviceFee > 0
             ? [
                 {
-                  label: "Total",
+                  label: 'Total',
                   value: `$${totalAmount.toFixed(6)} USDC`,
                   highlight: true,
                 },
@@ -952,7 +854,7 @@ export default function CircleSendScreen() {
           ...(memo
             ? [
                 {
-                  label: "Memo",
+                  label: 'Memo',
                   value: memo,
                 },
               ]
@@ -979,26 +881,20 @@ export default function CircleSendScreen() {
       {isSigningPermit && (
         <View
           style={{
-            position: "absolute",
+            position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: isDark
-              ? "rgba(0, 0, 0, 0.9)"
-              : "rgba(255, 255, 255, 0.95)",
-            justifyContent: "center",
-            alignItems: "center",
+            backgroundColor: isDark ? 'rgba(0, 0, 0, 0.9)' : 'rgba(255, 255, 255, 0.95)',
+            justifyContent: 'center',
+            alignItems: 'center',
             zIndex: 1000,
           }}
         >
           <View className="items-center p-8 rounded-2xl bg-white dark:bg-gray-800 mx-8 shadow-lg">
             <ActivityIndicator size="large" color="#2775CA" />
-            <Text
-              variant="h5"
-              weight="semibold"
-              className="mt-4 text-center dark:text-white"
-            >
+            <Text variant="h5" weight="semibold" className="mt-4 text-center dark:text-white">
               Preparing Transaction
             </Text>
             <Text
@@ -1007,10 +903,7 @@ export default function CircleSendScreen() {
             >
               Please wait while we prepare your transaction for signing...
             </Text>
-            <Text
-              variant="caption"
-              className="mt-4 text-center text-blue-600 dark:text-blue-400"
-            >
+            <Text variant="caption" className="mt-4 text-center text-blue-600 dark:text-blue-400">
               Circle PIN will be required next
             </Text>
           </View>

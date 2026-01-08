@@ -1,4 +1,3 @@
-
 I need to implement the SQLite offline-first feature for RaverPay mobile app and admin dashboard.
 
 ## Context
@@ -58,12 +57,14 @@ Before writing any code, please:
 Follow this order:
 
 **Phase 1: Backend Foundation (Week 1)**
+
 - Extend Device table with SQLite tracking fields
 - Create 4 new tables (SyncEvent, PendingMutationLog, DeviceConflict, DatabaseCleanup)
 - Write and test Prisma migrations
 - Update Prisma schema
 
 **Phase 2: Backend Services & Controllers (Week 2)**
+
 - Create AdminDevicesService
 - Create AdminPendingMutationsService
 - Create AdminDatabaseHealthService
@@ -72,6 +73,7 @@ Follow this order:
 - Follow existing controller/service patterns
 
 **Phase 3: Mobile App - Database Setup (Week 3)**
+
 - Set up expo-sqlite
 - Create database initialization
 - Create schema (10 core tables + 2 metadata tables)
@@ -79,6 +81,7 @@ Follow this order:
 - Follow existing mobile app patterns
 
 **Phase 4: Mobile App - Offline Features (Week 4)**
+
 - Implement offline-first hooks
 - Implement mutation queue
 - Implement sync service
@@ -86,6 +89,7 @@ Follow this order:
 - Follow existing React Query patterns
 
 **Phase 5: Admin Dashboard (Week 5)**
+
 - Create single "Offline Sync Management" page with 5 tabs
 - Add sync status card to user detail page
 - Follow existing dashboard patterns
@@ -129,8 +133,6 @@ Please start by:
 5. Proposing the first set of changes
 
 Let's build this feature properly! 🚀
-
-
 
 # Admin Dashboard & Backend Changes for SQLite Offline-First
 
@@ -188,6 +190,7 @@ model Device {
 ```
 
 **What We Need to Add:**
+
 - `databaseSize` - BIGINT (track SQLite database size)
 - `databaseVersion` - INTEGER (track schema version)
 - `lastSyncAt` - TIMESTAMP (last successful sync)
@@ -254,6 +257,7 @@ model AuditLog {
 **Existing Controller:** `AdminUsersController` (apps/raverpay-api/src/admin/users/admin-users.controller.ts)
 
 **Existing Endpoints:**
+
 - `GET /admin/users` - List users
 - `GET /admin/users/:userId` - Get user details
 - `PATCH /admin/users/:userId/status` - Update status
@@ -293,7 +297,7 @@ CREATE INDEX idx_devices_database_size ON devices(database_size);
 ```prisma
 model Device {
   // ... existing fields ...
-  
+
   // SQLite tracking (NEW)
   databaseSize           BigInt?   @default(0) @map("database_size")
   databaseVersion        Int?      @default(1) @map("database_version")
@@ -301,7 +305,7 @@ model Device {
   pendingMutationsCount  Int?      @default(0) @map("pending_mutations_count")
   syncStatus             String?   @default("success") @map("sync_status")
   lastSyncError          String?   @map("last_sync_error")
-  
+
   @@index([lastSyncAt], map: "idx_devices_last_sync_at")
   @@index([syncStatus], map: "idx_devices_sync_status")
   @@index([databaseSize], map: "idx_devices_database_size")
@@ -324,9 +328,9 @@ model SyncEvent {
   errorMessage      String?   @db.Text
   metadata          Json?     // Additional sync details
   createdAt         DateTime  @default(now())
-  
+
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([userId])
   @@index([deviceId])
   @@index([syncType])
@@ -337,6 +341,7 @@ model SyncEvent {
 ```
 
 **Add to User model:**
+
 ```prisma
 model User {
   // ... existing relations ...
@@ -361,9 +366,9 @@ model PendingMutationLog {
   lastError     String?   @db.Text
   createdAt     DateTime  @default(now())
   processedAt   DateTime?
-  
+
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([userId])
   @@index([deviceId])
   @@index([status])
@@ -373,6 +378,7 @@ model PendingMutationLog {
 ```
 
 **Add to User model:**
+
 ```prisma
 model User {
   // ... existing relations ...
@@ -396,9 +402,9 @@ model DeviceConflict {
   resolvedAt    DateTime?
   resolvedBy    String?   // Admin user ID
   createdAt     DateTime  @default(now())
-  
+
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([userId])
   @@index([conflictType])
   @@index([resolved])
@@ -408,6 +414,7 @@ model DeviceConflict {
 ```
 
 **Add to User model:**
+
 ```prisma
 model User {
   // ... existing relations ...
@@ -430,9 +437,9 @@ model DatabaseCleanup {
   duration        Int?      // milliseconds
   triggeredBy     String?   // Admin user ID (if manual)
   createdAt       DateTime  @default(now())
-  
+
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([userId])
   @@index([cleanupType])
   @@index([createdAt])
@@ -441,6 +448,7 @@ model DatabaseCleanup {
 ```
 
 **Add to User model:**
+
 ```prisma
 model User {
   // ... existing relations ...
@@ -461,29 +469,28 @@ model User {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
 export class AdminDevicesController {
-  
   // Get user's devices with sync status
   @Get('user/:userId')
   async getUserDevices(@Param('userId') userId: string) {
     // Returns list of devices with sync status
   }
-  
+
   // Get device sync history
   @Get(':deviceId/sync-history')
   async getDeviceSyncHistory(
     @Param('deviceId') deviceId: string,
     @Query('page') page?: number,
-    @Query('limit') limit?: number
+    @Query('limit') limit?: number,
   ) {
     // Returns SyncEvent records for device
   }
-  
+
   // Force sync for device
   @Post(':deviceId/force-sync')
   async forceSyncDevice(@Param('deviceId') deviceId: string) {
     // Send push notification to device to trigger sync
   }
-  
+
   // Reset device database
   @Post(':deviceId/reset-database')
   async resetDeviceDatabase(@Param('deviceId') deviceId: string) {
@@ -503,36 +510,35 @@ export class AdminDevicesController {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
 export class AdminPendingMutationsController {
-  
   // Get all pending mutations (filterable)
   @Get()
   async getPendingMutations(
     @Query('status') status?: string,
     @Query('userId') userId?: string,
     @Query('page') page?: number,
-    @Query('limit') limit?: number
+    @Query('limit') limit?: number,
   ) {
     // Returns PendingMutationLog records
   }
-  
+
   // Get pending mutations for specific user
   @Get('user/:userId')
   async getUserPendingMutations(@Param('userId') userId: string) {
     // Returns user's pending mutations
   }
-  
+
   // Retry failed mutation
   @Post(':mutationId/retry')
   async retryMutation(@Param('mutationId') mutationId: string) {
     // Manually retry failed mutation
   }
-  
+
   // Cancel mutation
   @Delete(':mutationId')
   async cancelMutation(@Param('mutationId') mutationId: string) {
     // Cancel pending mutation
   }
-  
+
   // Bulk retry
   @Post('bulk-retry')
   async bulkRetry(@Body() body: { mutationIds: string[] }) {
@@ -552,46 +558,45 @@ export class AdminPendingMutationsController {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
 export class AdminDatabaseHealthController {
-  
   // Get database health overview
   @Get('overview')
   async getHealthOverview() {
     // Returns aggregated stats
   }
-  
+
   // Get users with large databases
   @Get('large-databases')
   async getLargeDatabases(
     @Query('minSize') minSize?: number, // in MB
     @Query('page') page?: number,
-    @Query('limit') limit?: number
+    @Query('limit') limit?: number,
   ) {
     // Returns users with DB > minSize
   }
-  
+
   // Force cleanup for user
   @Post('user/:userId/force-cleanup')
   async forceCleanup(
     @GetUser('id') adminId: string,
-    @Param('userId') userId: string
+    @Param('userId') userId: string,
   ) {
     // Trigger cleanup for specific user
   }
-  
+
   // Bulk cleanup
   @Post('bulk-cleanup')
   async bulkCleanup(
     @GetUser('id') adminId: string,
-    @Body() body: { minSize: number } // cleanup users > minSize MB
+    @Body() body: { minSize: number }, // cleanup users > minSize MB
   ) {
     // Trigger cleanup for multiple users
   }
-  
+
   // Get cleanup history
   @Get('cleanup-history')
   async getCleanupHistory(
     @Query('page') page?: number,
-    @Query('limit') limit?: number
+    @Query('limit') limit?: number,
   ) {
     // Returns DatabaseCleanup records
   }
@@ -609,29 +614,28 @@ export class AdminDatabaseHealthController {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
 export class AdminConflictsController {
-  
   // Get all device conflicts
   @Get()
   async getConflicts(
     @Query('resolved') resolved?: boolean,
     @Query('type') type?: string,
     @Query('page') page?: number,
-    @Query('limit') limit?: number
+    @Query('limit') limit?: number,
   ) {
     // Returns DeviceConflict records
   }
-  
+
   // Get conflicts for specific user
   @Get('user/:userId')
   async getUserConflicts(@Param('userId') userId: string) {
     // Returns user's conflicts
   }
-  
+
   // Mark conflict as resolved
   @Patch(':conflictId/resolve')
   async resolveConflict(
     @GetUser('id') adminId: string,
-    @Param('conflictId') conflictId: string
+    @Param('conflictId') conflictId: string,
   ) {
     // Mark conflict as resolved
   }
@@ -655,6 +659,7 @@ async getUserSyncOverview(@Param('userId') userId: string) {
 ```
 
 **Response:**
+
 ```typescript
 {
   userId: "user-123",
@@ -891,6 +896,7 @@ Instead of creating 4-5 new pages, we'll create **ONE new page** called "Offline
 ### **What We're Creating:**
 
 **1 New Page (with 5 tabs):**
+
 - `apps/raverpay-admin/app/dashboard/offline-sync/page.tsx`
   - Tab 1: Overview
   - Tab 2: Pending Queue
@@ -899,6 +905,7 @@ Instead of creating 4-5 new pages, we'll create **ONE new page** called "Offline
   - Tab 5: Sync History
 
 **1 New Card (on existing page):**
+
 - Add "Device & Sync Status" card to user detail page
 
 ---
@@ -909,7 +916,7 @@ Instead of creating 4-5 new pages, we'll create **ONE new page** called "Offline
 ✅ **Faster Development** - One page instead of 5  
 ✅ **Better UX** - Tabs allow quick switching between views  
 ✅ **Consistent Layout** - Shared header, filters, actions  
-✅ **Easier Maintenance** - One file to update  
+✅ **Easier Maintenance** - One file to update
 
 ---
 
@@ -928,7 +935,8 @@ export default function OfflineSyncPage() {
       <div>
         <h2 className="text-3xl font-bold">Offline Sync Management</h2>
         <p className="text-muted-foreground">
-          Monitor and manage offline sync, pending operations, and database health
+          Monitor and manage offline sync, pending operations, and database
+          health
         </p>
       </div>
 
@@ -941,25 +949,17 @@ export default function OfflineSyncPage() {
           <TabsTrigger value="history">Sync History</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview">
-          {/* Overview content */}
-        </TabsContent>
+        <TabsContent value="overview">{/* Overview content */}</TabsContent>
 
-        <TabsContent value="pending">
-          {/* Pending queue content */}
-        </TabsContent>
+        <TabsContent value="pending">{/* Pending queue content */}</TabsContent>
 
         <TabsContent value="health">
           {/* Database health content */}
         </TabsContent>
 
-        <TabsContent value="conflicts">
-          {/* Conflicts content */}
-        </TabsContent>
+        <TabsContent value="conflicts">{/* Conflicts content */}</TabsContent>
 
-        <TabsContent value="history">
-          {/* Sync history content */}
-        </TabsContent>
+        <TabsContent value="history">{/* Sync history content */}</TabsContent>
       </Tabs>
     </div>
   );
@@ -1032,11 +1032,12 @@ export default function OfflineSyncPage() {
 ✅ **Saved recipients** - SavedRecipient model  
 ✅ **Audit logging** - AuditLog model with deviceId  
 ✅ **Admin user management** - Complete CRUD endpoints  
-✅ **Admin dashboard** - User detail page with actions  
+✅ **Admin dashboard** - User detail page with actions
 
 ### **What We Need to Add:**
 
 **Database (5 changes):**
+
 1. Extend Device table (6 new columns)
 2. Create SyncEvent table
 3. Create PendingMutationLog table
@@ -1044,12 +1045,14 @@ export default function OfflineSyncPage() {
 5. Create DatabaseCleanup table
 
 **Backend (4 new controllers):**
+
 1. AdminDevicesController
 2. AdminPendingMutationsController
 3. AdminDatabaseHealthController
 4. AdminConflictsController
 
 **Admin Dashboard (2 new features):**
+
 1. Single "Offline Sync Management" page with 5 tabs (new page)
 2. Sync status card (add to existing user page)
 

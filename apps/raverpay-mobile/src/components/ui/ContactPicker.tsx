@@ -1,14 +1,14 @@
 // src/components/ui/ContactPicker.tsx
-import { useTheme } from "@/src/hooks/useTheme";
-import { Ionicons } from "@expo/vector-icons";
-import { FlashList } from "@shopify/flash-list";
-import * as Contacts from "expo-contacts";
-import React, { useState } from "react";
-import { ActivityIndicator, Alert, TouchableOpacity, View } from "react-native";
-import { BottomSheet } from "./BottomSheet";
-import { Card } from "./Card";
-import { Input } from "./Input";
-import { Text } from "./Text";
+import { useTheme } from '@/src/hooks/useTheme';
+import { Ionicons } from '@expo/vector-icons';
+import { FlashList } from '@shopify/flash-list';
+import * as Contacts from 'expo-contacts';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, TouchableOpacity, View } from 'react-native';
+import { BottomSheet } from './BottomSheet';
+import { Card } from './Card';
+import { Input } from './Input';
+import { Text } from './Text';
 
 interface ContactPickerProps {
   visible: boolean;
@@ -16,16 +16,12 @@ interface ContactPickerProps {
   onSelectContact: (phoneNumber: string) => void;
 }
 
-export function ContactPicker({
-  visible,
-  onClose,
-  onSelectContact,
-}: ContactPickerProps) {
+export function ContactPicker({ visible, onClose, onSelectContact }: ContactPickerProps) {
   const { isDark } = useTheme();
   const [deviceContacts, setDeviceContacts] = useState<any[]>([]);
   const [filteredContacts, setFilteredContacts] = useState<any[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Load contacts when modal becomes visible
   React.useEffect(() => {
@@ -37,20 +33,20 @@ export function ContactPicker({
 
   // Filter contacts when search query changes
   React.useEffect(() => {
-    if (searchQuery.trim() === "") {
+    if (searchQuery.trim() === '') {
       setFilteredContacts(deviceContacts);
     } else {
       const query = searchQuery.toLowerCase().trim();
 
       // Remove non-alphanumeric characters from query for phone search
-      const numericQuery = query.replace(/\D/g, "");
+      const numericQuery = query.replace(/\D/g, '');
 
       const filtered = deviceContacts.filter((contact) => {
         // Search in name, firstName, lastName, middleName
-        const name = (contact.name || "").toLowerCase();
-        const firstName = (contact.firstName || "").toLowerCase();
-        const lastName = (contact.lastName || "").toLowerCase();
-        const middleName = (contact.middleName || "").toLowerCase();
+        const name = (contact.name || '').toLowerCase();
+        const firstName = (contact.firstName || '').toLowerCase();
+        const lastName = (contact.lastName || '').toLowerCase();
+        const middleName = (contact.middleName || '').toLowerCase();
 
         const nameMatch =
           name.includes(query) ||
@@ -63,10 +59,7 @@ export function ContactPicker({
         if (numericQuery.length > 0) {
           const phoneNumbers = contact.phoneNumbers || [];
           hasMatchingPhone = phoneNumbers.some((phone: any) => {
-            const phoneNumber = (phone.number || phone.digits || "").replace(
-              /\D/g,
-              ""
-            );
+            const phoneNumber = (phone.number || phone.digits || '').replace(/\D/g, '');
             return phoneNumber.includes(numericQuery);
           });
         }
@@ -81,11 +74,8 @@ export function ContactPicker({
   const loadContacts = async () => {
     try {
       const { status } = await Contacts.requestPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission Required",
-          "Please allow access to contacts to use this feature"
-        );
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow access to contacts to use this feature');
         onClose();
         return;
       }
@@ -96,26 +86,26 @@ export function ContactPicker({
       });
 
       if (data.length === 0) {
-        Alert.alert("No Contacts", "No contacts found on your device");
+        Alert.alert('No Contacts', 'No contacts found on your device');
         setIsLoadingContacts(false);
         return;
       }
 
       // Find contacts with phone numbers
       const contactsWithPhones = data.filter(
-        (contact) => contact.phoneNumbers && contact.phoneNumbers.length > 0
+        (contact) => contact.phoneNumbers && contact.phoneNumbers.length > 0,
       );
 
       if (contactsWithPhones.length === 0) {
-        Alert.alert("No Phone Numbers", "No contacts with phone numbers found");
+        Alert.alert('No Phone Numbers', 'No contacts with phone numbers found');
         setIsLoadingContacts(false);
         return;
       }
 
       // Sort contacts alphabetically by name
       const sortedContacts = contactsWithPhones.sort((a, b) => {
-        const nameA = a.name || "";
-        const nameB = b.name || "";
+        const nameA = a.name || '';
+        const nameB = b.name || '';
         return nameA.localeCompare(nameB);
       });
 
@@ -123,8 +113,8 @@ export function ContactPicker({
       setFilteredContacts(sortedContacts);
       setIsLoadingContacts(false);
     } catch (error) {
-      console.error("Error loading contacts:", error);
-      Alert.alert("Error", "Failed to access contacts");
+      console.error('Error loading contacts:', error);
+      Alert.alert('Error', 'Failed to access contacts');
       setIsLoadingContacts(false);
     }
   };
@@ -132,37 +122,36 @@ export function ContactPicker({
   const handleContactSelect = (contact: any) => {
     // Get the first phone number - try multiple properties
     const firstPhone = contact.phoneNumbers?.[0];
-    const rawNumber =
-      firstPhone?.number || firstPhone?.digits || firstPhone?.stringValue || "";
+    const rawNumber = firstPhone?.number || firstPhone?.digits || firstPhone?.stringValue || '';
 
     // Extract only digits
-    const phoneNumber = rawNumber.replace(/\D/g, "");
+    const phoneNumber = rawNumber.replace(/\D/g, '');
 
     // Normalize phone number (remove country code if present)
     let normalized = phoneNumber;
-    if (normalized.startsWith("234")) {
-      normalized = "0" + normalized.substring(3);
-    } else if (normalized.length === 10 && !normalized.startsWith("0")) {
-      normalized = "0" + normalized;
+    if (normalized.startsWith('234')) {
+      normalized = '0' + normalized.substring(3);
+    } else if (normalized.length === 10 && !normalized.startsWith('0')) {
+      normalized = '0' + normalized;
     }
 
     // Only use first 11 digits
     normalized = normalized.substring(0, 11);
 
-    if (normalized.length === 11 && normalized.startsWith("0")) {
+    if (normalized.length === 11 && normalized.startsWith('0')) {
       onSelectContact(normalized);
       onClose();
-      setSearchQuery(""); // Reset search on close
+      setSearchQuery(''); // Reset search on close
     } else {
       Alert.alert(
-        "Invalid Number",
-        `Selected contact has an invalid phone number format.\n\nRaw: ${rawNumber}\nNormalized: ${normalized} (${normalized.length} digits)`
+        'Invalid Number',
+        `Selected contact has an invalid phone number format.\n\nRaw: ${rawNumber}\nNormalized: ${normalized} (${normalized.length} digits)`,
       );
     }
   };
 
   const handleClose = () => {
-    setSearchQuery("");
+    setSearchQuery('');
     onClose();
   };
 
@@ -182,11 +171,7 @@ export function ContactPicker({
           onPress={handleClose}
           className="bg-gray-100 dark:bg-gray-700 p-1 rounded-lg"
         >
-          <Ionicons
-            name="close"
-            size={24}
-            color={isDark ? "#9CA3AF" : "#6B7280"}
-          />
+          <Ionicons name="close" size={24} color={isDark ? '#9CA3AF' : '#6B7280'} />
         </TouchableOpacity>
       </View>
 
@@ -201,8 +186,7 @@ export function ContactPicker({
           />
           {searchQuery.trim() && (
             <Text variant="caption" color="secondary" className="mt-1">
-              Showing {filteredContacts.length} of {deviceContacts.length}{" "}
-              contacts
+              Showing {filteredContacts.length} of {deviceContacts.length} contacts
             </Text>
           )}
         </View>
@@ -219,16 +203,10 @@ export function ContactPicker({
         <Card variant="elevated" className="p-6">
           <View className="items-center">
             <View className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 items-center justify-center mb-3">
-              <Ionicons
-                name="people-outline"
-                size={32}
-                color={isDark ? "#9CA3AF" : "#6B7280"}
-              />
+              <Ionicons name="people-outline" size={32} color={isDark ? '#9CA3AF' : '#6B7280'} />
             </View>
             <Text variant="body" color="secondary" align="center">
-              {searchQuery.trim()
-                ? "No contacts found matching your search"
-                : "No contacts found"}
+              {searchQuery.trim() ? 'No contacts found matching your search' : 'No contacts found'}
             </Text>
           </View>
         </Card>
@@ -237,42 +215,27 @@ export function ContactPicker({
           <FlashList
             data={filteredContacts}
             renderItem={({ item: contact }) => {
-              const contactName = contact.name || "Unknown";
+              const contactName = contact.name || 'Unknown';
               const phoneNumber = contact.phoneNumbers?.[0];
 
               return (
-                <TouchableOpacity
-                  onPress={() => handleContactSelect(contact)}
-                  activeOpacity={0.7}
-                >
+                <TouchableOpacity onPress={() => handleContactSelect(contact)} activeOpacity={0.7}>
                   <Card variant="elevated" className="p-4 mb-2 mx-0.5">
                     <View className="flex-row items-center">
                       <View className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 items-center justify-center">
-                        <Text
-                          variant="bodyMedium"
-                          weight="semibold"
-                          className="text-[#5B55F6]"
-                        >
+                        <Text variant="bodyMedium" weight="semibold" className="text-[#5B55F6]">
                           {contactName.charAt(0).toUpperCase()}
                         </Text>
                       </View>
                       <View className="ml-3 flex-1">
-                        <Text
-                          variant="bodyMedium"
-                          weight="semibold"
-                          numberOfLines={1}
-                        >
+                        <Text variant="bodyMedium" weight="semibold" numberOfLines={1}>
                           {contactName}
                         </Text>
                         <Text variant="body" color="secondary">
-                          {phoneNumber?.number || "No number"}
+                          {phoneNumber?.number || 'No number'}
                         </Text>
                       </View>
-                      <Ionicons
-                        name="chevron-forward"
-                        size={20}
-                        color="#9CA3AF"
-                      />
+                      <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
                     </View>
                   </Card>
                 </TouchableOpacity>

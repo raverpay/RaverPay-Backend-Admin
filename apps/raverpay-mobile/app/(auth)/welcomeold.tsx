@@ -25,19 +25,15 @@ export default function WelcomeScreen() {
   const titleOpacity = useSharedValue(0);
   const buttonsOpacity = useSharedValue(0);
 
-
   useEffect(() => {
- 
     // If already authenticated, go straight to app
     if (isAuthenticated) {
-      
       router.replace('/(tabs)');
       return;
     }
 
     // If first time (hasn't seen welcome), show full welcome screen
     if (!hasSeenWelcome) {
-      
       // Animate logo
       logoScale.value = withSpring(1, { damping: 12 });
       logoOpacity.value = withSpring(1);
@@ -46,20 +42,17 @@ export default function WelcomeScreen() {
       // Animate buttons
       buttonsOpacity.value = withDelay(600, withSpring(1));
     } else {
-      
       // Returning user - show splash animation and auto-navigate
       logoScale.value = withSpring(1, { damping: 10 });
       logoOpacity.value = withTiming(1, { duration: 500 });
 
       // Auto-navigate to login after 2 seconds
-     
+
       const timer = setTimeout(() => {
-       
         router.replace('/(auth)/login');
       }, 2000);
 
       return () => {
-       
         clearTimeout(timer);
       };
     }
@@ -84,9 +77,8 @@ export default function WelcomeScreen() {
   };
 
   const handleAlreadyHaveAccount = () => {
-    
     setHasSeenWelcome(true);
-    
+
     router.push('/(auth)/login');
   };
 

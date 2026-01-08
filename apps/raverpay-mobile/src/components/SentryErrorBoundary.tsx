@@ -1,6 +1,6 @@
-import * as Sentry from "@sentry/react-native";
-import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import * as Sentry from '@sentry/react-native';
+import React from 'react';
+import { Text, TouchableOpacity, View } from 'react-native';
 
 interface Props {
   children: React.ReactNode;
@@ -8,13 +8,7 @@ interface Props {
   showDialog?: boolean;
 }
 
-const DefaultFallback = ({
-  error,
-  resetError,
-}: {
-  error: Error;
-  resetError: () => void;
-}) => (
+const DefaultFallback = ({ error, resetError }: { error: Error; resetError: () => void }) => (
   <View className="flex-1 items-center justify-center p-6 bg-white dark:bg-gray-800">
     <View className="bg-red-50 dark:bg-red-900/20 p-6 rounded-2xl max-w-md">
       <Text className="text-2xl font-bold text-red-600 dark:text-red-400 mb-4 text-center">
@@ -23,25 +17,21 @@ const DefaultFallback = ({
 
       {__DEV__ && (
         <View className="bg-red-100 dark:bg-red-900/30 p-4 rounded-lg mb-4">
-          <Text className="text-xs font-mono text-red-800 dark:text-red-200">
-            {error.message}
-          </Text>
+          <Text className="text-xs font-mono text-red-800 dark:text-red-200">{error.message}</Text>
         </View>
       )}
 
       <Text className="text-center text-gray-600 dark:text-gray-300 mb-6">
         {__DEV__
-          ? "An error occurred in the application. Check the console for more details."
-          : "We encountered an unexpected error. Please try again."}
+          ? 'An error occurred in the application. Check the console for more details.'
+          : 'We encountered an unexpected error. Please try again.'}
       </Text>
 
       <TouchableOpacity
         onPress={resetError}
         className="bg-primary px-6 py-3 rounded-lg active:opacity-80"
       >
-        <Text className="text-white font-semibold text-center text-base">
-          Try Again
-        </Text>
+        <Text className="text-white font-semibold text-center text-base">Try Again</Text>
       </TouchableOpacity>
     </View>
   </View>
@@ -82,8 +72,8 @@ export const SentryErrorBoundary: React.FC<Props> = ({
       fallback={fallbackRender}
       showDialog={showDialog}
       beforeCapture={(scope) => {
-        scope.setTag("error_boundary", "react");
-        scope.setLevel("error");
+        scope.setTag('error_boundary', 'react');
+        scope.setLevel('error');
       }}
     >
       {children}
@@ -104,19 +94,16 @@ export function withSentryErrorBoundary<P extends object>(
   options?: {
     fallback?: React.ComponentType<{ error: Error; resetError: () => void }>;
     showDialog?: boolean;
-  }
+  },
 ) {
   const WrappedComponent = (props: P) => (
-    <SentryErrorBoundary
-      fallback={options?.fallback}
-      showDialog={options?.showDialog}
-    >
+    <SentryErrorBoundary fallback={options?.fallback} showDialog={options?.showDialog}>
       <Component {...props} />
     </SentryErrorBoundary>
   );
 
   WrappedComponent.displayName = `withSentryErrorBoundary(${
-    Component.displayName || Component.name || "Component"
+    Component.displayName || Component.name || 'Component'
   })`;
 
   return WrappedComponent;

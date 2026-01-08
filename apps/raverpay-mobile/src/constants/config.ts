@@ -1,14 +1,12 @@
-import Constants from "expo-constants";
+import Constants from 'expo-constants';
 
 // constants/config.ts
 export const config = {
   // API Configuration
-  API_BASE_URL: __DEV__
-    ? process.env.EXPO_PUBLIC_API_URL
-    : Constants.expoConfig?.extra?.apiUrl,
+  API_BASE_URL: __DEV__ ? process.env.EXPO_PUBLIC_API_URL : Constants.expoConfig?.extra?.apiUrl,
   // App Configuration
-  APP_NAME: "Raverpay",
-  APP_VERSION: "1.0.0",
+  APP_NAME: 'Raverpay',
+  APP_VERSION: '1.0.0',
 
   // Token Configuration
   ACCESS_TOKEN_EXPIRY: 15 * 60 * 1000, // 15 minutes

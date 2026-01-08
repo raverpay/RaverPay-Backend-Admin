@@ -34,14 +34,15 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ## Global Rate Limits
 
 ### Throttler Configuration
+
 **Location:** `src/app.module.ts` (lines 55-78)  
 **Verified:** ✅ Active in codebase
 
-| Throttler Name | Time Window | Limit | Purpose |
-|----------------|-------------|-------|---------|
-| `default` | 60 seconds | 200 requests | General API protection |
-| `short` | 10 seconds | 20 requests | Burst protection |
-| `burst` | 5 seconds | 1 request | Strict burst protection |
+| Throttler Name | Time Window | Limit        | Purpose                 |
+| -------------- | ----------- | ------------ | ----------------------- |
+| `default`      | 60 seconds  | 200 requests | General API protection  |
+| `short`        | 10 seconds  | 20 requests  | Burst protection        |
+| `burst`        | 5 seconds   | 1 request    | Strict burst protection |
 
 **Storage:** Redis-based distributed rate limiting via `RedisThrottlerStorage`  
 **Tracking:** User ID (authenticated) or IP address (unauthenticated)  
@@ -58,18 +59,19 @@ This document provides a comprehensive analysis of all rate limits implemented i
 **Total Endpoints with @Throttle:** 17  
 **Controllers Affected:** 4 (Auth, Transactions, VTU, Admin Wallets)
 
-| Category | Count | Controllers |
-|----------|-------|-------------|
-| Authentication | 3 | `auth.controller.ts` |
-| Transactions | 3 | `transactions.controller.ts` |
-| VTU Services | 7 | `vtu.controller.ts` |
-| Admin Operations | 4 | `admin-wallets.controller.ts` |
+| Category         | Count | Controllers                   |
+| ---------------- | ----- | ----------------------------- |
+| Authentication   | 3     | `auth.controller.ts`          |
+| Transactions     | 3     | `transactions.controller.ts`  |
+| VTU Services     | 7     | `vtu.controller.ts`           |
+| Admin Operations | 4     | `admin-wallets.controller.ts` |
 
 ---
 
 ### Authentication Endpoints
 
 #### 1. User Registration
+
 **Endpoint:** `POST /auth/register`  
 **Location:** `src/auth/auth.controller.ts` (line 53)
 
@@ -84,6 +86,7 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ---
 
 #### 2. User Login
+
 **Endpoint:** `POST /auth/login`  
 **Location:** `src/auth/auth.controller.ts` (line 97)
 
@@ -99,6 +102,7 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ---
 
 #### 3. Password Reset Request
+
 **Endpoint:** `POST /auth/forgot-password`  
 **Location:** `src/auth/auth.controller.ts` (line 237)
 
@@ -115,6 +119,7 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ### Transaction Endpoints
 
 #### 4. Card Funding
+
 **Endpoint:** `POST /transactions/fund/card`  
 **Location:** `src/transactions/transactions.controller.ts` (lines 43-46)
 
@@ -133,6 +138,7 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ---
 
 #### 5. Withdrawals
+
 **Endpoint:** `POST /transactions/withdraw`  
 **Location:** `src/transactions/transactions.controller.ts` (lines 166-169)
 
@@ -152,6 +158,7 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ---
 
 #### 6. P2P Transfers
+
 **Endpoint:** `POST /transactions/send`  
 **Location:** `src/transactions/transactions.controller.ts` (lines 259-262)
 
@@ -172,6 +179,7 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ### VTU (Virtual Top-Up) Endpoints
 
 #### 7. Airtime Purchase
+
 **Endpoint:** `POST /vtu/airtime/purchase`  
 **Location:** `src/vtu/vtu.controller.ts` (lines 214-217)
 
@@ -190,6 +198,7 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ---
 
 #### 8. Data Bundle Purchase
+
 **Endpoint:** `POST /vtu/data/purchase`  
 **Location:** `src/vtu/vtu.controller.ts` (lines 234-237)
 
@@ -208,6 +217,7 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ---
 
 #### 9. Cable TV Payment
+
 **Endpoint:** `POST /vtu/cable-tv/pay`  
 **Location:** `src/vtu/vtu.controller.ts` (lines 250-253)
 
@@ -225,6 +235,7 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ---
 
 #### 10. Electricity Payment
+
 **Endpoint:** `POST /vtu/electricity/pay`  
 **Location:** `src/vtu/vtu.controller.ts` (lines 290-293)
 
@@ -242,6 +253,7 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ---
 
 #### 11. JAMB PIN Purchase
+
 **Endpoint:** `POST /vtu/education/jamb/purchase`  
 **Location:** `src/vtu/vtu.controller.ts` (lines 369-372)
 
@@ -259,7 +271,9 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ---
 
 #### 12. WAEC PIN Purchase
-**Endpoints:** 
+
+**Endpoints:**
+
 - `POST /vtu/education/waec-registration/purchase`
 - `POST /vtu/education/waec-result/purchase`
 
@@ -281,15 +295,16 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ### Admin Endpoints
 
 #### 13. Admin Wallet Operations
+
 **Controller:** `AdminWalletsController`  
 **Location:** `src/admin/wallets/admin-wallets.controller.ts`
 
-| Endpoint | Limit | Time Window | Purpose |
-|----------|-------|-------------|---------|
-| Controller-wide | 100 requests | 1 minute | General admin protection |
-| Lock Wallet | 20 locks | 1 hour | Prevent abuse of locking |
-| Unlock Wallet | 20 unlocks | 1 hour | Prevent abuse of unlocking |
-| Balance Adjustment | 10 adjustments | 1 hour | Critical financial operation |
+| Endpoint           | Limit          | Time Window | Purpose                      |
+| ------------------ | -------------- | ----------- | ---------------------------- |
+| Controller-wide    | 100 requests   | 1 minute    | General admin protection     |
+| Lock Wallet        | 20 locks       | 1 hour      | Prevent abuse of locking     |
+| Unlock Wallet      | 20 unlocks     | 1 hour      | Prevent abuse of unlocking   |
+| Balance Adjustment | 10 adjustments | 1 hour      | Critical financial operation |
 
 **✅ Status:** Well-protected with granular limits
 
@@ -300,9 +315,11 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ### OTP (One-Time Password) Rate Limiting
 
 #### Email Verification OTP
+
 **Location:** `src/users/users.service.ts` (lines 495-530)
 
 **Rules:**
+
 1. **Cooldown:** 120 seconds (2 minutes) between sends
 2. **Max Resends:** 3 sends per OTP lifecycle (10-minute validity)
 3. **Max Attempts:** 5 verification attempts before code expires
@@ -314,9 +331,11 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ---
 
 #### Phone Verification OTP
+
 **Location:** `src/users/users.service.ts` (lines 795-830)
 
 **Rules:** Same as email verification
+
 - 120 seconds cooldown
 - 3 sends per lifecycle
 - 5 verification attempts
@@ -327,6 +346,7 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ---
 
 ### Virtual Account Requery
+
 **Location:** `src/virtual-accounts/virtual-accounts.service.ts` (line 415)
 
 **Limit:** Once every 10 minutes per account  
@@ -338,9 +358,11 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ---
 
 ### Account Locking (Security)
+
 **Location:** `src/common/services/account-locking.service.ts`
 
 **Triggers:**
+
 - 3 rate limit violations in 1 hour
 - 5 rate limit violations in 24 hours
 - 10 rate limit violations in 7 days
@@ -355,9 +377,11 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ### Notification Services
 
 #### Email (Resend)
+
 **Location:** `src/notifications/notification-queue.processor.ts` (lines 27-40)
 
 **Queue Configuration:**
+
 - **Batch Size:** 2 emails per batch
 - **Delay:** 600ms between emails
 - **Effective Rate:** ~2 requests/second (Resend limit)
@@ -368,7 +392,9 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ---
 
 #### SMS (Termii/VTPass)
+
 **Queue Configuration:**
+
 - **Batch Size:** 5 SMS per batch
 - **Delay:** 200ms between SMS
 - **Processing:** Every 10 seconds via cron
@@ -378,7 +404,9 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ---
 
 #### Push Notifications (Expo)
+
 **Queue Configuration:**
+
 - **Batch Size:** 50 push notifications per batch
 - **Delay:** 50ms between notifications
 - **Processing:** Every 10 seconds via cron
@@ -388,7 +416,9 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ---
 
 #### In-App Notifications
+
 **Queue Configuration:**
+
 - **Batch Size:** 100 notifications per batch
 - **Delay:** 10ms between notifications
 - **Processing:** Every 10 seconds via cron
@@ -398,9 +428,11 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ---
 
 ### Payment Gateway (Paystack)
+
 **No explicit rate limits configured**
 
 **Paystack Limits (from documentation):**
+
 - Transaction initialization: ~100 req/min
 - Account verification: ~60 req/min
 - Transfer creation: ~60 req/min
@@ -410,9 +442,11 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ---
 
 ### VTU Provider (VTPass)
+
 **No explicit rate limits configured**
 
 **VTPass Limits (estimated):**
+
 - Purchase requests: Unknown (should verify with provider)
 - Balance check: Unknown
 
@@ -425,10 +459,12 @@ This document provides a comprehensive analysis of all rate limits implemented i
 ### 🔴 CRITICAL Gaps
 
 #### 1. Virtual Account Requery Not Enforced
+
 **Issue:** Documented as "once every 10 minutes" but no code enforcement  
 **Location:** `src/virtual-accounts/virtual-accounts.service.ts`
 
 **Recommendation:**
+
 ```typescript
 @Throttle({ default: { limit: 1, ttl: 600000 } }) // 1 per 10 minutes
 async requeryVirtualAccount(userId: string) {
@@ -442,13 +478,16 @@ async requeryVirtualAccount(userId: string) {
 ---
 
 #### 2. Missing Paystack Client-Side Rate Limiting
+
 **Issue:** No protection against hitting Paystack's rate limits  
 **Affected Services:**
+
 - Card payment initialization
 - Transfer creation
 - Account verification
 
 **Recommendation:**
+
 - Implement rate limiting wrapper for Paystack service
 - Add retry logic with exponential backoff
 - Queue requests during high traffic
@@ -459,9 +498,11 @@ async requeryVirtualAccount(userId: string) {
 ---
 
 #### 3. Missing VTPass Rate Limit Protection
+
 **Issue:** Unknown VTPass rate limits, no protection implemented
 
 **Recommendation:**
+
 - Contact VTPass to confirm rate limits
 - Implement conservative rate limiting (e.g., 30 req/min)
 - Add request queuing for high-volume periods
@@ -474,10 +515,12 @@ async requeryVirtualAccount(userId: string) {
 ### 🟡 MEDIUM Priority Gaps
 
 #### 4. No Rate Limit on Wallet Balance Checks
+
 **Endpoint:** `GET /wallet/balance`  
 **Issue:** Unlimited balance checks could be abused
 
 **Recommendation:**
+
 ```typescript
 @Throttle({ default: { limit: 60, ttl: 60000 } }) // 60 per minute
 ```
@@ -488,10 +531,12 @@ async requeryVirtualAccount(userId: string) {
 ---
 
 #### 5. No Rate Limit on Transaction History
+
 **Endpoint:** `GET /wallet/transactions`  
 **Issue:** Expensive database queries, no rate limiting
 
 **Recommendation:**
+
 ```typescript
 @Throttle({ default: { limit: 30, ttl: 60000 } }) // 30 per minute
 ```
@@ -502,7 +547,9 @@ async requeryVirtualAccount(userId: string) {
 ---
 
 #### 6. No Rate Limit on VTU Product Catalog
+
 **Endpoints:**
+
 - `GET /vtu/data/plans/:network`
 - `GET /vtu/cable-tv/plans/:provider`
 - `GET /vtu/electricity/providers`
@@ -510,6 +557,7 @@ async requeryVirtualAccount(userId: string) {
 **Issue:** Catalog endpoints could be scraped
 
 **Recommendation:**
+
 ```typescript
 @Throttle({ default: { limit: 100, ttl: 60000 } }) // 100 per minute
 ```
@@ -522,10 +570,12 @@ async requeryVirtualAccount(userId: string) {
 ### 🟢 LOW Priority Gaps
 
 #### 7. No Rate Limit on User Profile Updates
+
 **Endpoint:** `PUT /users/profile`  
 **Issue:** Profile updates are one-time only, but endpoint not rate-limited
 
 **Recommendation:**
+
 ```typescript
 @Throttle({ default: { limit: 5, ttl: 3600000 } }) // 5 per hour
 ```
@@ -536,12 +586,15 @@ async requeryVirtualAccount(userId: string) {
 ---
 
 #### 8. No Rate Limit on Saved Recipients
+
 **Endpoints:**
+
 - `GET /vtu/saved-recipients`
 - `POST /vtu/saved-recipients/:id`
 - `DELETE /vtu/saved-recipients/:id`
 
 **Recommendation:**
+
 ```typescript
 @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 per minute
 ```
@@ -578,15 +631,15 @@ async requeryVirtualAccount(userId: string) {
 
 ### 📊 Rate Limit Coverage
 
-| Category | Endpoints | Rate Limited | Coverage |
-|----------|-----------|--------------|----------|
-| Authentication | 8 | 3 | 37.5% |
-| Transactions | 15 | 3 | 20% |
-| VTU | 25+ | 7 | ~28% |
-| Wallet | 10 | 0 | 0% |
-| Admin | 20+ | 4 | ~20% |
-| Notifications | 10 | 0 (queue-based) | N/A |
-| **Overall** | **~90** | **~17** | **~19%** |
+| Category       | Endpoints | Rate Limited    | Coverage |
+| -------------- | --------- | --------------- | -------- |
+| Authentication | 8         | 3               | 37.5%    |
+| Transactions   | 15        | 3               | 20%      |
+| VTU            | 25+       | 7               | ~28%     |
+| Wallet         | 10        | 0               | 0%       |
+| Admin          | 20+       | 4               | ~20%     |
+| Notifications  | 10        | 0 (queue-based) | N/A      |
+| **Overall**    | **~90**   | **~17**         | **~19%** |
 
 **Note:** Many endpoints rely on global rate limits (200 req/min), which provides baseline protection.
 
@@ -640,6 +693,7 @@ async requeryVirtualAccount(userId: string) {
 The RaverPay API has **strong rate limiting** on critical financial endpoints (transactions, withdrawals, VTU purchases) with excellent dual-layer protection (hourly + burst limits). The OTP system and account locking mechanisms provide robust security.
 
 **Key Strengths:**
+
 - Comprehensive protection on financial operations
 - Idempotency prevents duplicate transactions
 - Multi-layered rate limiting (global + endpoint-specific)
@@ -647,6 +701,7 @@ The RaverPay API has **strong rate limiting** on critical financial endpoints (t
 - Notification queue respects external service limits
 
 **Key Weaknesses:**
+
 - Missing rate limits on read-heavy endpoints (wallet balance, transaction history)
 - No client-side rate limiting for external APIs (Paystack, VTPass)
 - Virtual account requery limit not enforced

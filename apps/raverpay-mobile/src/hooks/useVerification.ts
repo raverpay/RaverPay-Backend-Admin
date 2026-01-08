@@ -24,7 +24,7 @@ export const useVerification = () => {
     },
     onError: (error) => {
       const apiError = handleApiError(error);
-      errorLogger.logAuthError(apiError, 'send_email_verification');
+      errorLogger.logAuthError(new Error(apiError.message), 'send_email_verification');
       toast.error({
         title: 'Failed to Send Code',
         message: 'Could not send verification code to your email',
@@ -50,7 +50,7 @@ export const useVerification = () => {
     },
     onError: (error) => {
       const apiError = handleApiError(error);
-      errorLogger.logAuthError(apiError, 'verify_email');
+      errorLogger.logAuthError(new Error(apiError.message), 'verify_email');
       toast.auth.invalidVerificationCode();
       throw apiError;
     },
@@ -67,7 +67,7 @@ export const useVerification = () => {
     },
     onError: (error) => {
       const apiError = handleApiError(error);
-      errorLogger.logAuthError(apiError, 'send_phone_verification');
+      errorLogger.logAuthError(new Error(apiError.message), 'send_phone_verification');
       toast.error({
         title: 'Failed to Send SMS',
         message: 'Could not send verification code to your phone',
@@ -93,7 +93,7 @@ export const useVerification = () => {
     },
     onError: (error) => {
       const apiError = handleApiError(error);
-      errorLogger.logAuthError(apiError, 'verify_phone');
+      errorLogger.logAuthError(new Error(apiError.message), 'verify_phone');
       toast.auth.invalidVerificationCode();
       throw apiError;
     },

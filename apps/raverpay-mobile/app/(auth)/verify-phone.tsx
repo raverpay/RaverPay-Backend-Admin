@@ -1,37 +1,26 @@
 // app/(auth)/verify-phone.tsx
-import { Button, Text } from "@/src/components/ui";
-import { useTheme } from "@/src/hooks/useTheme";
-import { useVerification } from "@/src/hooks/useVerification";
-import { useOtpStore } from "@/src/store/otp.store";
-import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useRef, useState } from "react";
-import {
-  Alert,
-  BackHandler,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Button, Text } from '@/src/components/ui';
+import { useTheme } from '@/src/hooks/useTheme';
+import { useVerification } from '@/src/hooks/useVerification';
+import { useOtpStore } from '@/src/store/otp.store';
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useRef, useState } from 'react';
+import { Alert, BackHandler, TextInput, TouchableOpacity, View } from 'react-native';
 
 const CODE_LENGTH = 6;
 
 export default function VerifyPhoneScreen() {
   const { isDark } = useTheme();
-  const [code, setCode] = useState<string[]>(new Array(CODE_LENGTH).fill(""));
+  const [code, setCode] = useState<string[]>(new Array(CODE_LENGTH).fill(''));
   const [countdown, setCountdown] = useState(120); // 2 minutes
   const inputRefs = useRef<(TextInput | null)[]>([]);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const {
-    verifyPhone,
-    isVerifyingPhone,
-    sendPhoneVerification,
-    isSendingPhone,
-  } = useVerification();
+  const { verifyPhone, isVerifyingPhone, sendPhoneVerification, isSendingPhone } =
+    useVerification();
 
-  const { canSendPhoneOtp, setPhoneOtpSent, clearPhoneOtp, phoneOtp } =
-    useOtpStore();
+  const { canSendPhoneOtp, setPhoneOtpSent, clearPhoneOtp, phoneOtp } = useOtpStore();
 
   useEffect(() => {
     // Smart send logic: only send if no recent OTP
@@ -44,17 +33,15 @@ export default function VerifyPhoneScreen() {
             setPhoneOtpSent(result.canResendAt);
           }
         } catch (error) {
-          console.error("Auto-send failed:", error);
+          console.error('Auto-send failed:', error);
         }
       } else {
         // Calculate remaining time from stored canResendAt
-        const canResendAt = phoneOtp.canResendAt
-          ? new Date(phoneOtp.canResendAt)
-          : new Date();
+        const canResendAt = phoneOtp.canResendAt ? new Date(phoneOtp.canResendAt) : new Date();
         const now = new Date();
         const remainingSeconds = Math.max(
           0,
-          Math.ceil((canResendAt.getTime() - now.getTime()) / 1000)
+          Math.ceil((canResendAt.getTime() - now.getTime()) / 1000),
         );
         setCountdown(remainingSeconds);
       }
@@ -79,13 +66,10 @@ export default function VerifyPhoneScreen() {
     }, 1000);
 
     // Prevent Android hardware back button
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      () => {
-        // Return true to prevent default back behavior
-        return true;
-      }
-    );
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      // Return true to prevent default back behavior
+      return true;
+    });
 
     return () => {
       if (timerRef.current) {
@@ -110,20 +94,20 @@ export default function VerifyPhoneScreen() {
     }
 
     // Auto-submit when all fields are filled
-    if (newCode.every((digit) => digit !== "") && text) {
-      handleVerify(newCode.join(""));
+    if (newCode.every((digit) => digit !== '') && text) {
+      handleVerify(newCode.join(''));
     }
   };
 
   const handleKeyPress = (e: any, index: number) => {
     // Handle backspace
-    if (e.nativeEvent.key === "Backspace" && !code[index] && index > 0) {
+    if (e.nativeEvent.key === 'Backspace' && !code[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
   };
 
   const handleVerify = async (verificationCode?: string) => {
-    const codeToVerify = verificationCode || code.join("");
+    const codeToVerify = verificationCode || code.join('');
 
     if (codeToVerify.length !== CODE_LENGTH) {
       return;
@@ -134,28 +118,28 @@ export default function VerifyPhoneScreen() {
       // Clear OTP state on successful verification
       clearPhoneOtp();
       // After successful phone verification, redirect to main app
-      router.replace("/(tabs)");
+      router.replace('/(tabs)');
     } catch {
       // Clear the code on error
-      setCode(new Array(CODE_LENGTH).fill(""));
+      setCode(new Array(CODE_LENGTH).fill(''));
       inputRefs.current[0]?.focus();
     }
   };
 
   const showSpamCheckDialog = () => {
     Alert.alert(
-      "Check Your Messages",
+      'Check Your Messages',
       "Before we resend the code, please check your SMS messages folder. Sometimes verification codes can be delayed.\n\nIf you've checked and still haven't received it, tap 'Resend' to get a new code.",
       [
         {
-          text: "Cancel",
-          style: "cancel",
+          text: 'Cancel',
+          style: 'cancel',
         },
         {
-          text: "Resend Code",
+          text: 'Resend Code',
           onPress: handleResendConfirmed,
         },
-      ]
+      ],
     );
   };
 
@@ -190,14 +174,14 @@ export default function VerifyPhoneScreen() {
         });
       }, 1000);
     } catch (error) {
-      console.error("Resend error:", error);
+      console.error('Resend error:', error);
       // Error toast already shown by useVerification hook
     }
   };
 
   return (
     <View className="flex-1 bg-gray-50 dark:bg-gray-900 p-5">
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* Header */}
       <View className="mt-16 mb-8">
@@ -214,8 +198,7 @@ export default function VerifyPhoneScreen() {
             Verify Your Phone
           </Text>
           <Text variant="body" color="secondary" align="left">
-            We&apos;ve sent a 6-digit SMS code to your phone.{"\n"}Please enter
-            it below.
+            We&apos;ve sent a 6-digit SMS code to your phone.{'\n'}Please enter it below.
           </Text>
         </View>
       </View>
@@ -225,11 +208,13 @@ export default function VerifyPhoneScreen() {
         {code.map((digit, index) => (
           <TextInput
             key={index}
-            ref={(ref) => (inputRefs.current[index] = ref)}
+            ref={(ref) => {
+              inputRefs.current[index] = ref;
+            }}
             className={`w-[50px] h-[60px] border-2 rounded-xl text-center text-2xl font-bold text-gray-900 dark:text-white ${
               digit
-                ? "border-[#5B55F6] bg-purple-50 dark:bg-purple-900/30"
-                : "border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800"
+                ? 'border-[#5B55F6] bg-purple-50 dark:bg-purple-900/30'
+                : 'border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800'
             }`}
             value={digit}
             onChangeText={(text) => handleChangeText(text, index)}
@@ -248,7 +233,7 @@ export default function VerifyPhoneScreen() {
         fullWidth
         loading={isVerifyingPhone}
         onPress={() => handleVerify()}
-        disabled={code.some((digit) => digit === "")}
+        disabled={code.some((digit) => digit === '')}
         className="mb-6"
       >
         Verify Phone
@@ -264,12 +249,9 @@ export default function VerifyPhoneScreen() {
             Resend in {countdown}s
           </Text>
         ) : (
-          <TouchableOpacity
-            onPress={showSpamCheckDialog}
-            disabled={isSendingPhone}
-          >
+          <TouchableOpacity onPress={showSpamCheckDialog} disabled={isSendingPhone}>
             <Text variant="bodyMedium" className="text-[#5B55F6]">
-              {isSendingPhone ? "Sending..." : "Resend Code"}
+              {isSendingPhone ? 'Sending...' : 'Resend Code'}
             </Text>
           </TouchableOpacity>
         )}

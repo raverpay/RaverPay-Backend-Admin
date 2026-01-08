@@ -3,7 +3,7 @@ import { Button, Card, Input, PINModal, ScreenHeader, Text } from '@/src/compone
 import { useConvertCrypto, useCryptoWallet } from '@/src/hooks/useCryptoWallet';
 import { toast } from '@/src/lib/utils/toast';
 import { cryptoService } from '@/src/services/crypto.service';
-import { ConversionQuote, TokenSymbol } from '@/src/types/crypto.types';
+import { ConversionQuote, CryptoBalance, TokenSymbol } from '@/src/types/crypto.types';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -26,7 +26,7 @@ export default function ConvertCryptoScreen() {
   const [isLoadingQuote, setIsLoadingQuote] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
 
-  const selectedBalance = balances.find((b) => b.tokenSymbol === selectedToken);
+  const selectedBalance = balances.find((b: CryptoBalance) => b.tokenSymbol === selectedToken);
   const insets = useSafeAreaInsets();
   // Get quote when amount changes
   useEffect(() => {

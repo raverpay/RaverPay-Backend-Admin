@@ -145,7 +145,7 @@ export const useInactivityTimeout = (options: UseInactivityTimeoutOptions = {}) 
     });
 
     return () => {
-     //  console.log('[InactivityTimeout] 🧹 Cleanup - removing listeners');
+      //  console.log('[InactivityTimeout] 🧹 Cleanup - removing listeners');
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         //console.log('[InactivityTimeout] Cleared timeout on cleanup');
