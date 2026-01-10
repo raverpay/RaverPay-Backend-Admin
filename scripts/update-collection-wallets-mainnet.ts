@@ -1,9 +1,9 @@
 /**
  * Update Collection Wallet Addresses - MAINNET
- * 
+ *
  * This script updates the CIRCLE_FEE_CONFIG in the database with the
  * MAINNET collection wallet addresses.
- * 
+ *
  * Run this AFTER you've run create-collection-wallet-mainnet.ts
  * and copied the wallet addresses here.
  */
@@ -14,9 +14,9 @@ const prisma = new PrismaClient();
 
 // TODO: Update these addresses after running create-collection-wallet-mainnet.ts
 const MAINNET_COLLECTION_WALLETS = {
-  'BASE-MAINNET': '',  // TODO: Add BASE mainnet wallet address
-  'OP-MAINNET': '',    // TODO: Add Optimism mainnet wallet address
-  'ARB-MAINNET': '',   // TODO: Add Arbitrum mainnet wallet address
+  'BASE-MAINNET': '', // TODO: Add BASE mainnet wallet address
+  'OP-MAINNET': '', // TODO: Add Optimism mainnet wallet address
+  'ARB-MAINNET': '', // TODO: Add Arbitrum mainnet wallet address
   'MATIC-POLYGON': '', // TODO: Add Polygon mainnet wallet address
 };
 
@@ -46,24 +46,24 @@ async function main() {
 
     if (emptyWallets.length > 0) {
       console.log('⚠️  WARNING: The following mainnet wallets are not configured:');
-      emptyWallets.forEach(network => console.log(`   - ${network}`));
+      emptyWallets.forEach((network) => console.log(`   - ${network}`));
       console.log('');
       console.log('Please update the MAINNET_COLLECTION_WALLETS object in this script');
       console.log('after running create-collection-wallet-mainnet.ts');
       console.log('');
-      
+
       // Ask for confirmation
       const readline = require('readline').createInterface({
         input: process.stdin,
-        output: process.stdout
+        output: process.stdout,
       });
-      
+
       const answer = await new Promise<string>((resolve) => {
         readline.question('Continue anyway? (y/N): ', resolve);
       });
-      
+
       readline.close();
-      
+
       if (answer.toLowerCase() !== 'y') {
         console.log('Aborted.');
         process.exit(0);
@@ -109,7 +109,6 @@ async function main() {
     console.log('2. Update Circle API keys to use MAINNET keys');
     console.log('3. Enable mainnet blockchains in admin dashboard');
     console.log('4. Test with small amounts first!');
-    
   } catch (error) {
     console.error('❌ Error:', error);
     process.exit(1);

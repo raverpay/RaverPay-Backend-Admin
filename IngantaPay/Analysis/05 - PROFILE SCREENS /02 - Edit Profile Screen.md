@@ -81,9 +81,9 @@ Field List (in order):
      - Border radius: 12px
      - Icon: warning (yellow)
      - Text: White for title, gray for description
-   Content:
-   Note:
-   Changes to your email or phone number may require verification.
+       Content:
+       Note:
+       Changes to your email or phone number may require verification.
 8. SAVE BUTTON:
    - Text: "Save Changes"
    - Background: Red (#C41E3A)
