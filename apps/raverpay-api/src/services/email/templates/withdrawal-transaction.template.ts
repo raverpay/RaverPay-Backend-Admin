@@ -23,19 +23,19 @@ export function withdrawalTransactionEmailTemplate(
     initiated: {
       color: '#f59e0b',
       text: 'Initiated',
-      message: 'Your withdrawal has been initiated and is being processed.',
+      message: 'Your transfer has been initiated and is being processed.',
     },
     success: {
       color: '#10b981',
       text: 'Successful',
       message:
-        'Your withdrawal has been successfully completed and sent to your bank account.',
+        'Your transfer has been successfully completed and sent to your bank account.',
     },
     failed: {
       color: '#ef4444',
       text: 'Failed',
       message:
-        'Your withdrawal could not be completed. The amount has been refunded to your wallet.',
+        'Your transfer could not be completed. The amount has been refunded to your wallet.',
     },
   };
 
@@ -44,7 +44,7 @@ export function withdrawalTransactionEmailTemplate(
   const isSuccess = details.status === 'success';
   const isFailed = details.status === 'failed';
 
-  const subject = `Withdrawal ${config.text} - ₦${details.amount}`;
+  const subject = `Transfer ${config.text} - ₦${details.amount}`;
 
   // Mask account number for security (show last 4 digits only)
   const maskedAccountNumber =
@@ -58,7 +58,7 @@ export function withdrawalTransactionEmailTemplate(
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Withdrawal ${config.text}</title>
+        <title>Transfer ${config.text}</title>
       </head>
       <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
         <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f5f5f5;" cellpadding="0" cellspacing="0">
@@ -71,9 +71,9 @@ export function withdrawalTransactionEmailTemplate(
                 <!-- Header -->
                 <tr>
                   <td style="background: #5B55F6; padding: 40px 30px; text-align: center; border-radius: 12px 12px 0 0;">
-                    <h2 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">
+                    <h3 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">
                       Withdrawal ${config.text}
-                    </h2>
+                    </h3>
                     <p style="margin: 10px 0 0 0; color: rgba(255, 255, 255, 0.9); font-size: 16px;">
                       Bank Transfer
                     </p>
@@ -82,7 +82,7 @@ export function withdrawalTransactionEmailTemplate(
 
                 <!-- Body -->
                 <tr>
-                  <td style="padding: 40px 30px;">
+                  <td style="padding: 40px 20px;">
                     <p style="margin: 0 0 20px 0; font-size: 16px; color: #333333; line-height: 1.6;">
                       Hi <strong>${details.firstName}</strong>,
                     </p>
@@ -193,7 +193,7 @@ export function withdrawalTransactionEmailTemplate(
                     <!-- Processing Message -->
                     <div style="background: #fef3c7; border-radius: 8px; padding: 20px; margin-bottom: 25px; border-left: 4px solid #f59e0b;">
                       <p style="margin: 0; font-size: 14px; color: #92400e; line-height: 1.5;">
-                        <strong>⏳ Processing</strong><br>
+                        <strong>Processing</strong><br>
                         Your withdrawal is being processed. This usually takes a few minutes to 24 hours. You'll receive another notification once it's completed.
                       </p>
                     </div>
@@ -207,7 +207,7 @@ export function withdrawalTransactionEmailTemplate(
                     <!-- Success Message -->
                     <div style="background: #d1fae5; border-radius: 8px; padding: 20px; margin-bottom: 25px; border-left: 4px solid #10b981;">
                       <p style="margin: 0; font-size: 14px; color: #065f46; line-height: 1.5;">
-                        <strong>✅ Transaction Completed</strong><br>
+                        <strong>Transaction Completed</strong><br>
                         The funds have been successfully transferred to your bank account. Please check your bank statement to confirm receipt.
                       </p>
                     </div>
@@ -221,7 +221,7 @@ export function withdrawalTransactionEmailTemplate(
                     <!-- Error Message -->
                     <div style="background: #fee2e2; border-radius: 8px; padding: 20px; margin-bottom: 25px; border-left: 4px solid #ef4444;">
                       <p style="margin: 0; font-size: 14px; color: #991b1b; line-height: 1.5;">
-                        <strong>❌ Transaction Failed</strong><br>
+                        <strong>Transaction Failed</strong><br>
                         The withdrawal could not be completed. The amount (including fees) has been automatically refunded to your wallet. Please verify your account details and try again.
                       </p>
                     </div>
@@ -229,17 +229,12 @@ export function withdrawalTransactionEmailTemplate(
                         : ''
                     }
 
-                    <!-- CTA Button -->
-                    <div style="text-align: center; margin: 30px 0;">
-                      <a href="raverpay://app/transactions" style="display: inline-block; background: #5b55f6; color: #ffffff; text-decoration: none; padding: 14px 35px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);">
-                        View Transaction History
-                      </a>
-                    </div>
+                   
 
                     <!-- Help Section -->
                     <p style="margin: 30px 0 0 0; font-size: 14px; color: #666666; line-height: 1.6; text-align: center;">
                       Need help? Contact our support team at<br>
-                      <a href="mailto:expertvetteddigital@gmail.com" style="color: #667eea; text-decoration: none; font-weight: 600;">expertvetteddigital@gmail.com</a>
+                      <a href="mailto:support@raverpay.com" style="color: #667eea; text-decoration: none; font-weight: 600;">support@raverpay.com</a>
                     </p>
                   </td>
                 </tr>
@@ -255,33 +250,12 @@ export function withdrawalTransactionEmailTemplate(
                       <a href="https://www.instagram.com/useraverpay" style="display: inline-block; margin: 0 10px; color: #667eea; text-decoration: none; font-size: 12px;">Instagram</a>
                       <a href="https://www.facebook.com/useraverpay" style="display: inline-block; margin: 0 10px; color: #667eea; text-decoration: none; font-size: 12px;">Facebook</a>
                     </p>
-                    <p style="margin: 0 0 10px 0; color: #999999; font-size: 14px;">
-                      <strong>Raverpay</strong>
-                    </p>
-                    <p style="margin: 0 0 15px 0; color: #999999; font-size: 12px;">
-                      Lagos, Nigeria
-                    </p>
                     <p style="margin: 0; color: #cccccc; font-size: 11px;">
                       © ${new Date().getFullYear()} Raverpay. All rights reserved.
                     </p>
                   </td>
                 </tr>
-
               </table>
-
-              <!-- Privacy Links -->
-              <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; margin-top: 20px;" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td style="text-align: center; padding: 0 20px;">
-                    <p style="margin: 0; color: #999999; font-size: 12px;">
-                      <a href="https://raverpay.expertvetteddigital.tech/privacy" style="color: #667eea; text-decoration: none; margin: 0 10px;">Privacy Policy</a>
-                      <a href="https://raverpay.expertvetteddigital.tech/tos" style="color: #667eea; text-decoration: none; margin: 0 10px;">Terms of Service</a>
-                      <a href="mailto:support@raverpay.com" style="color: #667eea; text-decoration: none; margin: 0 10px;">Contact Support</a>
-                    </p>
-                  </td>
-                </tr>
-              </table>
-
             </td>
           </tr>
         </table>

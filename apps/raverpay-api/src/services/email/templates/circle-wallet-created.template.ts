@@ -179,26 +179,6 @@ export function circleWalletCreatedTemplate(
                 </ul>
             </div>
 
-            <!-- Security Notice -->
-            <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 16px 20px; border-radius: 8px; margin-bottom: 25px;">
-                <p style="color: #991b1b; margin: 0 0 10px 0; font-size: 15px; font-weight: 600;">
-                 Security Reminder
-                </p>
-                <ul style="color: #7f1d1d; margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.8;">
-                    <li>Never share your wallet's private keys or recovery phrase</li>
-                    <li>Always verify the recipient address before sending funds</li>
-                    <li>Enable two-factor authentication on your account</li>
-                    <li>Be cautious of phishing attempts and suspicious links</li>
-                </ul>
-            </div>
-
-            <!-- CTA Button -->
-            <div style="text-align: center; margin: 30px 0;">
-                <a href="raverpay://app/crypto/wallets" style="display: inline-block; background: #5b55f6; color: #ffffff; text-decoration: none; padding: 14px 35px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);">
-                    View My Wallet
-                </a>
-            </div>
-
             <!-- Help Text -->
             <p style="color: #64748b; font-size: 14px; text-align: center; margin: 25px 0 0 0; line-height: 1.6;">
                 Need help? Contact our support team at
