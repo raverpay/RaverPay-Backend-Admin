@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { DeviceService } from '../device/device.service';
-import { AuditService } from '../audit/audit.service';
+import { AuditService } from '../common/services/audit.service';
 import { NotificationDispatcherService } from '../notifications/notification-dispatcher.service';
 import { MfaEncryptionUtil } from '../utils/mfa-encryption.util';
 import { UserRole } from '@prisma/client';

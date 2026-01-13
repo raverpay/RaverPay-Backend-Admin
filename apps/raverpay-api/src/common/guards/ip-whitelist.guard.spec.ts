@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext } from '@nestjs/common';
 import { IpWhitelistGuard } from './ip-whitelist.guard';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuditService } from '../services/audit.service';
+import { Reflector } from '@nestjs/core';
 import { UserRole } from '@prisma/client';
 import { AuthenticatedRequest } from '../types/auth.types';
 
@@ -14,6 +16,10 @@ describe('IpWhitelistGuard', () => {
       findMany: jest.fn(),
       updateMany: jest.fn(),
     },
+  };
+
+  const mockAuditService = {
+    log: jest.fn(),
   };
 
   const createMockContext = (
@@ -41,9 +47,14 @@ describe('IpWhitelistGuard', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         IpWhitelistGuard,
+        Reflector,
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: AuditService,
+          useValue: mockAuditService,
         },
       ],
     }).compile();

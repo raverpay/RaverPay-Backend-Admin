@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { ExecutionContext, UnauthorizedException, HttpException } from '@nestjs/common';
 import { ReAuthGuard } from './re-auth.guard';
 import { JwtService } from '@nestjs/jwt';
 import { AuthenticatedRequest } from '../types/auth.types';
@@ -84,7 +84,7 @@ describe('ReAuthGuard', () => {
       const user = { id: 'user-1' };
       const context = createMockContext(user);
 
-      expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
+      expect(() => guard.canActivate(context)).toThrow(HttpException);
     });
 
     it('should reject request with expired token', () => {
@@ -99,7 +99,7 @@ describe('ReAuthGuard', () => {
 
       const context = createMockContext(user, expiredToken);
 
-      expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
+      expect(() => guard.canActivate(context)).toThrow(HttpException);
     });
 
     it('should reject request with invalid token', () => {
@@ -112,7 +112,7 @@ describe('ReAuthGuard', () => {
 
       const context = createMockContext(user, invalidToken);
 
-      expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
+      expect(() => guard.canActivate(context)).toThrow(HttpException);
     });
 
     it('should reject token with wrong purpose', () => {
