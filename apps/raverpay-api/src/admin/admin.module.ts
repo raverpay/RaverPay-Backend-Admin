@@ -38,6 +38,8 @@ import { RateLimitsController } from './rate-limits/rate-limits.controller';
 import { RateLimitsService } from './rate-limits/rate-limits.service';
 import { AdminCircleController } from './circle/admin-circle.controller';
 import { AdminCircleService } from './circle/admin-circle.service';
+import { AdminSecurityController } from './security/admin-security.controller';
+import { AdminSecurityService } from './security/admin-security.service';
 import { HierarchyService } from '../common/services/hierarchy.service';
 import { AccountLockingService } from '../common/services/account-locking.service';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -84,6 +86,7 @@ import { SupportAdminController } from '../support/support-admin.controller';
     AdminEmailsController,
     RateLimitsController,
     SupportAdminController,
+    AdminSecurityController,
   ],
   providers: [
     AdminUsersService,
@@ -105,6 +108,7 @@ import { SupportAdminController } from '../support/support-admin.controller';
     AdminCircleService,
     AdminEmailsService,
     RateLimitsService,
+    AdminSecurityService,
     AccountLockingService,
     HierarchyService,
   ],

@@ -30,6 +30,7 @@ import { RedisThrottlerStorage } from './common/storage/redis-throttler.storage'
 import { RateLimitLoggerInterceptor } from './common/interceptors/rate-limit-logger.interceptor';
 import { AccountLockingService } from './common/services/account-locking.service';
 import { AccountLockGuard } from './common/guards/account-lock.guard';
+import { IpWhitelistGuard } from './common/guards/ip-whitelist.guard';
 import { IdempotencyService } from './common/services/idempotency.service';
 import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
 import { RequestLoggerInterceptor } from './common/interceptors/request-logger.interceptor';
@@ -122,6 +123,11 @@ import { CommonModule } from './common/common.module';
     {
       provide: APP_GUARD,
       useClass: AccountLockGuard,
+    },
+    // IP whitelist guard for admin routes (can be skipped with @SkipIpWhitelist())
+    {
+      provide: APP_GUARD,
+      useClass: IpWhitelistGuard,
     },
     // Log rate limit violations with geolocation
     {

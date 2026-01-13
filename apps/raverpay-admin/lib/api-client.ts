@@ -21,6 +21,19 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
+    // Add re-authentication token if available and not expired
+    if (typeof window !== 'undefined') {
+      const reAuthToken = (window as any).__reAuthToken;
+      const reAuthTokenExpiry = (window as any).__reAuthTokenExpiry;
+      if (reAuthToken && reAuthTokenExpiry && Date.now() < reAuthTokenExpiry) {
+        config.headers['X-Recent-Auth-Token'] = reAuthToken;
+      } else {
+        // Clear expired token
+        delete (window as any).__reAuthToken;
+        delete (window as any).__reAuthTokenExpiry;
+      }
+    }
+
     // Add idempotency key for POST/PUT/PATCH requests to idempotent endpoints
     const endpoint = config.url || '';
     const method = config.method?.toUpperCase() || '';

@@ -19,7 +19,15 @@ import { NotificationDispatcherService } from '../notifications/notification-dis
 import { IpGeolocationService } from '../common/services/ip-geolocation.service';
 import { PostHogService } from '../common/analytics/posthog.service';
 import { AuditService } from '../common/services/audit.service';
-import { AuditAction, AuditStatus } from '../common/types/audit-log.types';
+import {
+  AuditAction,
+  AuditStatus,
+  AuditSeverity,
+} from '../common/types/audit-log.types';
+import { MfaEncryptionUtil } from '../utils/mfa-encryption.util';
+import * as speakeasy from 'speakeasy';
+import * as QRCode from 'qrcode';
+import { UserRole } from '@prisma/client';
 
 /**
  * Authentication Service
@@ -41,6 +49,7 @@ export class AuthService {
     private readonly ipGeolocationService: IpGeolocationService,
     private readonly posthogService: PostHogService,
     private readonly auditService: AuditService,
+    private readonly mfaEncryption: MfaEncryptionUtil,
   ) {}
 
   /**
@@ -228,6 +237,40 @@ export class AuthService {
 
     // Password is valid - reset failed attempts
     await this.resetFailedLoginAttempts(user.id);
+
+    // Check if MFA is enabled for admin users
+    const isAdmin =
+      user.role === UserRole.ADMIN ||
+      user.role === UserRole.SUPPORT ||
+      user.role === UserRole.SUPER_ADMIN;
+
+    if (isAdmin && user.twoFactorEnabled && user.twoFactorSecret) {
+      // MFA is enabled - generate temporary token for MFA verification
+      const tempToken = this.jwtService.sign(
+        {
+          sub: user.id,
+          purpose: 'mfa-verification',
+          email: user.email,
+        },
+        { expiresIn: '5m' }, // 5 minute expiry
+      );
+
+      // Log MFA required event
+      await this.auditService.log({
+        userId: user.id,
+        action: AuditAction.MFA_REQUIRED,
+        resource: 'AUTH',
+        status: AuditStatus.SUCCESS,
+        metadata: { ipAddress, deviceId: deviceInfo?.deviceId },
+      });
+
+      // Return MFA required response
+      return {
+        mfaRequired: true,
+        tempToken,
+        message: 'MFA verification required',
+      };
+    }
 
     // NEW: Device verification (if deviceInfo provided)
     let deviceId: string | undefined;
@@ -470,7 +513,7 @@ export class AuthService {
    */
   private async handleFailedLogin(
     userId: string,
-    ipAddress?: string,
+    _ipAddress?: string,
   ): Promise<void> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -803,7 +846,11 @@ export class AuthService {
    * @param user - User object
    * @returns Access token and refresh token
    */
-  private async generateTokens(user: User) {
+  private async generateTokens(
+    user: User,
+    deviceInfo?: DeviceInfo,
+    ipAddress?: string,
+  ) {
     const payload = {
       sub: user.id,
       email: user.email,
@@ -827,12 +874,68 @@ export class AuthService {
       ),
     ]);
 
-    // Store refresh token in database
+    // Get location from IP if available
+    let location: string | undefined;
+    if (ipAddress && this.ipGeolocationService.isAvailable()) {
+      location =
+        this.ipGeolocationService.getCityFromIp(ipAddress) || undefined;
+    }
+
+    // Check for concurrent session limits for admins
+    const isAdmin =
+      user.role === UserRole.ADMIN ||
+      user.role === UserRole.SUPPORT ||
+      user.role === UserRole.SUPER_ADMIN;
+
+    if (isAdmin) {
+      // Check active sessions count
+      const activeSessions = await this.prisma.refreshToken.count({
+        where: {
+          userId: user.id,
+          isRevoked: false,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      // Max 3 concurrent sessions for admins
+      if (activeSessions >= 3) {
+        // Revoke oldest session
+        const oldestSession = await this.prisma.refreshToken.findFirst({
+          where: {
+            userId: user.id,
+            isRevoked: false,
+            expiresAt: { gt: new Date() },
+          },
+          orderBy: { createdAt: 'asc' },
+        });
+
+        if (oldestSession) {
+          await this.prisma.refreshToken.update({
+            where: { id: oldestSession.id },
+            data: { isRevoked: true },
+          });
+
+          await this.auditService.log({
+            userId: user.id,
+            action: AuditAction.TOKEN_REFRESHED,
+            resource: 'SESSION',
+            metadata: { revokedSessionId: oldestSession.id },
+          });
+        }
+      }
+    }
+
+    // Store refresh token in database with session info
     await this.prisma.refreshToken.create({
       data: {
         userId: user.id,
         token: refreshToken,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        deviceId: deviceInfo?.deviceId,
+        ipAddress,
+        location,
+        userAgent: deviceInfo?.userAgent,
+        lastUsedAt: new Date(),
       },
     });
 
@@ -841,6 +944,110 @@ export class AuthService {
       refreshToken,
       expiresIn: 1800, // 30 minutes in seconds
     };
+  }
+
+  /**
+   * Get all active sessions for a user
+   *
+   * @param userId - User ID
+   * @returns Array of active sessions
+   */
+  async getSessions(userId: string) {
+    const sessions = await this.prisma.refreshToken.findMany({
+      where: {
+        userId,
+        isRevoked: false,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { lastUsedAt: 'desc' },
+      select: {
+        id: true,
+        deviceId: true,
+        ipAddress: true,
+        location: true,
+        userAgent: true,
+        lastUsedAt: true,
+        createdAt: true,
+        expiresAt: true,
+      },
+    });
+
+    return sessions;
+  }
+
+  /**
+   * Revoke a specific session
+   *
+   * @param userId - User ID
+   * @param sessionId - Session ID
+   * @returns Success message
+   */
+  async revokeSession(userId: string, sessionId: string) {
+    const session = await this.prisma.refreshToken.findFirst({
+      where: {
+        id: sessionId,
+        userId,
+        isRevoked: false,
+      },
+    });
+
+    if (!session) {
+      throw new BadRequestException('Session not found');
+    }
+
+    await this.prisma.refreshToken.update({
+      where: { id: sessionId },
+      data: { isRevoked: true },
+    });
+
+    await this.auditService.log({
+      userId,
+      action: AuditAction.USER_LOGOUT,
+      resource: 'SESSION',
+      resourceId: sessionId,
+      status: AuditStatus.SUCCESS,
+    });
+
+    return { success: true, message: 'Session revoked successfully' };
+  }
+
+  /**
+   * Revoke all sessions except current one
+   *
+   * @param userId - User ID
+   * @param currentToken - Current refresh token to keep
+   * @returns Success message
+   */
+  async revokeAllSessions(userId: string, currentToken?: string) {
+    const whereClause: any = {
+      userId,
+      isRevoked: false,
+    };
+
+    if (currentToken) {
+      const currentSession = await this.prisma.refreshToken.findUnique({
+        where: { token: currentToken },
+      });
+
+      if (currentSession && currentSession.userId === userId) {
+        whereClause.id = { not: currentSession.id };
+      }
+    }
+
+    await this.prisma.refreshToken.updateMany({
+      where: whereClause,
+      data: { isRevoked: true },
+    });
+
+    await this.auditService.log({
+      userId,
+      action: AuditAction.USER_LOGOUT,
+      resource: 'SESSION',
+      status: AuditStatus.SUCCESS,
+      metadata: { logoutType: 'ALL_SESSIONS' },
+    });
+
+    return { success: true, message: 'All sessions revoked successfully' };
   }
 
   /**
@@ -1222,5 +1429,773 @@ export class AuthService {
     });
 
     return { success: true, message: 'Logged out successfully' };
+  }
+
+  /**
+   * Setup MFA for admin user
+   * Generates secret, QR code, and backup codes
+   *
+   * @param userId - User ID
+   * @returns QR code data URL and backup codes
+   */
+  async setupMfa(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Check if user is admin
+    const isAdmin =
+      user.role === UserRole.ADMIN ||
+      user.role === UserRole.SUPPORT ||
+      user.role === UserRole.SUPER_ADMIN;
+
+    if (!isAdmin) {
+      throw new UnauthorizedException('MFA is only available for admin users');
+    }
+
+    // Check if MFA is already enabled
+    if (user.twoFactorEnabled) {
+      throw new BadRequestException('MFA is already enabled');
+    }
+
+    // Generate secret
+    const secret = speakeasy.generateSecret({
+      name: `RaverPay:${user.email}`,
+      issuer: 'RaverPay',
+      length: 32,
+    });
+
+    // Generate backup codes (10 codes, 8 characters each)
+    const backupCodes: string[] = [];
+    for (let i = 0; i < 10; i++) {
+      const code = randomInt(10000000, 99999999).toString();
+      backupCodes.push(code);
+    }
+
+    // Hash backup codes with argon2
+    const hashedBackupCodes = await Promise.all(
+      backupCodes.map((code) => argon2.hash(code)),
+    );
+
+    // Store temporary secret and backup codes in user record (will be saved after verification)
+    // For now, we'll store them temporarily - in production, consider using Redis with expiry
+    const tempSecret = secret.base32;
+
+    // Generate QR code
+    if (!secret.base32) {
+      throw new Error('Failed to generate MFA secret');
+    }
+
+    const otpauthUrl = speakeasy.otpauthURL({
+      secret: secret.base32,
+      label: user.email,
+      issuer: 'RaverPay',
+      encoding: 'base32',
+    });
+
+    const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl);
+
+    // Store temporary secret in user record (we'll clear it if verification fails)
+    // In a production system, you might want to use Redis for this with 30min expiry
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        twoFactorSecret: tempSecret, // Store temporarily, will encrypt after verification
+        mfaBackupCodes: hashedBackupCodes,
+      },
+    });
+
+    return {
+      secret: secret.base32,
+      qrCode: qrCodeDataUrl,
+      manualEntryKey: secret.base32,
+      backupCodes, // Return plain codes - user must save these
+    };
+  }
+
+  /**
+   * Verify MFA setup and enable MFA
+   *
+   * @param userId - User ID
+   * @param code - 6-digit TOTP code
+   * @returns Success message
+   */
+  async verifyMfaSetup(userId: string, code: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || !user.twoFactorSecret) {
+      throw new BadRequestException('MFA setup not initiated');
+    }
+
+    // Verify the code
+    const isValid = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token: code,
+      window: 1, // Allow 30 seconds clock drift
+    });
+
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid verification code');
+    }
+
+    // Encrypt and store the secret
+    const encryptedSecret = this.mfaEncryption.encryptSecret(
+      user.twoFactorSecret,
+    );
+
+    // Enable MFA
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        twoFactorEnabled: true,
+        twoFactorSecret: encryptedSecret,
+        mfaEnabledAt: new Date(),
+        mfaFailedAttempts: 0,
+      },
+    });
+
+    // Log MFA enabled
+    await this.auditService.log({
+      userId,
+      action: AuditAction.MFA_ENABLED,
+      resource: 'AUTH',
+      status: AuditStatus.SUCCESS,
+    });
+
+    // Send notification email
+    await this.notificationDispatcher
+      .sendNotification({
+        userId: user.id,
+        eventType: 'mfa_enabled',
+        category: 'SECURITY',
+        channels: ['EMAIL'],
+        title: 'MFA Enabled on Your Account',
+        message:
+          'Multi-factor authentication has been enabled on your account.',
+        data: {
+          userName: user.firstName,
+          timestamp: new Date().toISOString(),
+        },
+      })
+      .catch((error) => {
+        this.logger.error('Failed to send MFA enabled email', error);
+      });
+
+    return { success: true, message: 'MFA has been enabled successfully' };
+  }
+
+  /**
+   * Verify MFA code during login
+   *
+   * @param tempToken - Temporary token from login
+   * @param mfaCode - 6-digit TOTP code
+   * @param deviceInfo - Device information
+   * @param ipAddress - IP address
+   * @returns User object and auth tokens
+   */
+  async verifyMfaCode(
+    tempToken: string,
+    mfaCode: string,
+    deviceInfo?: DeviceInfo,
+    ipAddress?: string,
+  ) {
+    // Decode and validate tempToken
+    interface MfaTokenPayload {
+      sub: string;
+      purpose: string;
+      email: string;
+    }
+
+    let payload: MfaTokenPayload;
+    try {
+      payload = this.jwtService.verify<MfaTokenPayload>(tempToken);
+    } catch {
+      throw new UnauthorizedException('MFA verification session expired');
+    }
+
+    if (payload.purpose !== 'mfa-verification') {
+      throw new UnauthorizedException('Invalid token purpose');
+    }
+
+    // Get user
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+    });
+
+    if (!user || !user.twoFactorSecret || !user.twoFactorEnabled) {
+      throw new UnauthorizedException('MFA not configured');
+    }
+
+    // Decrypt the stored secret
+    const secret = this.mfaEncryption.decryptSecret(user.twoFactorSecret);
+
+    // Verify the TOTP code
+    const isValid = speakeasy.totp.verify({
+      secret,
+      encoding: 'base32',
+      token: mfaCode,
+      window: 1, // Allow 30 seconds clock drift
+    });
+
+    if (!isValid) {
+      // Increment failed attempts
+      const updatedUser = await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          mfaFailedAttempts: { increment: 1 },
+          lastMfaFailure: new Date(),
+        },
+      });
+
+      // Log failed attempt
+      await this.auditService.log({
+        userId: user.id,
+        action: AuditAction.MFA_VERIFICATION_FAILED,
+        resource: 'AUTH',
+        status: AuditStatus.FAILURE,
+        severity: AuditSeverity.MEDIUM,
+        metadata: { ipAddress, deviceId: deviceInfo?.deviceId },
+      });
+
+      // Lock account after 5 failed attempts
+      if (updatedUser.mfaFailedAttempts >= 5) {
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            lockedUntil: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+          },
+        });
+
+        // Send security alert email
+        await this.notificationDispatcher
+          .sendNotification({
+            userId: user.id,
+            eventType: 'account_locked_mfa',
+            category: 'SECURITY',
+            channels: ['EMAIL'],
+            title: 'Account Locked Due to Failed MFA Attempts',
+            message:
+              'Your account has been temporarily locked due to multiple failed MFA attempts.',
+            data: { userName: user.firstName },
+          })
+          .catch((error) => {
+            this.logger.error('Failed to send account locked email', error);
+          });
+
+        throw new UnauthorizedException(
+          'Account locked due to multiple failed MFA attempts',
+        );
+      }
+
+      throw new UnauthorizedException(
+        `Invalid MFA code. ${5 - updatedUser.mfaFailedAttempts} attempts remaining.`,
+      );
+    }
+
+    // MFA verification successful!
+
+    // Reset failed attempts
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        mfaFailedAttempts: 0,
+        lastMfaSuccess: new Date(),
+      },
+    });
+
+    // Log successful MFA
+    await this.auditService.log({
+      userId: user.id,
+      action: AuditAction.MFA_VERIFICATION_SUCCESS,
+      resource: 'AUTH',
+      status: AuditStatus.SUCCESS,
+      metadata: { ipAddress, deviceId: deviceInfo?.deviceId },
+    });
+
+    // Register/update device (using existing DeviceService)
+    let deviceId: string | undefined;
+    if (deviceInfo) {
+      // Check if device exists
+      const deviceCheck = await this.deviceService.checkDeviceAuthorization(
+        user.id,
+        deviceInfo,
+      );
+
+      if (!deviceCheck.authorized || !deviceCheck.device) {
+        // Register new device
+        await this.deviceService.registerNewDevice(user.id, deviceInfo);
+      } else {
+        // Update device activity
+        await this.deviceService.updateDeviceActivity(
+          deviceCheck.device.deviceId,
+          ipAddress,
+        );
+      }
+      deviceId = deviceInfo.deviceId;
+    }
+
+    // Generate actual access and refresh tokens
+    const tokens = await this.generateTokens(user, deviceInfo, ipAddress);
+
+    // Update last login
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        lastLoginAt: new Date(),
+        lastSuccessfulLoginIp: ipAddress,
+      },
+    });
+
+    // Remove password from response
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...userWithoutPassword } = user;
+
+    return {
+      user: userWithoutPassword,
+      deviceId,
+      ...tokens,
+    };
+  }
+
+  /**
+   * Verify backup code during login
+   *
+   * @param tempToken - Temporary token from login
+   * @param backupCode - Backup code
+   * @param deviceInfo - Device information
+   * @param ipAddress - IP address
+   * @returns User object and auth tokens
+   */
+  async verifyBackupCode(
+    tempToken: string,
+    backupCode: string,
+    deviceInfo?: DeviceInfo,
+    ipAddress?: string,
+  ) {
+    // Decode and validate tempToken
+    interface MfaTokenPayload {
+      sub: string;
+      purpose: string;
+      email: string;
+    }
+
+    let payload: MfaTokenPayload;
+    try {
+      payload = this.jwtService.verify<MfaTokenPayload>(tempToken);
+    } catch {
+      throw new UnauthorizedException('MFA verification session expired');
+    }
+
+    if (payload.purpose !== 'mfa-verification') {
+      throw new UnauthorizedException('Invalid token purpose');
+    }
+
+    // Get user
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+    });
+
+    if (!user || !user.twoFactorEnabled) {
+      throw new UnauthorizedException('MFA not configured');
+    }
+
+    // Verify backup code
+    const backupCodes = user.mfaBackupCodes || [];
+    let matchedIndex = -1;
+
+    for (let i = 0; i < backupCodes.length; i++) {
+      try {
+        const isValid = await argon2.verify(backupCodes[i], backupCode);
+        if (isValid) {
+          matchedIndex = i;
+          break;
+        }
+      } catch {
+        // Continue checking other codes
+        continue;
+      }
+    }
+
+    if (matchedIndex === -1) {
+      // Invalid backup code - treat as failed MFA attempt
+      const updatedUser = await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          mfaFailedAttempts: { increment: 1 },
+          lastMfaFailure: new Date(),
+        },
+      });
+
+      await this.auditService.log({
+        userId: user.id,
+        action: AuditAction.MFA_VERIFICATION_FAILED,
+        resource: 'AUTH',
+        status: AuditStatus.FAILURE,
+        severity: AuditSeverity.MEDIUM,
+        metadata: {
+          ipAddress,
+          deviceId: deviceInfo?.deviceId,
+          usedBackupCode: true,
+        },
+      });
+
+      if (updatedUser.mfaFailedAttempts >= 5) {
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            lockedUntil: new Date(Date.now() + 15 * 60 * 1000),
+          },
+        });
+
+        throw new UnauthorizedException(
+          'Account locked due to multiple failed MFA attempts',
+        );
+      }
+
+      throw new UnauthorizedException('Invalid backup code');
+    }
+
+    // Valid backup code - remove it (single-use)
+    const updatedBackupCodes = [...backupCodes];
+    updatedBackupCodes.splice(matchedIndex, 1);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        mfaBackupCodes: updatedBackupCodes,
+        mfaFailedAttempts: 0,
+        lastMfaSuccess: new Date(),
+      },
+    });
+
+    // Log backup code usage
+    await this.auditService.log({
+      userId: user.id,
+      action: AuditAction.MFA_BACKUP_CODE_USED,
+      resource: 'AUTH',
+      status: AuditStatus.SUCCESS,
+      severity: AuditSeverity.MEDIUM,
+      metadata: { ipAddress, deviceId: deviceInfo?.deviceId },
+    });
+
+    // Send security alert email
+    await this.notificationDispatcher
+      .sendNotification({
+        userId: user.id,
+        eventType: 'mfa_backup_code_used',
+        category: 'SECURITY',
+        channels: ['EMAIL'],
+        title: 'Backup Code Used to Access Your Account',
+        message:
+          'A backup code was used to access your account. If this was not you, please secure your account immediately.',
+        data: {
+          userName: user.firstName,
+          remainingCodes: updatedBackupCodes.length,
+          timestamp: new Date().toISOString(),
+        },
+      })
+      .catch((error) => {
+        this.logger.error('Failed to send backup code used email', error);
+      });
+
+    // Warn if only 2 backup codes remain
+    if (updatedBackupCodes.length <= 2) {
+      await this.notificationDispatcher
+        .sendNotification({
+          userId: user.id,
+          eventType: 'mfa_low_backup_codes',
+          category: 'SECURITY',
+          channels: ['EMAIL'],
+          title: 'Low Backup Codes Remaining',
+          message:
+            'You have few backup codes remaining. Please regenerate them to ensure account access.',
+          data: {
+            userName: user.firstName,
+            remainingCodes: updatedBackupCodes.length,
+          },
+        })
+        .catch((error) => {
+          this.logger.error('Failed to send low backup codes email', error);
+        });
+    }
+
+    // Register/update device
+    let deviceId: string | undefined;
+    if (deviceInfo) {
+      // Check if device exists
+      const deviceCheck = await this.deviceService.checkDeviceAuthorization(
+        user.id,
+        deviceInfo,
+      );
+
+      if (!deviceCheck.authorized || !deviceCheck.device) {
+        // Register new device
+        await this.deviceService.registerNewDevice(user.id, deviceInfo);
+      } else {
+        // Update device activity
+        await this.deviceService.updateDeviceActivity(
+          deviceCheck.device.deviceId,
+          ipAddress,
+        );
+      }
+      deviceId = deviceInfo.deviceId;
+    }
+
+    // Generate tokens
+    const tokens = await this.generateTokens(user, deviceInfo, ipAddress);
+
+    // Update last login
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        lastLoginAt: new Date(),
+        lastSuccessfulLoginIp: ipAddress,
+      },
+    });
+
+    // Remove password from response
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...userWithoutPassword } = user;
+
+    return {
+      user: userWithoutPassword,
+      deviceId,
+      ...tokens,
+    };
+  }
+
+  /**
+   * Disable MFA (requires password verification)
+   *
+   * @param userId - User ID
+   * @param password - User password
+   * @returns Success message
+   */
+  async disableMfa(userId: string, password: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    if (!user.twoFactorEnabled) {
+      throw new BadRequestException('MFA is not enabled');
+    }
+
+    // Verify password
+    const isPasswordValid = await this.verifyPassword(user.password, password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid password');
+    }
+
+    // Disable MFA
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        twoFactorEnabled: false,
+        twoFactorSecret: null,
+        mfaBackupCodes: [],
+        mfaFailedAttempts: 0,
+      },
+    });
+
+    // Log MFA disabled
+    await this.auditService.log({
+      userId,
+      action: AuditAction.MFA_DISABLED,
+      resource: 'AUTH',
+      status: AuditStatus.SUCCESS,
+      severity: AuditSeverity.MEDIUM,
+    });
+
+    // Send security alert email
+    await this.notificationDispatcher
+      .sendNotification({
+        userId: user.id,
+        eventType: 'mfa_disabled',
+        category: 'SECURITY',
+        channels: ['EMAIL'],
+        title: 'MFA Disabled on Your Account',
+        message:
+          'Multi-factor authentication has been disabled on your account.',
+        data: {
+          userName: user.firstName,
+          timestamp: new Date().toISOString(),
+        },
+      })
+      .catch((error) => {
+        this.logger.error('Failed to send MFA disabled email', error);
+      });
+
+    return { success: true, message: 'MFA has been disabled successfully' };
+  }
+
+  /**
+   * Regenerate backup codes
+   *
+   * @param userId - User ID
+   * @returns New backup codes
+   */
+  async regenerateBackupCodes(userId: string, mfaCode: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || !user.twoFactorEnabled) {
+      throw new BadRequestException('MFA is not enabled');
+    }
+
+    // Verify MFA code before regenerating
+    if (!user.twoFactorSecret) {
+      throw new BadRequestException('MFA secret not found');
+    }
+
+    const secret = this.mfaEncryption.decryptSecret(user.twoFactorSecret);
+    const isValid = speakeasy.totp.verify({
+      secret,
+      encoding: 'base32',
+      token: mfaCode,
+      window: 2, // Allow 2 time steps (60 seconds) of tolerance
+    });
+
+    if (!isValid) {
+      // Increment failed attempts
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          mfaFailedAttempts: { increment: 1 },
+          lastMfaFailure: new Date(),
+        },
+      });
+
+      throw new UnauthorizedException('Invalid MFA code');
+    }
+
+    // Reset failed attempts on success
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        mfaFailedAttempts: 0,
+        lastMfaSuccess: new Date(),
+      },
+    });
+
+    // Generate new backup codes
+    const backupCodes: string[] = [];
+    for (let i = 0; i < 10; i++) {
+      const code = randomInt(10000000, 99999999).toString();
+      backupCodes.push(code);
+    }
+
+    // Hash backup codes
+    const hashedBackupCodes = await Promise.all(
+      backupCodes.map((code) => argon2.hash(code)),
+    );
+
+    // Update user
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        mfaBackupCodes: hashedBackupCodes,
+      },
+    });
+
+    // Log backup codes regenerated
+    await this.auditService.log({
+      userId,
+      action: AuditAction.MFA_BACKUP_CODES_REGENERATED,
+      resource: 'AUTH',
+      status: AuditStatus.SUCCESS,
+    });
+
+    return {
+      backupCodes, // Return plain codes - user must save these
+      message: 'Backup codes regenerated successfully',
+    };
+  }
+
+  /**
+   * Get MFA status
+   *
+   * @param userId - User ID
+   * @returns MFA status information
+   */
+  async getMfaStatus(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        twoFactorEnabled: true,
+        mfaEnabledAt: true,
+        mfaBackupCodes: true,
+        lastMfaSuccess: true,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return {
+      mfaEnabled: user.twoFactorEnabled,
+      mfaEnabledAt: user.mfaEnabledAt,
+      backupCodesRemaining: user.mfaBackupCodes?.length || 0,
+      lastMfaSuccess: user.lastMfaSuccess,
+    };
+  }
+
+  /**
+   * Verify password for re-authentication
+   * Returns short-lived token for sensitive operations
+   *
+   * @param userId - User ID
+   * @param password - User password
+   * @returns Re-authentication token
+   */
+  async verifyPasswordReauth(userId: string, password: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Verify password
+    const isPasswordValid = await this.verifyPassword(user.password, password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid password');
+    }
+
+    // Generate short-lived re-auth token (15 minutes)
+    const reAuthToken = this.jwtService.sign(
+      {
+        sub: user.id,
+        purpose: 'reauth',
+      },
+      { expiresIn: '15m' },
+    );
+
+    // Log re-authentication
+    await this.auditService.log({
+      userId,
+      action: AuditAction.PASSWORD_CHANGED, // Using existing action, could add REAUTH_VERIFIED
+      resource: 'AUTH',
+      status: AuditStatus.SUCCESS,
+      metadata: { purpose: 'reauthentication' },
+    });
+
+    return {
+      reAuthToken,
+      expiresIn: 900, // 15 minutes in seconds
+    };
   }
 }

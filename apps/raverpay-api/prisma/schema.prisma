@@ -33,6 +33,12 @@ model User {
   pinSetAt               DateTime?
   twoFactorEnabled       Boolean                  @default(false)
   twoFactorSecret        String?
+  // MFA fields
+  mfaBackupCodes         String[]                 @default([])
+  mfaFailedAttempts      Int                      @default(0)
+  lastMfaFailure         DateTime?
+  mfaEnabledAt           DateTime?
+  lastMfaSuccess         DateTime?
   passwordResetAt        DateTime?                @db.Timestamp(6)
   lastPasswordChange     DateTime?                @db.Timestamp(6)
   emailVerified          Boolean                  @default(false)
@@ -98,6 +104,8 @@ model User {
   passkeyCredentials     PasskeyCredential[]
   sentEmails             OutboundEmail[]          @relation("SentEmails")
   receivedEmails         OutboundEmail[]          @relation("ReceivedEmails")
+  ipWhitelists           AdminIpWhitelist[]        @relation("IpWhitelistCreator")
+  assignedIpWhitelists   AdminIpWhitelist[]
 
   @@index([email])
   @@index([phone])
@@ -121,10 +129,17 @@ model RefreshToken {
   expiresAt DateTime
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  // Session tracking fields
+  deviceId  String?
+  ipAddress String?
+  location  String?
+  userAgent String?
+  lastUsedAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([token])
+  @@index([deviceId])
   @@map("refresh_tokens")
 }
 
@@ -573,6 +588,27 @@ model AuditLog {
   @@index([severity, createdAt])
   @@index([status, createdAt])
   @@map("audit_logs")
+}
+
+model AdminIpWhitelist {
+  id          String    @id @default(uuid())
+  ipAddress   String    @unique
+  description String?
+  userId      String?
+  isActive    Boolean   @default(true)
+  createdBy   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastUsedAt  DateTime?
+  usageCount  Int       @default(0)
+
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creator     User      @relation("IpWhitelistCreator", fields: [createdBy], references: [id])
+
+  @@index([ipAddress])
+  @@index([userId])
+  @@index([isActive])
+  @@map("admin_ip_whitelist")
 }
 
 model SavedRecipient {

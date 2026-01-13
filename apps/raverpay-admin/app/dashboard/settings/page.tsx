@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Settings, DollarSign, Shield, Bell, Server, Star } from 'lucide-react';
+import { Settings, DollarSign, Shield, Bell, Server, Star, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import * as appConfigApi from '@/lib/api/app-config';
 
 import { usePermissions } from '@/lib/permissions';
@@ -22,6 +23,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function SettingsPage() {
   const { canModifySettings } = usePermissions();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('general');
   const queryClient = useQueryClient();
 
@@ -133,7 +135,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="general" className="gap-2">
             <Settings className="h-4 w-4" />
             General
@@ -157,6 +159,10 @@ export default function SettingsPage() {
           <TabsTrigger value="rating" className="gap-2">
             <Star className="h-4 w-4" />
             App Rating
+          </TabsTrigger>
+          <TabsTrigger value="security" className="gap-2">
+            <Lock className="h-4 w-4" />
+            Security
           </TabsTrigger>
         </TabsList>
 
@@ -750,6 +756,22 @@ export default function SettingsPage() {
                   </Button>
                 </>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Security Settings */}
+        <TabsContent value="security">
+          <Card>
+            <CardHeader>
+              <CardTitle>Security Settings</CardTitle>
+              <CardDescription>Manage your account security preferences</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => router.push('/dashboard/settings/security')}>
+                <Lock className="mr-2 h-4 w-4" />
+                Manage Security Settings
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>

@@ -75,18 +75,18 @@ const navigation: NavItem[] = [
     icon: Smartphone,
     roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
   },
-  {
-    name: 'Gift Cards',
-    href: '/dashboard/giftcards',
-    icon: Gift,
-    roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
-  },
-  {
-    name: 'Crypto Orders',
-    href: '/dashboard/crypto',
-    icon: Bitcoin,
-    roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
-  },
+  // {
+  //   name: 'Gift Cards',
+  //   href: '/dashboard/giftcards',
+  //   icon: Gift,
+  //   roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
+  // },
+  // {
+  //   name: 'Crypto Orders',
+  //   href: '/dashboard/crypto',
+  //   icon: Bitcoin,
+  //   roles: ['SUPER_ADMIN', 'ADMIN', 'SUPPORT'],
+  // },
   // {
   //   name: 'Venly Wallets',
   //   href: '/dashboard/venly-wallets',
