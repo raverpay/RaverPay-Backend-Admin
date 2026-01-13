@@ -41,10 +41,17 @@ describe('IpWhitelistGuard', () => {
     return {
       switchToHttp: () => ({
         getRequest: () => request,
+        getResponse: jest.fn(),
+        getNext: jest.fn(),
       }),
       getHandler: jest.fn(),
       getClass: jest.fn(),
-    } as ExecutionContext;
+      getArgs: jest.fn(),
+      getArgByIndex: jest.fn(),
+      switchToRpc: jest.fn(),
+      switchToWs: jest.fn(),
+      getType: jest.fn(),
+    } as unknown as ExecutionContext;
   };
 
   beforeEach(async () => {

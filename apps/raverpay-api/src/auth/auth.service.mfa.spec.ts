@@ -240,6 +240,7 @@ describe.skip('AuthService - MFA', () => {
         deviceId: 'device-1',
         deviceName: 'Test Device',
         deviceType: 'web',
+        ipAddress: '127.0.0.1',
       });
 
       expect(result).toHaveProperty('accessToken');
@@ -273,7 +274,12 @@ describe.skip('AuthService - MFA', () => {
       });
 
       await expect(
-        service.verifyMfaCode('temp-token', '000000', {}),
+        service.verifyMfaCode('temp-token', '000000', {
+          deviceId: 'device-1',
+          deviceName: 'Test Device',
+          deviceType: 'web',
+          ipAddress: '127.0.0.1',
+        }),
       ).rejects.toThrow();
 
       expect(mockPrismaService.user.update).toHaveBeenCalledWith({
@@ -297,7 +303,12 @@ describe.skip('AuthService - MFA', () => {
       jest.spyOn(mfaEncryptionUtil, 'decryptSecret').mockReturnValue('secret');
 
       await expect(
-        service.verifyMfaCode('temp-token', '000000', {}),
+        service.verifyMfaCode('temp-token', '000000', {
+          deviceId: 'device-1',
+          deviceName: 'Test Device',
+          deviceType: 'web',
+          ipAddress: '127.0.0.1',
+        }),
       ).rejects.toThrow();
 
       // First update increments failed attempts
@@ -346,6 +357,7 @@ describe.skip('AuthService - MFA', () => {
           deviceId: 'device-1',
           deviceName: 'Test Device',
           deviceType: 'web',
+          ipAddress: '127.0.0.1',
         },
       );
 
@@ -371,7 +383,12 @@ describe.skip('AuthService - MFA', () => {
       mockPrismaService.user.findUnique.mockResolvedValue(adminUser);
 
       await expect(
-        service.verifyBackupCode('temp-token', 'invalid-code', {}),
+        service.verifyBackupCode('temp-token', 'invalid-code', {
+          deviceId: 'device-1',
+          deviceName: 'Test Device',
+          deviceType: 'web',
+          ipAddress: '127.0.0.1',
+        }),
       ).rejects.toThrow();
     });
   });
