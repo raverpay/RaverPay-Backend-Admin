@@ -57,6 +57,7 @@ import { CircleModule } from '../circle/circle.module';
 import { SupportAdminController } from '../support/support-admin.controller';
 import { EmailModule } from '../services/email/email.module';
 import { AuthModule } from '../auth/auth.module';
+import { DeviceModule } from '../device/device.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { AuthModule } from '../auth/auth.module';
     AdminAuthModule,
     EmailModule,
     AuthModule,
+    DeviceModule,
     forwardRef(() => TransactionsModule),
   ],
   controllers: [
