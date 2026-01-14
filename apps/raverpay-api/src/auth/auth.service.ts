@@ -5,6 +5,7 @@ import {
   ConflictException,
   BadRequestException,
   Logger,
+  ForbiddenException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -28,6 +29,8 @@ import { MfaEncryptionUtil } from '../utils/mfa-encryption.util';
 import * as speakeasy from 'speakeasy';
 import * as QRCode from 'qrcode';
 import { UserRole } from '@prisma/client';
+import { isIPv4, isIPv6 } from 'net';
+import { Address4, Address6 } from 'ip-address';
 
 /**
  * Authentication Service
@@ -243,6 +246,33 @@ export class AuthService {
       user.role === UserRole.ADMIN ||
       user.role === UserRole.SUPPORT ||
       user.role === UserRole.SUPER_ADMIN;
+
+    // Check IP whitelist for admin users BEFORE MFA verification
+    if (isAdmin && ipAddress && ipAddress !== 'unknown') {
+      const isIpWhitelisted = await this.checkIpWhitelist(ipAddress, user.id);
+      if (!isIpWhitelisted) {
+        this.logger.warn(
+          `Blocked admin login from non-whitelisted IP: ${ipAddress} for user: ${user.email}`,
+        );
+
+        await this.auditService.log({
+          userId: user.id,
+          action: AuditAction.IP_BLOCKED,
+          resource: 'AUTH',
+          status: AuditStatus.FAILURE,
+          severity: AuditSeverity.HIGH,
+          metadata: {
+            blockedIp: ipAddress,
+            attemptedRoute: '/auth/login',
+            reason: 'IP_NOT_WHITELISTED',
+          },
+        });
+
+        throw new ForbiddenException(
+          'Access denied: Your IP address is not whitelisted for admin access. Please contact support.',
+        );
+      }
+    }
 
     if (isAdmin && user.twoFactorEnabled && user.twoFactorSecret) {
       // MFA is enabled - generate temporary token for MFA verification
@@ -1067,6 +1097,66 @@ export class AuthService {
    * @param password - Plain text password to verify
    * @returns True if password matches
    */
+  /**
+   * Check if IP address is whitelisted for admin user
+   * Used during login to prevent unauthorized access
+   */
+  private async checkIpWhitelist(
+    clientIp: string,
+    userId: string,
+  ): Promise<boolean> {
+    // Get all active whitelist entries (global + user-specific)
+    const whitelistEntries = await this.prisma.adminIpWhitelist.findMany({
+      where: {
+        isActive: true,
+        OR: [{ userId: null }, { userId: userId }], // Global whitelist or user-specific
+      },
+    });
+
+    // Check each entry
+    for (const entry of whitelistEntries) {
+      if (this.matchesIpOrCidr(clientIp, entry.ipAddress)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Check if client IP matches whitelist entry (supports CIDR)
+   */
+  private matchesIpOrCidr(clientIp: string, whitelistEntry: string): boolean {
+    // Check if exact match
+    if (clientIp === whitelistEntry) {
+      return true;
+    }
+
+    // Check if CIDR notation
+    if (whitelistEntry.includes('/')) {
+      try {
+        // IPv4 CIDR check
+        if (isIPv4(clientIp)) {
+          const networkAddress = new Address4(whitelistEntry);
+          const clientAddress = new Address4(clientIp);
+          return clientAddress.isInSubnet(networkAddress);
+        }
+
+        // IPv6 CIDR check
+        if (isIPv6(clientIp)) {
+          const networkAddress = new Address6(whitelistEntry);
+          const clientAddress = new Address6(clientIp);
+          return clientAddress.isInSubnet(networkAddress);
+        }
+      } catch (error) {
+        this.logger.error(`Invalid CIDR notation: ${whitelistEntry}`, error);
+        return false;
+      }
+    }
+
+    return false;
+  }
+
   private async verifyPassword(
     hash: string,
     password: string,
