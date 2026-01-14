@@ -256,7 +256,9 @@ describe('IpWhitelistGuard', () => {
       expect(result).toBe(true);
       expect(mockPrismaService.user.findUnique).toHaveBeenCalled();
       // Should not check whitelist when grace period is active
-      expect(mockPrismaService.adminIpWhitelist.findMany).not.toHaveBeenCalled();
+      expect(
+        mockPrismaService.adminIpWhitelist.findMany,
+      ).not.toHaveBeenCalled();
     });
 
     it('should block admin with expired grace period and no whitelisted IP', async () => {
