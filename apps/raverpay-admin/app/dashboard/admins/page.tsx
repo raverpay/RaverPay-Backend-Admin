@@ -3,11 +3,22 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { Search, UserPlus, Trash2, Edit, Shield, UserCog } from 'lucide-react';
+import {
+  Search,
+  UserPlus,
+  Trash2,
+  Edit,
+  Shield,
+  UserCog,
+  AlertTriangle,
+  Info,
+  X,
+  Plus,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { AxiosError } from 'axios';
 
-import { adminsApi, CreateAdminDto, UpdateAdminDto } from '@/lib/api/admins';
+import { adminsApi, CreateAdminDto, UpdateAdminDto, IpWhitelistEntry } from '@/lib/api/admins';
 import { usePermissions } from '@/lib/permissions';
 import { UserRole } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,6 +52,10 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Pagination } from '@/components/ui/pagination';
 import { RoleBadge, StatusBadge } from '@/components/ui/status-badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils';
 
 const adminRoles: UserRole[] = ['ADMIN', 'SUPER_ADMIN', 'SUPPORT'];
@@ -60,13 +75,23 @@ export default function AdminsPage() {
     phone: '',
     password: '',
     role: 'ADMIN',
+    initialIpAddress: '',
+    skipIpWhitelist: false,
+    personalEmail: '',
+    sendCredentials: true,
+    sendMfaSetup: false,
   });
   const [editForm, setEditForm] = useState<UpdateAdminDto>({
     firstName: '',
     lastName: '',
     phone: '',
     role: 'ADMIN',
+    ipAddresses: [],
+    mfaEnabled: undefined,
   });
+  const [currentIpWhitelist, setCurrentIpWhitelist] = useState<IpWhitelistEntry[]>([]);
+  const [newIpAddress, setNewIpAddress] = useState('');
+  const [loadingIpWhitelist, setLoadingIpWhitelist] = useState(false);
   const queryClient = useQueryClient();
   const { canManageAdmins } = usePermissions();
 
@@ -93,6 +118,11 @@ export default function AdminsPage() {
         phone: '',
         password: '',
         role: 'ADMIN',
+        initialIpAddress: '',
+        skipIpWhitelist: false,
+        personalEmail: '',
+        sendCredentials: true,
+        sendMfaSetup: false,
       });
       toast.success('Admin created successfully!');
     },
@@ -139,12 +169,41 @@ export default function AdminsPage() {
       toast.error('Please fill in all required fields');
       return;
     }
-    createMutation.mutate(createForm);
+
+    // Prepare form data, removing empty optional fields
+    const formData: CreateAdminDto = {
+      email: createForm.email,
+      firstName: createForm.firstName,
+      lastName: createForm.lastName,
+      phone: createForm.phone,
+      password: createForm.password,
+      role: createForm.role,
+      ...(createForm.initialIpAddress && { initialIpAddress: createForm.initialIpAddress }),
+      ...(createForm.skipIpWhitelist && { skipIpWhitelist: true }),
+      ...(createForm.personalEmail && { personalEmail: createForm.personalEmail }),
+      ...(createForm.sendCredentials !== undefined && {
+        sendCredentials: createForm.sendCredentials,
+      }),
+      ...(createForm.sendMfaSetup && { sendMfaSetup: true }),
+    };
+
+    createMutation.mutate(formData);
   };
 
   const handleUpdate = () => {
     if (!selectedAdmin) return;
-    updateMutation.mutate({ adminId: selectedAdmin, data: editForm });
+
+    // Prepare update data, only including changed fields
+    const updateData: UpdateAdminDto = {
+      ...(editForm.firstName && { firstName: editForm.firstName }),
+      ...(editForm.lastName && { lastName: editForm.lastName }),
+      ...(editForm.phone !== undefined && { phone: editForm.phone }),
+      ...(editForm.role && { role: editForm.role }),
+      ...(editForm.ipAddresses !== undefined && { ipAddresses: editForm.ipAddresses }),
+      ...(editForm.mfaEnabled !== undefined && { mfaEnabled: editForm.mfaEnabled }),
+    };
+
+    updateMutation.mutate({ adminId: selectedAdmin, data: updateData });
   };
 
   const handleDelete = (adminId: string) => {
@@ -153,12 +212,13 @@ export default function AdminsPage() {
     }
   };
 
-  const openEditDialog = (admin: {
+  const openEditDialog = async (admin: {
     id: string;
     firstName: string;
     lastName: string;
     phone: string;
     role: UserRole;
+    twoFactorEnabled?: boolean;
   }) => {
     setSelectedAdmin(admin.id);
     setEditForm({
@@ -166,8 +226,65 @@ export default function AdminsPage() {
       lastName: admin.lastName,
       phone: admin.phone,
       role: admin.role,
+      ipAddresses: [],
+      mfaEnabled: admin.twoFactorEnabled,
     });
+    setNewIpAddress('');
     setEditDialogOpen(true);
+
+    // Fetch current IP whitelist entries
+    setLoadingIpWhitelist(true);
+    try {
+      const ipEntries = await adminsApi.getIpWhitelist(admin.id);
+      setCurrentIpWhitelist(ipEntries);
+      // Set current IPs in form
+      const userSpecificIps = ipEntries
+        .filter((entry) => entry.userId === admin.id && entry.isActive)
+        .map((entry) => entry.ipAddress);
+      setEditForm((prev) => ({
+        ...prev,
+        ipAddresses: userSpecificIps,
+      }));
+    } catch (error) {
+      console.error('Failed to load IP whitelist:', error);
+      toast.error('Failed to load IP whitelist entries');
+    } finally {
+      setLoadingIpWhitelist(false);
+    }
+  };
+
+  const addIpAddress = () => {
+    if (!newIpAddress.trim()) {
+      toast.error('Please enter an IP address');
+      return;
+    }
+
+    // Basic IP validation
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipRegex.test(newIpAddress.trim())) {
+      toast.error('Please enter a valid IP address');
+      return;
+    }
+
+    const currentIps = editForm.ipAddresses || [];
+    if (currentIps.includes(newIpAddress.trim())) {
+      toast.error('This IP address is already in the list');
+      return;
+    }
+
+    setEditForm({
+      ...editForm,
+      ipAddresses: [...currentIps, newIpAddress.trim()],
+    });
+    setNewIpAddress('');
+  };
+
+  const removeIpAddress = (ipToRemove: string) => {
+    const currentIps = editForm.ipAddresses || [];
+    setEditForm({
+      ...editForm,
+      ipAddresses: currentIps.filter((ip) => ip !== ipToRemove),
+    });
   };
 
   if (!canManageAdmins) {
@@ -271,6 +388,125 @@ export default function AdminsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Security & Provisioning Section */}
+              <div className="border-t pt-4 mt-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="font-semibold text-sm">Security & Provisioning</h3>
+                </div>
+
+                {/* IP Whitelist */}
+                <div className="space-y-2">
+                  <Label htmlFor="initialIpAddress">Initial IP Address</Label>
+                  <Input
+                    id="initialIpAddress"
+                    value={createForm.initialIpAddress || ''}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, initialIpAddress: e.target.value })
+                    }
+                    placeholder="203.0.113.45"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    IP address to whitelist for this admin. Leave empty to skip IP whitelisting.
+                  </p>
+                </div>
+
+                {createForm.initialIpAddress && (
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="skipIpWhitelist"
+                      checked={createForm.skipIpWhitelist || false}
+                      onCheckedChange={(checked) =>
+                        setCreateForm({ ...createForm, skipIpWhitelist: checked === true })
+                      }
+                    />
+                    <Label htmlFor="skipIpWhitelist" className="text-sm font-normal cursor-pointer">
+                      Skip IP whitelist requirement for 24 hours (temporary access)
+                    </Label>
+                  </div>
+                )}
+
+                {/* Personal Email */}
+                <div className="space-y-2">
+                  <Label htmlFor="personalEmail">Personal Email (Optional)</Label>
+                  <Input
+                    id="personalEmail"
+                    type="email"
+                    value={createForm.personalEmail || ''}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, personalEmail: e.target.value })
+                    }
+                    placeholder="admin.personal@gmail.com"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Use this email for initial credential delivery if corporate email is not ready.
+                  </p>
+                </div>
+
+                {/* Email Options */}
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="sendCredentials"
+                      checked={createForm.sendCredentials !== false}
+                      onCheckedChange={(checked) =>
+                        setCreateForm({ ...createForm, sendCredentials: checked === true })
+                      }
+                    />
+                    <Label htmlFor="sendCredentials" className="text-sm font-normal cursor-pointer">
+                      Send credentials via email
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="sendMfaSetup"
+                      checked={createForm.sendMfaSetup || false}
+                      onCheckedChange={(checked) =>
+                        setCreateForm({ ...createForm, sendMfaSetup: checked === true })
+                      }
+                    />
+                    <Label htmlFor="sendMfaSetup" className="text-sm font-normal cursor-pointer">
+                      Generate and send MFA setup QR code
+                    </Label>
+                  </div>
+                </div>
+
+                {/* Security Warnings */}
+                {createForm.skipIpWhitelist && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Security Warning</AlertTitle>
+                    <AlertDescription>
+                      Temporary IP whitelist access expires in 24 hours. Ensure the admin&apos;s IP
+                      is permanently whitelisted before expiration.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {!createForm.initialIpAddress && (
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>IP Whitelist Required</AlertTitle>
+                    <AlertDescription>
+                      Admin users must have their IP address whitelisted to access the system. You
+                      can add it now or provision it later using the provisioning endpoint.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {createForm.sendMfaSetup && (
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>MFA Setup</AlertTitle>
+                    <AlertDescription>
+                      An MFA QR code and backup codes will be sent via email. The admin must scan
+                      the QR code with an authenticator app to complete MFA setup.
+                    </AlertDescription>
+                  </Alert>
+                )}
               </div>
             </div>
             <DialogFooter>
@@ -500,6 +736,132 @@ export default function AdminsPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Security & IP Whitelist Section */}
+            <div className="border-t pt-4 mt-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-muted-foreground" />
+                <h3 className="font-semibold text-sm">Security Settings</h3>
+              </div>
+
+              {/* MFA Status */}
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="mfaEnabled" className="cursor-pointer">
+                    Multi-Factor Authentication (MFA)
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Enable or disable two-factor authentication for this admin
+                  </p>
+                </div>
+                <Switch
+                  id="mfaEnabled"
+                  checked={editForm.mfaEnabled === true}
+                  onCheckedChange={(checked) => setEditForm({ ...editForm, mfaEnabled: checked })}
+                />
+              </div>
+
+              {/* IP Whitelist Management */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>IP Whitelist</Label>
+                  <Badge variant="outline">
+                    {editForm.ipAddresses?.length || 0} IP
+                    {editForm.ipAddresses?.length !== 1 ? 's' : ''}
+                  </Badge>
+                </div>
+
+                {loadingIpWhitelist ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                ) : (
+                  <>
+                    {/* Current IP Addresses */}
+                    {editForm.ipAddresses && editForm.ipAddresses.length > 0 ? (
+                      <div className="space-y-2">
+                        {editForm.ipAddresses.map((ip) => {
+                          const entry = currentIpWhitelist.find((e) => e.ipAddress === ip);
+                          const isExpired = entry?.expiresAt
+                            ? new Date(entry.expiresAt) < new Date()
+                            : false;
+                          const isTemporary = !!entry?.expiresAt;
+
+                          return (
+                            <div
+                              key={ip}
+                              className="flex items-center justify-between p-2 border rounded-md"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-sm">{ip}</span>
+                                {isTemporary && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {isExpired ? 'Expired' : 'Temporary'}
+                                  </Badge>
+                                )}
+                                {entry?.expiresAt && !isExpired && (
+                                  <span className="text-xs text-muted-foreground">
+                                    Expires: {formatDate(entry.expiresAt)}
+                                  </span>
+                                )}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeIpAddress(ip)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <Alert>
+                        <Info className="h-4 w-4" />
+                        <AlertTitle>No IP Addresses</AlertTitle>
+                        <AlertDescription>
+                          This admin has no IP addresses whitelisted. Add at least one IP address
+                          for them to access the system.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {/* Add New IP Address */}
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="203.0.113.45"
+                        value={newIpAddress}
+                        onChange={(e) => setNewIpAddress(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addIpAddress();
+                          }
+                        }}
+                        className="flex-1"
+                      />
+                      <Button onClick={addIpAddress} size="sm" variant="outline">
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add
+                      </Button>
+                    </div>
+
+                    <Alert>
+                      <Info className="h-4 w-4" />
+                      <AlertTitle>IP Whitelist Management</AlertTitle>
+                      <AlertDescription>
+                        Changes to IP whitelist will sync with the server. Removing an IP will
+                        immediately revoke access from that address. Adding an IP will grant
+                        immediate access.
+                      </AlertDescription>
+                    </Alert>
+                  </>
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter>

@@ -498,9 +498,381 @@ async isAccountLocked(userId: string): Promise<boolean> {
 3. Receive re-auth token in response
 4. Include re-auth token in `X-Recent-Auth-Token` header for sensitive operations
 
+#### 7.5 Fix IP Whitelist Gap in MFA Endpoints (CRITICAL SECURITY VULNERABILITY)
+
+**Current Issue**: `IpWhitelistGuard` only works AFTER authentication (checks `request.user`), but MFA verification endpoints (`/auth/mfa/verify` and `/auth/mfa/verify-backup`) are marked `@Public()` and bypass authentication guards. This creates a critical security gap:
+
+**Attack Vector**:
+
+1. Attacker starts login from whitelisted IP → receives `tempToken`
+2. Attacker switches to non-whitelisted IP
+3. Attacker calls `/auth/mfa/verify` from non-whitelisted IP with valid `tempToken` + MFA code
+4. Attacker gains access tokens → **SECURITY BREACH**
+
+**Current State**:
+
+- ✅ `/auth/login` - IP checked in `AuthService.login()` (before MFA)
+- ❌ `/auth/mfa/verify` - NO IP check (marked `@Public()`)
+- ❌ `/auth/mfa/verify-backup` - NO IP check (marked `@Public()`)
+
+**Fix**:
+
+1. **Add IP whitelist check to MFA verification methods**:
+   - Update `AuthService.verifyMfaCode()` to check IP whitelist BEFORE completing authentication
+   - Update `AuthService.verifyBackupCode()` to check IP whitelist BEFORE completing authentication
+   - Extract user ID from `tempToken` to check IP whitelist
+   - Block MFA verification if IP is not whitelisted for admin users
+
+2. **Create Admin MFA IP Guard** (optional alternative):
+   - Create `AdminMfaIpGuard` that checks IP BEFORE authentication
+   - Extract user ID from `tempToken` in request body
+   - Check IP whitelist for that user
+   - Apply guard to MFA endpoints
+
+**Implementation**:
+
+```typescript
+// In AuthService.verifyMfaCode() - after extracting user from tempToken
+// Check IP whitelist for admin users BEFORE completing authentication
+const isAdmin =
+  user.role === UserRole.ADMIN ||
+  user.role === UserRole.SUPPORT ||
+  user.role === UserRole.SUPER_ADMIN;
+
+if (isAdmin && ipAddress && ipAddress !== 'unknown') {
+  const isIpWhitelisted = await this.checkIpWhitelist(ipAddress, user.id);
+  if (!isIpWhitelisted) {
+    this.logger.warn(
+      `Blocked admin MFA verification from non-whitelisted IP: ${ipAddress} for user: ${user.email}`,
+    );
+
+    await this.auditService.log({
+      userId: user.id,
+      action: AuditAction.IP_BLOCKED,
+      resource: 'AUTH',
+      status: AuditStatus.FAILURE,
+      severity: AuditSeverity.HIGH,
+      metadata: {
+        blockedIp: ipAddress,
+        attemptedRoute: '/auth/mfa/verify',
+        reason: 'IP_NOT_WHITELISTED',
+      },
+    });
+
+    throw new ForbiddenException(
+      'Access denied: Your IP address is not whitelisted for admin access. Please contact support.',
+    );
+  }
+}
+
+// Continue with MFA verification...
+```
+
+**Files to Update**:
+
+- `apps/raverpay-api/src/auth/auth.service.ts` (update `verifyMfaCode()` and `verifyBackupCode()`)
+- `apps/raverpay-api/src/auth/auth.controller.ts` (ensure IP is extracted and passed to service)
+
+**Testing**:
+
+- ✅ Login from whitelisted IP, verify MFA from same IP → Should succeed
+- ✅ Login from whitelisted IP, verify MFA from different non-whitelisted IP → Should be blocked
+- ✅ Direct call to `/auth/mfa/verify` from non-whitelisted IP with valid tempToken → Should be blocked
+
+#### 7.6 Add IP Consistency Check During MFA Flow (CRITICAL SECURITY ENHANCEMENT)
+
+**Current Issue**: `tempToken` doesn't include IP address, so we can't detect if IP changes between login and MFA verification. An attacker could:
+
+1. Start login from whitelisted IP A
+2. Switch to whitelisted IP B (different location)
+3. Complete MFA from IP B
+4. This could indicate account compromise or session hijacking
+
+**Current State**:
+
+```typescript
+// tempToken payload (line 279-286 in auth.service.ts)
+{
+  sub: user.id,
+  purpose: 'mfa-verification',
+  email: user.email,
+  // ❌ NO ipAddress field
+}
+```
+
+**Fix**:
+
+1. **Include IP address in tempToken payload**:
+   - Add `ipAddress` to tempToken when generating during login
+   - Store original login IP for comparison
+
+2. **Compare IP addresses during MFA verification**:
+   - Extract `ipAddress` from `tempToken` payload
+   - Compare with current request IP address
+   - If IPs don't match for admin users:
+     - Log as high-severity security event (`MFA_IP_MISMATCH`)
+     - Include both IPs in audit log metadata
+     - **Reject the MFA attempt** (recommended for admins)
+     - Optionally send security alert notification
+
+3. **Add new audit action**:
+   - Create `AuditAction.MFA_IP_MISMATCH` enum value
+   - Log with `AuditSeverity.HIGH`
+
+**Implementation**:
+
+```typescript
+// Step 1: Update tempToken generation in AuthService.login()
+if (isAdmin && user.twoFactorEnabled && user.twoFactorSecret) {
+  const tempToken = this.jwtService.sign(
+    {
+      sub: user.id,
+      purpose: 'mfa-verification',
+      email: user.email,
+      ipAddress: ipAddress, // ✅ ADD THIS
+    },
+    { expiresIn: '5m' },
+  );
+  // ...
+}
+
+// Step 2: Update MFA verification to check IP consistency
+async verifyMfaCode(
+  tempToken: string,
+  mfaCode: string,
+  deviceInfo?: DeviceInfo,
+  ipAddress?: string,
+) {
+  // ... existing token verification ...
+
+  // Get user
+  const user = await this.prisma.user.findUnique({
+    where: { id: payload.sub },
+  });
+
+  const isAdmin = user.role === UserRole.ADMIN ||
+                  user.role === UserRole.SUPPORT ||
+                  user.role === UserRole.SUPER_ADMIN;
+
+  // Check IP consistency for admin users
+  if (isAdmin && payload.ipAddress && ipAddress && ipAddress !== 'unknown') {
+    if (payload.ipAddress !== ipAddress) {
+      // IP changed during authentication - SECURITY ALERT
+      this.logger.warn(
+        `IP address changed during MFA verification for admin ${user.email}: ` +
+        `original=${payload.ipAddress}, current=${ipAddress}`,
+      );
+
+      await this.auditService.log({
+        userId: user.id,
+        action: AuditAction.MFA_IP_MISMATCH, // ✅ NEW ACTION
+        resource: 'AUTH',
+        status: AuditStatus.FAILURE,
+        severity: AuditSeverity.HIGH,
+        metadata: {
+          originalIp: payload.ipAddress,
+          currentIp: ipAddress,
+          endpoint: '/auth/mfa/verify',
+          userAgent: deviceInfo?.userAgent,
+        },
+      });
+
+      // Reject MFA attempt for security
+      throw new ForbiddenException(
+        'Security alert: IP address changed during authentication. ' +
+        'Please login again from your original location.',
+      );
+    }
+  }
+
+  // Continue with MFA code verification...
+}
+```
+
+**Files to Update**:
+
+- `apps/raverpay-api/src/auth/auth.service.ts`:
+  - Update `login()` method to include `ipAddress` in tempToken (line ~279)
+  - Update `verifyMfaCode()` to check IP consistency (after line ~1715)
+  - Update `verifyBackupCode()` to check IP consistency (after line ~1890)
+- `apps/raverpay-api/src/common/types/audit-log.types.ts`:
+  - Add `MFA_IP_MISMATCH` to `AuditAction` enum
+
+**Security Policy Decision**:
+
+- **Option A (Recommended)**: Reject MFA attempt if IP changes → Forces re-login from original IP
+- **Option B**: Allow but log as high-severity event → More flexible but less secure
+- **Recommendation**: Use Option A for admin users, Option B for regular users (if needed)
+
+**Testing**:
+
+- ✅ Login from IP A (whitelisted), verify MFA from IP A → Should succeed
+- ✅ Login from IP A (whitelisted), verify MFA from IP B (also whitelisted but different) → Should be rejected
+- ✅ Login from IP A, verify MFA from IP A but different device → Should succeed (IP same)
+- ✅ Verify audit log contains `MFA_IP_MISMATCH` event with both IPs
+
+**Frontend Impact**:
+
+- Show clear error message if IP mismatch occurs
+- Suggest user to login again from original location
+- Display security alert notification
+
+#### 7.7 Apply MFA/ReAuthGuard to All Critical Admin Operations (CRITICAL)
+
+**Current Issue**: Many critical admin operations don't require MFA verification, even though they're listed in `MFA_REQUIRED_OPERATIONS.md`. While `IpWhitelistGuard` is applied globally (protecting all admin endpoints), MFA/ReAuth verification is missing for most sensitive operations.
+
+**Current State**:
+
+- ✅ IP Whitelisting: Applied globally via `IpWhitelistGuard` (all admin endpoints protected)
+- ✅ IP Whitelist Management: Requires `ReAuthGuard` (section 7.1)
+- ✅ Admin Edit: Partially requires `ReAuthGuard` for IP/MFA/role/password changes (section 7.2)
+- ❌ **Missing**: MFA verification for all other critical operations listed in `MFA_REQUIRED_OPERATIONS.md`
+
+**Critical Operations Requiring MFA** (from `md/TODO/MFA_REQUIRED_OPERATIONS.md`):
+
+1. **User Management** (`/admin/users/*`):
+   - `PATCH /admin/users/:userId/role` - Update user role (CRITICAL)
+   - `PATCH /admin/users/:userId/status` - Update user status (suspend/ban/activate) (CRITICAL)
+   - `PATCH /admin/users/:userId/kyc-tier` - Update KYC tier manually (CRITICAL)
+   - `PATCH /admin/users/:userId/lock-account` - Lock user account manually (CRITICAL)
+   - `PATCH /admin/users/:userId/unlock-account` - Unlock user account (HIGH)
+
+2. **Wallet Operations** (`/admin/wallets/*`):
+   - `POST /admin/wallets/:userId/adjust` - Adjust wallet balance (CRITICAL)
+   - `POST /admin/wallets/:userId/lock` - Lock wallet (CRITICAL)
+   - `POST /admin/wallets/:userId/unlock` - Unlock wallet (HIGH)
+   - `POST /admin/wallets/:userId/reset-limits` - Reset spending limits (HIGH)
+
+3. **Transaction Operations** (`/admin/transactions/*`):
+   - `POST /admin/transactions/:transactionId/reverse` - Reverse transaction (CRITICAL)
+   - `POST /admin/transactions/withdrawal-configs` - Create withdrawal configuration (HIGH)
+   - `PUT /admin/transactions/withdrawal-configs/:id` - Update withdrawal configuration (HIGH)
+   - `DELETE /admin/transactions/withdrawal-configs/:id` - Delete withdrawal configuration (HIGH)
+
+4. **VTU Operations** (`/admin/vtu/*`):
+   - `POST /admin/vtu/orders/:orderId/refund` - Refund VTU order (CRITICAL)
+
+5. **KYC Operations** (`/admin/kyc/*`):
+   - `POST /admin/kyc/:userId/approve-bvn` - Approve BVN verification (HIGH)
+   - `POST /admin/kyc/:userId/reject-bvn` - Reject BVN verification (HIGH)
+   - `POST /admin/kyc/:userId/approve-nin` - Approve NIN verification (HIGH)
+   - `POST /admin/kyc/:userId/reject-nin` - Reject NIN verification (HIGH)
+
+6. **Account Deletion Operations** (`/admin/deletions/*`):
+   - `POST /admin/deletions/:requestId/approve` - Approve account deletion (CRITICAL)
+   - `POST /admin/deletions/:requestId/reject` - Reject account deletion (HIGH)
+
+7. **Crypto Operations** (`/admin/crypto/*`):
+   - Any crypto wallet operations (POST/PATCH) (CRITICAL)
+   - Crypto transaction reversals (POST) (CRITICAL)
+
+8. **Gift Card Operations** (`/admin/giftcards/*`):
+   - Gift card refunds (POST) (HIGH)
+
+9. **Virtual Account Operations** (`/admin/virtual-accounts/*`):
+   - Virtual account modifications (PATCH) (HIGH)
+
+10. **Admin Management** (`/admin/admins/*`):
+    - `POST /admin/admins` - Create new admin user (CRITICAL)
+    - `DELETE /admin/admins/:adminId` - Delete/deactivate admin user (CRITICAL)
+    - `POST /admin/admins/:adminId/reset-password` - Reset admin password (CRITICAL)
+
+**Fix**:
+
+1. **Apply `ReAuthGuard` to all critical endpoints**:
+   - Add `@UseGuards(JwtAuthGuard, RolesGuard, ReAuthGuard)` to each endpoint
+   - Require `X-Recent-Auth-Token` header with valid re-auth token
+   - Verify re-auth token contains valid MFA verification
+
+2. **Frontend Updates**:
+   - Show MFA modal before executing critical operations
+   - Call `/auth/mfa/verify` to get re-auth token
+   - Include re-auth token in `X-Recent-Auth-Token` header for all requests
+   - Handle 428 Precondition Required responses (prompt for MFA)
+
+3. **Audit Logging**:
+   - Log all MFA-verified operations with `mfaVerified: true` in metadata
+   - Include operation details, reason/justification, and MFA verification timestamp
+
+**Implementation Strategy**:
+
+**Phase 1: Critical Financial Operations** (Highest Priority):
+
+- Wallet balance adjustments
+- Transaction reversals
+- VTU refunds
+- Account deletion approvals
+- Crypto operations
+
+**Phase 2: User & Account Management**:
+
+- User role changes
+- User status changes
+- KYC tier updates
+- Account locks/unlocks
+- Admin creation/deletion/password resets
+
+**Phase 3: Other Operations**:
+
+- KYC approvals/rejections
+- Gift card refunds
+- Virtual account modifications
+- Withdrawal config changes
+- Wallet locks/unlocks
+
+**Implementation Example**:
+
+```typescript
+// Example: Wallet balance adjustment endpoint
+@Post(':userId/adjust')
+@UseGuards(JwtAuthGuard, RolesGuard, ReAuthGuard) // Add ReAuthGuard
+@Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+async adjustWalletBalance(
+  @Param('userId') userId: string,
+  @Body() dto: AdjustWalletDto,
+  @GetUser('id') adminId: string,
+) {
+  // ReAuthGuard ensures MFA was verified before this point
+  // Proceed with balance adjustment
+  return this.walletService.adjustBalance(userId, dto, adminId);
+}
+```
+
+**Files to Update** (based on `MFA_REQUIRED_OPERATIONS.md`):
+
+- `apps/raverpay-api/src/admin/users/admin-users.controller.ts`
+- `apps/raverpay-api/src/admin/wallets/admin-wallets.controller.ts`
+- `apps/raverpay-api/src/admin/transactions/admin-transactions.controller.ts`
+- `apps/raverpay-api/src/admin/vtu/admin-vtu.controller.ts` (if exists)
+- `apps/raverpay-api/src/admin/kyc/admin-kyc.controller.ts` (if exists)
+- `apps/raverpay-api/src/admin/deletions/admin-deletions.controller.ts` (if exists)
+- `apps/raverpay-api/src/admin/crypto/admin-crypto.controller.ts`
+- `apps/raverpay-api/src/admin/giftcards/admin-giftcards.controller.ts` (if exists)
+- `apps/raverpay-api/src/admin/virtual-accounts/admin-virtual-accounts.controller.ts` (if exists)
+- `apps/raverpay-api/src/admin/admins/admin-admins.controller.ts` (complete coverage)
+
+**Frontend Files to Update**:
+
+- All admin operation modals/components that trigger critical operations
+- Add MFA verification step before API calls
+- Update API client to include `X-Recent-Auth-Token` header
+
+**Testing Requirements**:
+
+- ✅ All critical endpoints require re-auth token
+- ✅ Requests without re-auth token return 428 Precondition Required
+- ✅ Frontend shows MFA modal before critical operations
+- ✅ MFA-verified operations are logged in audit log
+- ✅ Invalid/expired re-auth tokens are rejected
+
+**Reference**: See `md/TODO/MFA_REQUIRED_OPERATIONS.md` for complete list of operations, priorities, and implementation notes.
+
 ## Implementation Order (Updated)
 
 1. **CRITICAL - Immediate**: Fix security vulnerabilities (Phase 7)
+   - 7.5: Fix IP whitelist gap in MFA endpoints ⚠️ **NEW CRITICAL VULNERABILITY**
+   - 7.6: Add IP consistency check during MFA flow ⚠️ **NEW CRITICAL ENHANCEMENT**
+   - 7.7: Apply MFA/ReAuthGuard to all critical admin operations ⚠️ **NEW CRITICAL**
    - 7.1: Add ReAuthGuard to IP whitelist endpoints
    - 7.2: Fix admin edit endpoints
    - 7.3: Fix locked admin access bug
@@ -520,6 +892,16 @@ async isAccountLocked(userId: string): Promise<boolean> {
 
 ## Security Checklist
 
+- [ ] **NEW**: MFA verification endpoints check IP whitelist BEFORE authentication
+- [ ] **NEW**: IP address included in tempToken payload during login
+- [ ] **NEW**: IP consistency checked during MFA verification (reject if mismatch)
+- [ ] **NEW**: `MFA_IP_MISMATCH` audit action created and logged
+- [ ] **NEW**: All critical admin operations require MFA/ReAuthGuard (see section 7.7)
+- [ ] **NEW**: User management operations require MFA (role, status, KYC tier, locks)
+- [ ] **NEW**: Wallet operations require MFA (adjustments, locks, limit resets)
+- [ ] **NEW**: Transaction operations require MFA (reversals, config changes)
+- [ ] **NEW**: Account deletion approvals require MFA
+- [ ] **NEW**: Admin creation/deletion require MFA
 - [ ] **NEW**: New admins must change password on first login
 - [ ] **NEW**: Password change requires MFA code verification
 - [ ] **NEW**: Password change accepts both MFA code and backup codes
@@ -536,6 +918,17 @@ async isAccountLocked(userId: string): Promise<boolean> {
 
 ## Testing Checklist
 
+- [ ] **NEW**: Login from whitelisted IP A, verify MFA from whitelisted IP A → Should succeed
+- [ ] **NEW**: Login from whitelisted IP A, verify MFA from non-whitelisted IP B → Should be blocked
+- [ ] **NEW**: Direct call to `/auth/mfa/verify` from non-whitelisted IP with valid tempToken → Should be blocked
+- [ ] **NEW**: Login from IP A, verify MFA from IP B (both whitelisted but different) → Should be rejected (IP mismatch)
+- [ ] **NEW**: Verify `MFA_IP_MISMATCH` audit log created when IP changes
+- [ ] **NEW**: Critical admin operations require re-auth token (return 428 without token)
+- [ ] **NEW**: Wallet balance adjustment requires MFA verification
+- [ ] **NEW**: Transaction reversal requires MFA verification
+- [ ] **NEW**: User role change requires MFA verification
+- [ ] **NEW**: Account deletion approval requires MFA verification
+- [ ] **NEW**: Admin creation requires MFA verification
 - [ ] **NEW**: Create admin → `mustChangePassword` flag is true
 - [ ] **NEW**: Login with new admin → Returns `mustChangePassword: true` instead of tokens
 - [ ] **NEW**: Try to access dashboard → Blocked with 428 error
@@ -580,13 +973,40 @@ async isAccountLocked(userId: string): Promise<boolean> {
 - `apps/raverpay-api/src/admin/admins/admin-admins.service.ts` (set flag on creation)
 - Frontend: Password change modal/page
 
-### 2. IP Whitelist Endpoint Security (CRITICAL)
+### 2. IP Whitelist Gap in MFA Endpoints (CRITICAL SECURITY VULNERABILITY)
+
+**Problem**: MFA verification endpoints (`/auth/mfa/verify` and `/auth/mfa/verify-backup`) don't check IP whitelist because they're `@Public()` and `IpWhitelistGuard` only works after authentication. Attackers can login from whitelisted IP, get tempToken, switch to non-whitelisted IP, and complete MFA.
+
+**Fix**: Add IP whitelist check to `AuthService.verifyMfaCode()` and `AuthService.verifyBackupCode()` BEFORE completing authentication. Extract user ID from tempToken to check IP whitelist.
+
+**Files**:
+
+- `apps/raverpay-api/src/auth/auth.service.ts` (update `verifyMfaCode()` and `verifyBackupCode()`)
+- `apps/raverpay-api/src/auth/auth.controller.ts` (ensure IP is extracted and passed)
+
+### 3. IP Consistency Check Missing (CRITICAL SECURITY ENHANCEMENT)
+
+**Problem**: `tempToken` doesn't include IP address, so we can't detect IP changes between login and MFA verification. This could indicate account compromise.
+
+**Fix**:
+
+- Include `ipAddress` in tempToken payload during login
+- Compare IP from tempToken vs current request IP in MFA verification
+- Reject MFA attempt if IPs don't match (for admin users)
+- Log `MFA_IP_MISMATCH` audit event
+
+**Files**:
+
+- `apps/raverpay-api/src/auth/auth.service.ts` (update `login()`, `verifyMfaCode()`, `verifyBackupCode()`)
+- `apps/raverpay-api/src/common/types/audit-log.types.ts` (add `MFA_IP_MISMATCH` action)
+
+### 4. IP Whitelist Endpoint Security (CRITICAL)
 
 **Problem**: Adding IP addresses doesn't verify MFA code - accepts any random code
 **Fix**: Add `@UseGuards(ReAuthGuard)` to IP whitelist endpoints
 **Files**: `apps/raverpay-api/src/admin/security/admin-security.controller.ts`
 
-### 3. Locked Admin Access (CRITICAL)
+### 5. Locked Admin Access (CRITICAL)
 
 **Problem**: Admins with `status: "LOCKED"` can still access dashboard
 **Fix**: Update `AccountLockGuard` to check `user.status === UserStatus.LOCKED`
@@ -595,7 +1015,7 @@ async isAccountLocked(userId: string): Promise<boolean> {
 - `apps/raverpay-api/src/common/guards/account-lock.guard.ts`
 - `apps/raverpay-api/src/common/services/account-locking.service.ts`
 
-### 4. Admin Edit Capabilities
+### 6. Admin Edit Capabilities
 
 **Problem**: Cannot edit admin IP whitelist or MFA status
 **Fix**: Add fields to `UpdateAdminDto` and require re-authentication
@@ -605,7 +1025,7 @@ async isAccountLocked(userId: string): Promise<boolean> {
 - `apps/raverpay-api/src/admin/admins/admin-admins.service.ts`
 - `apps/raverpay-api/src/admin/admins/admin-admins.controller.ts`
 
-### 5. Re-Authentication Flow Verification
+### 7. Re-Authentication Flow Verification
 
 **Problem**: Frontend shows MFA modal but backend doesn't verify the code
 **Fix**: Ensure re-auth token is only issued after MFA code verification
@@ -613,6 +1033,25 @@ async isAccountLocked(userId: string): Promise<boolean> {
 
 - `apps/raverpay-api/src/auth/auth.controller.ts` (verify `/auth/mfa/verify` endpoint)
 - Frontend: Ensure MFA modal calls `/auth/mfa/verify` and uses returned token
+
+### 8. Apply MFA/ReAuthGuard to All Critical Admin Operations (CRITICAL)
+
+**Problem**: Many critical admin operations don't require MFA verification, even though they're listed in `MFA_REQUIRED_OPERATIONS.md`. While IP whitelisting is applied globally, MFA/ReAuth verification is missing for most sensitive operations.
+
+**Fix**: Apply `@UseGuards(ReAuthGuard)` to all critical endpoints listed in `md/TODO/MFA_REQUIRED_OPERATIONS.md`, including:
+
+- User management operations (role, status, KYC tier, locks)
+- Wallet operations (adjustments, locks, limit resets)
+- Transaction operations (reversals, config changes)
+- VTU refunds
+- KYC approvals/rejections
+- Account deletion approvals
+- Crypto operations
+- Gift card refunds
+- Virtual account modifications
+- Admin creation/deletion/password resets
+
+**Files**: See section 7.7 for complete list of files to update
 
 ## Email Delivery Strategy & Best Practices
 

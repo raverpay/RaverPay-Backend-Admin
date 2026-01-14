@@ -126,11 +126,36 @@ export class IpWhitelistGuard implements CanActivate {
     clientIp: string,
     userId: string,
   ): Promise<boolean> {
-    // Get all active whitelist entries (global + user-specific)
+    // Check grace period first (for new admins)
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { ipWhitelistGracePeriodUntil: true },
+    });
+
+    if (
+      user?.ipWhitelistGracePeriodUntil &&
+      new Date() < user.ipWhitelistGracePeriodUntil
+    ) {
+      // Still within grace period - allow access
+      return true;
+    }
+
+    // Check expired entries (expiresAt < now) and exclude them
+    const now = new Date();
     const whitelistEntries = await this.prisma.adminIpWhitelist.findMany({
       where: {
-        isActive: true,
-        OR: [{ userId: null }, { userId: userId }], // Global whitelist or user-specific
+        AND: [
+          { isActive: true },
+          {
+            OR: [{ userId: null }, { userId: userId }], // Global whitelist or user-specific
+          },
+          {
+            OR: [
+              { expiresAt: null }, // Permanent entries
+              { expiresAt: { gt: now } }, // Not expired yet
+            ],
+          },
+        ],
       },
     });
 

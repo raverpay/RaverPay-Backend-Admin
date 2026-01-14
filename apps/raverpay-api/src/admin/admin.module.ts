@@ -40,6 +40,9 @@ import { AdminCircleController } from './circle/admin-circle.controller';
 import { AdminCircleService } from './circle/admin-circle.service';
 import { AdminSecurityController } from './security/admin-security.controller';
 import { AdminSecurityService } from './security/admin-security.service';
+import { AdminAuthController } from './auth/admin-auth.controller';
+import { AdminAuthService } from './auth/admin-auth.service';
+import { AdminAuthModule } from './auth/admin-auth.module';
 import { HierarchyService } from '../common/services/hierarchy.service';
 import { AccountLockingService } from '../common/services/account-locking.service';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -52,6 +55,8 @@ import { WebhooksModule } from '../webhooks/webhooks.module';
 import { WalletModule } from '../wallet/wallet.module';
 import { CircleModule } from '../circle/circle.module';
 import { SupportAdminController } from '../support/support-admin.controller';
+import { EmailModule } from '../services/email/email.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -64,6 +69,9 @@ import { SupportAdminController } from '../support/support-admin.controller';
     WebhooksModule,
     WalletModule,
     CircleModule,
+    AdminAuthModule,
+    EmailModule,
+    AuthModule,
     forwardRef(() => TransactionsModule),
   ],
   controllers: [
@@ -87,6 +95,7 @@ import { SupportAdminController } from '../support/support-admin.controller';
     RateLimitsController,
     SupportAdminController,
     AdminSecurityController,
+    AdminAuthController,
   ],
   providers: [
     AdminUsersService,
@@ -109,6 +118,7 @@ import { SupportAdminController } from '../support/support-admin.controller';
     AdminEmailsService,
     RateLimitsService,
     AdminSecurityService,
+    AdminAuthService,
     AccountLockingService,
     HierarchyService,
   ],

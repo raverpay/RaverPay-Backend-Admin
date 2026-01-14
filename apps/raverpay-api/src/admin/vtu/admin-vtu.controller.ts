@@ -19,6 +19,7 @@ import {
 import { UserRole, VTUServiceType, TransactionStatus } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { ReAuthGuard } from '../../common/guards/re-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminVTUService } from './admin-vtu.service';
 import { RefundVTUDto } from '../dto';
@@ -95,8 +96,12 @@ export class AdminVTUController {
     return this.adminVTUService.getOrderById(orderId);
   }
 
-  @ApiOperation({ summary: 'Refund VTU order' })
+  @ApiOperation({
+    summary: 'Refund VTU order',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'orderId', description: 'Order ID' })
+  @UseGuards(ReAuthGuard)
   @Post('orders/:orderId/refund')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN) // Support cannot refund
   async refundOrder(

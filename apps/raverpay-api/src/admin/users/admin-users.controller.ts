@@ -20,6 +20,7 @@ import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { GetUser } from '../../auth/decorators/get-user.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { ReAuthGuard } from '../../common/guards/re-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminUsersService } from './admin-users.service';
 import {
@@ -58,8 +59,12 @@ export class AdminUsersController {
     return this.adminUsersService.getUserById(userId);
   }
 
-  @ApiOperation({ summary: 'Update user role (SUPER_ADMIN only)' })
+  @ApiOperation({
+    summary: 'Update user role (SUPER_ADMIN only)',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'userId', description: 'User ID' })
+  @UseGuards(ReAuthGuard)
   @Patch(':userId/role')
   async updateUserRole(
     @Request() req,
@@ -69,8 +74,12 @@ export class AdminUsersController {
     return this.adminUsersService.updateUserRole(req.user.id, userId, dto);
   }
 
-  @ApiOperation({ summary: 'Update user status (suspend, ban, activate)' })
+  @ApiOperation({
+    summary: 'Update user status (suspend, ban, activate)',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'userId', description: 'User ID' })
+  @UseGuards(ReAuthGuard)
   @Patch(':userId/status')
   async updateUserStatus(
     @Request() req,
@@ -80,8 +89,12 @@ export class AdminUsersController {
     return this.adminUsersService.updateUserStatus(req.user.id, userId, dto);
   }
 
-  @ApiOperation({ summary: 'Update user KYC tier (manual override)' })
+  @ApiOperation({
+    summary: 'Update user KYC tier (manual override)',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'userId', description: 'User ID' })
+  @UseGuards(ReAuthGuard)
   @Patch(':userId/kyc-tier')
   async updateKYCTier(
     @Request() req,
@@ -104,8 +117,12 @@ export class AdminUsersController {
     return this.adminUsersService.getUserAuditLogs(userId, page, limit);
   }
 
-  @ApiOperation({ summary: 'Lock user account manually' })
+  @ApiOperation({
+    summary: 'Lock user account manually',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'userId', description: 'User ID' })
+  @UseGuards(ReAuthGuard)
   @Patch(':userId/lock-account')
   async lockAccount(
     @GetUser('id') adminUserId: string,
@@ -115,8 +132,12 @@ export class AdminUsersController {
     return this.adminUsersService.lockAccount(adminUserId, userId, dto);
   }
 
-  @ApiOperation({ summary: 'Unlock user account (login failures)' })
+  @ApiOperation({
+    summary: 'Unlock user account (login failures)',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'userId', description: 'User ID' })
+  @UseGuards(ReAuthGuard)
   @Patch(':userId/unlock-account')
   async unlockAccount(
     @GetUser('id') adminUserId: string,

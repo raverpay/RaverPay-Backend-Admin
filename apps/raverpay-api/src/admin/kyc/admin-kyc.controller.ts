@@ -16,6 +16,7 @@ import {
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { ReAuthGuard } from '../../common/guards/re-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminKYCService } from './admin-kyc.service';
 import { ApproveBVNDto, RejectBVNDto } from '../dto';
@@ -53,8 +54,12 @@ export class AdminKYCController {
     return this.adminKYCService.getUserKYC(userId);
   }
 
-  @ApiOperation({ summary: 'Approve BVN verification' })
+  @ApiOperation({
+    summary: 'Approve BVN verification',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'userId', description: 'User ID' })
+  @UseGuards(ReAuthGuard)
   @Post(':userId/approve-bvn')
   async approveBVN(
     @Request() req,
@@ -64,8 +69,12 @@ export class AdminKYCController {
     return this.adminKYCService.approveBVN(req.user.id, userId, dto);
   }
 
-  @ApiOperation({ summary: 'Reject BVN verification' })
+  @ApiOperation({
+    summary: 'Reject BVN verification',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'userId', description: 'User ID' })
+  @UseGuards(ReAuthGuard)
   @Post(':userId/reject-bvn')
   async rejectBVN(
     @Request() req,
@@ -75,8 +84,12 @@ export class AdminKYCController {
     return this.adminKYCService.rejectBVN(req.user.id, userId, dto);
   }
 
-  @ApiOperation({ summary: 'Approve NIN verification' })
+  @ApiOperation({
+    summary: 'Approve NIN verification',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'userId', description: 'User ID' })
+  @UseGuards(ReAuthGuard)
   @Post(':userId/approve-nin')
   async approveNIN(
     @Request() req,
@@ -86,8 +99,12 @@ export class AdminKYCController {
     return this.adminKYCService.approveNIN(req.user.id, userId, dto);
   }
 
-  @ApiOperation({ summary: 'Reject NIN verification' })
+  @ApiOperation({
+    summary: 'Reject NIN verification',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'userId', description: 'User ID' })
+  @UseGuards(ReAuthGuard)
   @Post(':userId/reject-nin')
   async rejectNIN(
     @Request() req,

@@ -8,6 +8,11 @@ export interface CreateAdminDto {
   phone: string;
   password: string;
   role: UserRole;
+  initialIpAddress?: string;
+  skipIpWhitelist?: boolean;
+  personalEmail?: string;
+  sendCredentials?: boolean;
+  sendMfaSetup?: boolean;
 }
 
 export interface UpdateAdminDto {
@@ -15,6 +20,20 @@ export interface UpdateAdminDto {
   lastName?: string;
   phone?: string;
   role?: UserRole;
+  ipAddresses?: string[];
+  mfaEnabled?: boolean;
+  twoFactorEnabled?: boolean;
+}
+
+export interface IpWhitelistEntry {
+  id: string;
+  ipAddress: string;
+  description: string | null;
+  userId: string | null;
+  isActive: boolean;
+  expiresAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface AdminStatistics {
@@ -53,5 +72,15 @@ export const adminsApi = {
   getStats: async (): Promise<AdminStatistics> => {
     const response = await apiClient.get<AdminStatistics>('/admin/admins/stats');
     return response.data;
+  },
+
+  getIpWhitelist: async (userId: string): Promise<IpWhitelistEntry[]> => {
+    const response = await apiClient.get<{ data: IpWhitelistEntry[] }>(
+      '/admin/security/ip-whitelist',
+      {
+        params: { userId, limit: 100 },
+      },
+    );
+    return response.data.data;
   },
 };

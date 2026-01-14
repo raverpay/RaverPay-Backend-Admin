@@ -19,6 +19,7 @@ import {
 import { AdminGiftCardsService } from './admin-giftcards.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { ReAuthGuard } from '../../common/guards/re-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { GetUser } from '../../auth/decorators/get-user.decorator';
 import { UserRole, GiftCardType, TransactionStatus } from '@prisma/client';
@@ -95,8 +96,12 @@ export class AdminGiftCardsController {
     return this.giftCardsService.getOrderById(orderId);
   }
 
-  @ApiOperation({ summary: 'Approve gift card sell order' })
+  @ApiOperation({
+    summary: 'Approve gift card sell order',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'orderId', description: 'Order ID' })
+  @UseGuards(ReAuthGuard)
   @Post(':orderId/approve')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async approveOrder(
@@ -107,8 +112,12 @@ export class AdminGiftCardsController {
     return this.giftCardsService.approveOrder(adminUserId, orderId, dto);
   }
 
-  @ApiOperation({ summary: 'Reject gift card sell order' })
+  @ApiOperation({
+    summary: 'Reject gift card sell order',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'orderId', description: 'Order ID' })
+  @UseGuards(ReAuthGuard)
   @Post(':orderId/reject')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async rejectOrder(
@@ -119,8 +128,12 @@ export class AdminGiftCardsController {
     return this.giftCardsService.rejectOrder(adminUserId, orderId, dto);
   }
 
-  @ApiOperation({ summary: 'Adjust gift card payout amount' })
+  @ApiOperation({
+    summary: 'Adjust gift card payout amount',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'orderId', description: 'Order ID' })
+  @UseGuards(ReAuthGuard)
   @Patch(':orderId/adjust-amount')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   async adjustAmount(

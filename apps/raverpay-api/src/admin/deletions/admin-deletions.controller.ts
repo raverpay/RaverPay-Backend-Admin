@@ -19,6 +19,7 @@ import {
 import { UserRole, DeletionRequestStatus } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { ReAuthGuard } from '../../common/guards/re-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminDeletionsService } from './admin-deletions.service';
 
@@ -66,7 +67,10 @@ export class AdminDeletionsController {
     return this.adminDeletionsService.getRequestById(requestId);
   }
 
-  @ApiOperation({ summary: 'Approve deletion request' })
+  @ApiOperation({
+    summary: 'Approve deletion request',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'requestId', description: 'Request ID' })
   @ApiBody({
     schema: {
@@ -77,6 +81,7 @@ export class AdminDeletionsController {
       },
     },
   })
+  @UseGuards(ReAuthGuard)
   @Post(':requestId/approve')
   async approveRequest(
     @Request() req,
@@ -92,7 +97,10 @@ export class AdminDeletionsController {
     );
   }
 
-  @ApiOperation({ summary: 'Reject deletion request' })
+  @ApiOperation({
+    summary: 'Reject deletion request',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'requestId', description: 'Request ID' })
   @ApiBody({
     schema: {
@@ -100,6 +108,7 @@ export class AdminDeletionsController {
       properties: { reason: { type: 'string' }, notes: { type: 'string' } },
     },
   })
+  @UseGuards(ReAuthGuard)
   @Post(':requestId/reject')
   async rejectRequest(
     @Request() req,

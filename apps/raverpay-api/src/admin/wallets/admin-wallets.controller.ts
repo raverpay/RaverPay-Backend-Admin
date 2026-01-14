@@ -21,6 +21,7 @@ import { Throttle } from '@nestjs/throttler';
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { ReAuthGuard } from '../../common/guards/re-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Idempotent } from '../../common/decorators/idempotent.decorator';
 import { AdminWalletsService } from './admin-wallets.service';
@@ -81,12 +82,16 @@ export class AdminWalletsController {
     return this.adminWalletsService.getWalletByUserId(userId);
   }
 
-  @ApiOperation({ summary: 'Lock a wallet' })
+  @ApiOperation({
+    summary: 'Lock a wallet',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'userId', description: 'User ID' })
   @ApiBody({
     schema: { type: 'object', properties: { reason: { type: 'string' } } },
   })
   @Throttle({ default: { limit: 20, ttl: 3600000 } }) // 20 wallet locks per hour
+  @UseGuards(ReAuthGuard)
   @Post(':userId/lock')
   async lockWallet(
     @Request() req,
@@ -96,12 +101,16 @@ export class AdminWalletsController {
     return this.adminWalletsService.lockWallet(req.user.id, userId, reason);
   }
 
-  @ApiOperation({ summary: 'Unlock a wallet' })
+  @ApiOperation({
+    summary: 'Unlock a wallet',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'userId', description: 'User ID' })
   @ApiBody({
     schema: { type: 'object', properties: { reason: { type: 'string' } } },
   })
   @Throttle({ default: { limit: 20, ttl: 3600000 } }) // 20 wallet unlocks per hour
+  @UseGuards(ReAuthGuard)
   @Post(':userId/unlock')
   async unlockWallet(
     @Request() req,
@@ -111,9 +120,13 @@ export class AdminWalletsController {
     return this.adminWalletsService.unlockWallet(req.user.id, userId, reason);
   }
 
-  @ApiOperation({ summary: 'Adjust wallet balance' })
+  @ApiOperation({
+    summary: 'Adjust wallet balance',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'userId', description: 'User ID' })
   @Throttle({ default: { limit: 10, ttl: 3600000 } }) // 10 balance adjustments per hour
+  @UseGuards(ReAuthGuard)
   @Post(':userId/adjust')
   @Idempotent()
   async adjustBalance(
@@ -124,8 +137,12 @@ export class AdminWalletsController {
     return this.adminWalletsService.adjustBalance(req.user.id, userId, dto);
   }
 
-  @ApiOperation({ summary: 'Reset spending limits' })
+  @ApiOperation({
+    summary: 'Reset spending limits',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'userId', description: 'User ID' })
+  @UseGuards(ReAuthGuard)
   @Post(':userId/reset-limits')
   async resetLimits(@Request() req, @Param('userId') userId: string) {
     return this.adminWalletsService.resetLimits(req.user.id, userId);

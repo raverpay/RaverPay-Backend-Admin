@@ -6,6 +6,7 @@ import {
   BadRequestException,
   Logger,
   ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -276,11 +277,13 @@ export class AuthService {
 
     if (isAdmin && user.twoFactorEnabled && user.twoFactorSecret) {
       // MFA is enabled - generate temporary token for MFA verification
+      // Include IP address in token for consistency check during MFA verification
       const tempToken = this.jwtService.sign(
         {
           sub: user.id,
           purpose: 'mfa-verification',
           email: user.email,
+          ipAddress: ipAddress || 'unknown', // Include IP for consistency check
         },
         { expiresIn: '5m' }, // 5 minute expiry
       );
@@ -1100,16 +1103,42 @@ export class AuthService {
   /**
    * Check if IP address is whitelisted for admin user
    * Used during login to prevent unauthorized access
+   * Checks grace period first, then whitelist entries
    */
   private async checkIpWhitelist(
     clientIp: string,
     userId: string,
   ): Promise<boolean> {
-    // Get all active whitelist entries (global + user-specific)
+    // Check grace period first (for new admins)
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { ipWhitelistGracePeriodUntil: true },
+    });
+
+    if (
+      user?.ipWhitelistGracePeriodUntil &&
+      new Date() < user.ipWhitelistGracePeriodUntil
+    ) {
+      // Still within grace period - allow access
+      return true;
+    }
+
+    // Check expired entries (expiresAt < now) and exclude them
+    const now = new Date();
     const whitelistEntries = await this.prisma.adminIpWhitelist.findMany({
       where: {
-        isActive: true,
-        OR: [{ userId: null }, { userId: userId }], // Global whitelist or user-specific
+        AND: [
+          { isActive: true },
+          {
+            OR: [{ userId: null }, { userId: userId }], // Global whitelist or user-specific
+          },
+          {
+            OR: [
+              { expiresAt: null }, // Permanent entries
+              { expiresAt: { gt: now } }, // Not expired yet
+            ],
+          },
+        ],
       },
     });
 
@@ -1608,6 +1637,158 @@ export class AuthService {
   }
 
   /**
+   * Setup MFA for admin user without authentication
+   * Requires temporary setup token OR account created < 24 hours ago + email verified
+   *
+   * @param email - Admin email address
+   * @param setupToken - Optional temporary setup token (sent via email when admin is created)
+   * @returns QR code data URL and backup codes
+   */
+  async setupMfaUnauthenticated(
+    email: string,
+    setupToken?: string,
+  ): Promise<{
+    secret: string;
+    qrCode: string;
+    manualEntryKey: string;
+    backupCodes: string[];
+  }> {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if user is admin
+    const isAdmin =
+      user.role === UserRole.ADMIN ||
+      user.role === UserRole.SUPPORT ||
+      user.role === UserRole.SUPER_ADMIN;
+
+    if (!isAdmin) {
+      throw new ForbiddenException(
+        'Unauthenticated MFA setup is only available for admin users',
+      );
+    }
+
+    // Check if MFA is already enabled
+    if (user.twoFactorEnabled) {
+      throw new BadRequestException('MFA is already enabled');
+    }
+
+    // Verify eligibility: either setupToken OR account created < 24 hours ago + email verified
+    let isEligible = false;
+
+    if (setupToken) {
+      // Verify setup token
+      try {
+        const payload = this.jwtService.verify<{
+          sub: string;
+          purpose: string;
+          email: string;
+        }>(setupToken);
+
+        if (
+          payload.purpose === 'mfa-setup' &&
+          payload.email === email &&
+          payload.sub === user.id
+        ) {
+          isEligible = true;
+        }
+      } catch (error) {
+        // Token invalid or expired
+        this.logger.warn(`Invalid or expired setup token for ${email}:`, error);
+      }
+    } else {
+      // Check if account created < 24 hours ago and email verified
+      const accountAge = Date.now() - user.createdAt.getTime();
+      const twentyFourHours = 24 * 60 * 60 * 1000;
+
+      if (accountAge < twentyFourHours && user.emailVerified) {
+        isEligible = true;
+      }
+    }
+
+    if (!isEligible) {
+      throw new ForbiddenException(
+        'Not eligible for unauthenticated MFA setup. Please provide a valid setup token or ensure your account was created within the last 24 hours and email is verified.',
+      );
+    }
+
+    // Generate secret (same logic as authenticated setup)
+    const secret = speakeasy.generateSecret({
+      name: `RaverPay:${user.email}`,
+      issuer: 'RaverPay',
+      length: 32,
+    });
+
+    // Generate backup codes (10 codes, 8 characters each)
+    const backupCodes: string[] = [];
+    for (let i = 0; i < 10; i++) {
+      const code = randomInt(10000000, 99999999).toString();
+      backupCodes.push(code);
+    }
+
+    // Hash backup codes with argon2
+    const hashedBackupCodes = await Promise.all(
+      backupCodes.map((code) => argon2.hash(code)),
+    );
+
+    // Store temporary secret and backup codes in user record (will be saved after verification)
+    const tempSecret = secret.base32;
+
+    // Generate QR code
+    if (!secret.base32) {
+      throw new Error('Failed to generate MFA secret');
+    }
+
+    const otpauthUrl = speakeasy.otpauthURL({
+      secret: secret.base32,
+      label: user.email,
+      issuer: 'RaverPay',
+      encoding: 'base32',
+    });
+
+    const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl);
+
+    // Store temporary secret in user record (we'll clear it if verification fails)
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        twoFactorSecret: tempSecret, // Store temporarily, will encrypt after verification
+        mfaBackupCodes: hashedBackupCodes,
+      },
+    });
+
+    // Log unauthenticated MFA setup attempt
+    await this.auditService.log({
+      userId: user.id,
+      action: AuditAction.MFA_REQUIRED,
+      resource: 'AUTH',
+      status: AuditStatus.SUCCESS,
+      severity: AuditSeverity.MEDIUM,
+      metadata: {
+        adminEmail: user.email,
+        setupType: 'unauthenticated',
+        hasSetupToken: !!setupToken,
+      },
+    });
+
+    this.logger.log(
+      `Unauthenticated MFA setup initiated for ${user.email} (hasToken: ${!!setupToken})`,
+    );
+
+    return {
+      secret: secret.base32,
+      qrCode: qrCodeDataUrl,
+      manualEntryKey: secret.base32,
+      backupCodes, // Return plain codes - user must save these
+    };
+  }
+
+  /**
    * Verify MFA setup and enable MFA
    *
    * @param userId - User ID
@@ -1701,6 +1882,7 @@ export class AuthService {
       sub: string;
       purpose: string;
       email: string;
+      ipAddress?: string;
     }
 
     let payload: MfaTokenPayload;
@@ -1721,6 +1903,64 @@ export class AuthService {
 
     if (!user || !user.twoFactorSecret || !user.twoFactorEnabled) {
       throw new UnauthorizedException('MFA not configured');
+    }
+
+    // CRITICAL SECURITY: Check IP whitelist for admin users during MFA verification
+    const isAdmin =
+      user.role === UserRole.ADMIN ||
+      user.role === UserRole.SUPPORT ||
+      user.role === UserRole.SUPER_ADMIN;
+
+    if (isAdmin && ipAddress && ipAddress !== 'unknown') {
+      const isIpWhitelisted = await this.checkIpWhitelist(ipAddress, user.id);
+      if (!isIpWhitelisted) {
+        this.logger.warn(
+          `Blocked MFA verification from non-whitelisted IP: ${ipAddress} for user: ${user.email}`,
+        );
+
+        await this.auditService.log({
+          userId: user.id,
+          action: AuditAction.IP_BLOCKED,
+          resource: 'AUTH',
+          status: AuditStatus.FAILURE,
+          severity: AuditSeverity.HIGH,
+          metadata: {
+            blockedIp: ipAddress,
+            attemptedRoute: '/auth/mfa/verify',
+            reason: 'IP_NOT_WHITELISTED_DURING_MFA',
+          },
+        });
+
+        throw new ForbiddenException(
+          'Access denied: Your IP address is not whitelisted for admin access.',
+        );
+      }
+
+      // CRITICAL SECURITY: Check IP consistency - IP must match the one used during login
+      const loginIp = payload.ipAddress || 'unknown';
+      if (loginIp !== 'unknown' && ipAddress !== loginIp) {
+        this.logger.warn(
+          `IP mismatch during MFA verification for user: ${user.email}. Login IP: ${loginIp}, Current IP: ${ipAddress}`,
+        );
+
+        await this.auditService.log({
+          userId: user.id,
+          action: AuditAction.MFA_IP_MISMATCH,
+          resource: 'AUTH',
+          status: AuditStatus.FAILURE,
+          severity: AuditSeverity.HIGH,
+          metadata: {
+            loginIp,
+            currentIp: ipAddress,
+            attemptedRoute: '/auth/mfa/verify',
+            reason: 'IP_CHANGED_DURING_MFA_FLOW',
+          },
+        });
+
+        throw new ForbiddenException(
+          'Security violation: IP address changed during authentication. Please restart the login process.',
+        );
+      }
     }
 
     // Decrypt the stored secret
@@ -1809,6 +2049,30 @@ export class AuthService {
       metadata: { ipAddress, deviceId: deviceInfo?.deviceId },
     });
 
+    // Check if password change is required (for admin users)
+    if (isAdmin && user.mustChangePassword) {
+      // Generate password-change token (15 minute expiry)
+      const passwordChangeToken = this.jwtService.sign(
+        {
+          sub: user.id,
+          purpose: 'password-change',
+          email: user.email,
+        },
+        { expiresIn: '15m' },
+      );
+
+      // Remove password from response
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, ...userWithoutPassword } = user;
+
+      return {
+        mustChangePassword: true,
+        passwordChangeToken,
+        message: 'Password change required on first login',
+        user: userWithoutPassword,
+      };
+    }
+
     // Register/update device (using existing DeviceService)
     let deviceId: string | undefined;
     if (deviceInfo) {
@@ -1834,6 +2098,19 @@ export class AuthService {
     // Generate actual access and refresh tokens
     const tokens = await this.generateTokens(user, deviceInfo, ipAddress);
 
+    // Generate re-auth token for admin users (for sensitive operations)
+    // This token can be used with ReAuthGuard for critical operations
+    let reAuthToken: string | undefined;
+    if (isAdmin) {
+      reAuthToken = this.jwtService.sign(
+        {
+          sub: user.id,
+          purpose: 'reauth',
+        },
+        { expiresIn: '15m' }, // 15 minute expiry
+      );
+    }
+
     // Update last login
     await this.prisma.user.update({
       where: { id: user.id },
@@ -1851,6 +2128,7 @@ export class AuthService {
       user: userWithoutPassword,
       deviceId,
       ...tokens,
+      ...(reAuthToken && { reAuthToken }), // Include re-auth token if generated
     };
   }
 
@@ -1874,6 +2152,7 @@ export class AuthService {
       sub: string;
       purpose: string;
       email: string;
+      ipAddress?: string;
     }
 
     let payload: MfaTokenPayload;
@@ -1894,6 +2173,64 @@ export class AuthService {
 
     if (!user || !user.twoFactorEnabled) {
       throw new UnauthorizedException('MFA not configured');
+    }
+
+    // CRITICAL SECURITY: Check IP whitelist for admin users during backup code verification
+    const isAdmin =
+      user.role === UserRole.ADMIN ||
+      user.role === UserRole.SUPPORT ||
+      user.role === UserRole.SUPER_ADMIN;
+
+    if (isAdmin && ipAddress && ipAddress !== 'unknown') {
+      const isIpWhitelisted = await this.checkIpWhitelist(ipAddress, user.id);
+      if (!isIpWhitelisted) {
+        this.logger.warn(
+          `Blocked backup code verification from non-whitelisted IP: ${ipAddress} for user: ${user.email}`,
+        );
+
+        await this.auditService.log({
+          userId: user.id,
+          action: AuditAction.IP_BLOCKED,
+          resource: 'AUTH',
+          status: AuditStatus.FAILURE,
+          severity: AuditSeverity.HIGH,
+          metadata: {
+            blockedIp: ipAddress,
+            attemptedRoute: '/auth/mfa/verify-backup',
+            reason: 'IP_NOT_WHITELISTED_DURING_MFA',
+          },
+        });
+
+        throw new ForbiddenException(
+          'Access denied: Your IP address is not whitelisted for admin access.',
+        );
+      }
+
+      // CRITICAL SECURITY: Check IP consistency - IP must match the one used during login
+      const loginIp = payload.ipAddress || 'unknown';
+      if (loginIp !== 'unknown' && ipAddress !== loginIp) {
+        this.logger.warn(
+          `IP mismatch during backup code verification for user: ${user.email}. Login IP: ${loginIp}, Current IP: ${ipAddress}`,
+        );
+
+        await this.auditService.log({
+          userId: user.id,
+          action: AuditAction.MFA_IP_MISMATCH,
+          resource: 'AUTH',
+          status: AuditStatus.FAILURE,
+          severity: AuditSeverity.HIGH,
+          metadata: {
+            loginIp,
+            currentIp: ipAddress,
+            attemptedRoute: '/auth/mfa/verify-backup',
+            reason: 'IP_CHANGED_DURING_MFA_FLOW',
+          },
+        });
+
+        throw new ForbiddenException(
+          'Security violation: IP address changed during authentication. Please restart the login process.',
+        );
+      }
     }
 
     // Verify backup code
@@ -2016,6 +2353,30 @@ export class AuthService {
         });
     }
 
+    // Check if password change is required (for admin users)
+    if (isAdmin && user.mustChangePassword) {
+      // Generate password-change token (15 minute expiry)
+      const passwordChangeToken = this.jwtService.sign(
+        {
+          sub: user.id,
+          purpose: 'password-change',
+          email: user.email,
+        },
+        { expiresIn: '15m' },
+      );
+
+      // Remove password from response
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, ...userWithoutPassword } = user;
+
+      return {
+        mustChangePassword: true,
+        passwordChangeToken,
+        message: 'Password change required on first login',
+        user: userWithoutPassword,
+      };
+    }
+
     // Register/update device
     let deviceId: string | undefined;
     if (deviceInfo) {
@@ -2041,6 +2402,19 @@ export class AuthService {
     // Generate tokens
     const tokens = await this.generateTokens(user, deviceInfo, ipAddress);
 
+    // Generate re-auth token for admin users (for sensitive operations)
+    // This token can be used with ReAuthGuard for critical operations
+    let reAuthToken: string | undefined;
+    if (isAdmin) {
+      reAuthToken = this.jwtService.sign(
+        {
+          sub: user.id,
+          purpose: 'reauth',
+        },
+        { expiresIn: '15m' }, // 15 minute expiry
+      );
+    }
+
     // Update last login
     await this.prisma.user.update({
       where: { id: user.id },
@@ -2058,6 +2432,7 @@ export class AuthService {
       user: userWithoutPassword,
       deviceId,
       ...tokens,
+      ...(reAuthToken && { reAuthToken }), // Include re-auth token if generated
     };
   }
 

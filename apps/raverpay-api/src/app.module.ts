@@ -31,6 +31,7 @@ import { RateLimitLoggerInterceptor } from './common/interceptors/rate-limit-log
 import { AccountLockingService } from './common/services/account-locking.service';
 import { AccountLockGuard } from './common/guards/account-lock.guard';
 import { IpWhitelistGuard } from './common/guards/ip-whitelist.guard';
+import { MustChangePasswordGuard } from './common/guards/must-change-password.guard';
 import { IdempotencyService } from './common/services/idempotency.service';
 import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
 import { RequestLoggerInterceptor } from './common/interceptors/request-logger.interceptor';
@@ -128,6 +129,11 @@ import { CommonModule } from './common/common.module';
     {
       provide: APP_GUARD,
       useClass: IpWhitelistGuard,
+    },
+    // Must change password guard for admin routes (can be skipped with @SkipPasswordChangeCheck())
+    {
+      provide: APP_GUARD,
+      useClass: MustChangePasswordGuard,
     },
     // Log rate limit violations with geolocation
     {

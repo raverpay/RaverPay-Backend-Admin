@@ -8,7 +8,6 @@ import {
   Body,
   Query,
   UseGuards,
-  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -21,12 +20,16 @@ import { UserRole } from '@prisma/client';
 import type { UserStatus } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { ReAuthGuard } from '../../common/guards/re-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { GetUser } from '../../auth/decorators/get-user.decorator';
+import { AuthenticatedRequest } from '../../common/types/auth.types';
 import { AdminAdminsService } from './admin-admins.service';
 import {
   CreateAdminDto,
   UpdateAdminDto,
   ResetPasswordDto,
+  ProvisionAdminDto,
 } from '../dto/admin.dto';
 
 @ApiTags('Admin - Admins')
@@ -73,42 +76,76 @@ export class AdminAdminsController {
     return this.adminAdminsService.getAdminById(adminId);
   }
 
-  @ApiOperation({ summary: 'Create new admin user' })
+  @ApiOperation({
+    summary: 'Create new admin user',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
+  @UseGuards(ReAuthGuard)
   @Post()
-  async createAdmin(@Request() req, @Body() dto: CreateAdminDto) {
-    return this.adminAdminsService.createAdmin(req.user.id, dto);
+  async createAdmin(
+    @GetUser('id') userId: string,
+    @Body() dto: CreateAdminDto,
+  ) {
+    return this.adminAdminsService.createAdmin(userId, dto);
   }
 
-  @ApiOperation({ summary: 'Update admin user' })
+  @ApiOperation({
+    summary: 'Update admin user',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'adminId', description: 'Admin ID' })
+  @UseGuards(ReAuthGuard)
   @Patch(':adminId')
   async updateAdmin(
-    @Request() req,
+    @GetUser('id') userId: string,
     @Param('adminId') adminId: string,
     @Body() dto: UpdateAdminDto,
   ) {
-    return this.adminAdminsService.updateAdmin(req.user.id, adminId, dto);
+    return this.adminAdminsService.updateAdmin(userId, adminId, dto);
   }
 
-  @ApiOperation({ summary: 'Delete (deactivate) admin user' })
+  @ApiOperation({
+    summary: 'Delete (deactivate) admin user',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'adminId', description: 'Admin ID' })
+  @UseGuards(ReAuthGuard)
   @Delete(':adminId')
-  async deleteAdmin(@Request() req, @Param('adminId') adminId: string) {
-    return this.adminAdminsService.deleteAdmin(req.user.id, adminId);
+  async deleteAdmin(
+    @GetUser('id') userId: string,
+    @Param('adminId') adminId: string,
+  ) {
+    return this.adminAdminsService.deleteAdmin(userId, adminId);
   }
 
-  @ApiOperation({ summary: 'Reset admin password' })
+  @ApiOperation({
+    summary: 'Reset admin password',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'adminId', description: 'Admin ID' })
+  @UseGuards(ReAuthGuard)
   @Post(':adminId/reset-password')
   async resetPassword(
-    @Request() req,
+    @GetUser('id') userId: string,
     @Param('adminId') adminId: string,
     @Body() dto: ResetPasswordDto,
   ) {
-    return this.adminAdminsService.resetPassword(
-      req.user.id,
-      adminId,
-      dto.password,
-    );
+    return this.adminAdminsService.resetPassword(userId, adminId, dto.password);
+  }
+
+  @ApiOperation({
+    summary: 'Provision admin account',
+    description:
+      'Add IP to whitelist, optionally generate MFA setup, and send provisioning email. Requires re-authentication.',
+  })
+  @ApiParam({ name: 'adminId', description: 'Admin ID' })
+  @UseGuards(ReAuthGuard)
+  @Post(':adminId/provision')
+  async provisionAdmin(
+    @GetUser('id') userId: string,
+    @Param('adminId') adminId: string,
+    @Body() dto: ProvisionAdminDto,
+  ) {
+    return this.adminAdminsService.provisionAdmin(userId, adminId, dto);
   }
 }

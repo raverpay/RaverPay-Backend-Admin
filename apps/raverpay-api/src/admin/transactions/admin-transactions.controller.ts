@@ -20,6 +20,7 @@ import {
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { ReAuthGuard } from '../../common/guards/re-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminTransactionsService } from './admin-transactions.service';
 import { QueryTransactionsDto, ReverseTransactionDto } from '../dto';
@@ -109,14 +110,22 @@ export class AdminTransactionsController {
     return this.adminTransactionsService.getWithdrawalConfigById(id);
   }
 
-  @ApiOperation({ summary: 'Create withdrawal configuration' })
+  @ApiOperation({
+    summary: 'Create withdrawal configuration',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
+  @UseGuards(ReAuthGuard)
   @Post('withdrawal-configs')
   async createWithdrawalConfig(@Body() dto: CreateWithdrawalConfigDto) {
     return this.adminTransactionsService.createWithdrawalConfig(dto);
   }
 
-  @ApiOperation({ summary: 'Update withdrawal configuration' })
+  @ApiOperation({
+    summary: 'Update withdrawal configuration',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'id', description: 'Config ID' })
+  @UseGuards(ReAuthGuard)
   @Put('withdrawal-configs/:id')
   async updateWithdrawalConfig(
     @Param('id') id: string,
@@ -125,8 +134,12 @@ export class AdminTransactionsController {
     return this.adminTransactionsService.updateWithdrawalConfig(id, dto);
   }
 
-  @ApiOperation({ summary: 'Delete withdrawal configuration' })
+  @ApiOperation({
+    summary: 'Delete withdrawal configuration',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'id', description: 'Config ID' })
+  @UseGuards(ReAuthGuard)
   @Delete('withdrawal-configs/:id')
   async deleteWithdrawalConfig(@Param('id') id: string) {
     return this.adminTransactionsService.deleteWithdrawalConfig(id);
@@ -139,8 +152,12 @@ export class AdminTransactionsController {
     return this.adminTransactionsService.getTransactionById(transactionId);
   }
 
-  @ApiOperation({ summary: 'Reverse a transaction' })
+  @ApiOperation({
+    summary: 'Reverse a transaction',
+    description: 'Requires re-authentication for this sensitive operation',
+  })
   @ApiParam({ name: 'transactionId', description: 'Transaction ID' })
+  @UseGuards(ReAuthGuard)
   @Post(':transactionId/reverse')
   async reverseTransaction(
     @Request() req,

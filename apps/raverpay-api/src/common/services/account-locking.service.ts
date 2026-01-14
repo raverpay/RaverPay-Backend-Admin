@@ -111,14 +111,23 @@ export class AccountLockingService {
 
   /**
    * Check if a user is currently locked
+   * Checks both status-based lock (UserStatus.LOCKED) and time-based lock (lockedUntil)
    */
   async isAccountLocked(userId: string): Promise<boolean> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { lockedUntil: true },
+      select: { status: true, lockedUntil: true },
     });
 
-    if (!user?.lockedUntil) return false;
+    if (!user) return false;
+
+    // Check status-based lock (CRITICAL FIX)
+    if (user.status === 'LOCKED') {
+      return true;
+    }
+
+    // Check time-based lock
+    if (!user.lockedUntil) return false;
 
     const now = new Date();
     if (user.lockedUntil > now) {

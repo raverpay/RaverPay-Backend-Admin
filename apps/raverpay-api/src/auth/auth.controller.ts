@@ -33,9 +33,11 @@ import {
   DisableMfaDto,
   MfaStatusDto,
   RegenerateBackupCodesDto,
+  SetupMfaUnauthenticatedDto,
 } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GetUser, Public } from './decorators';
+import { SkipPasswordChangeCheck } from '../common/decorators/skip-password-change-check.decorator';
 import { DeviceInfo } from '../device/device.service';
 
 /**
@@ -380,6 +382,7 @@ export class AuthController {
    * @returns Success message
    */
   @UseGuards(JwtAuthGuard)
+  @SkipPasswordChangeCheck() // Allow logout even if password change required
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('JWT-auth')
@@ -429,6 +432,37 @@ export class AuthController {
   })
   async setupMfa(@GetUser('id') userId: string) {
     return this.authService.setupMfa(userId);
+  }
+
+  /**
+   * Setup MFA for admin user without authentication
+   * Requires temporary setup token OR account created < 24 hours ago + email verified
+   */
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 3600000 } }) // 5 attempts per hour per IP
+  @Post('mfa/setup-unauthenticated')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Setup MFA (Unauthenticated)',
+    description:
+      'Generate MFA secret, QR code, and backup codes for admin users without authentication. Requires temporary setup token (sent via email) OR account created < 24 hours ago + email verified.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'MFA setup initiated',
+    type: SetupMfaResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request or MFA already enabled',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Not eligible for unauthenticated MFA setup',
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async setupMfaUnauthenticated(@Body() dto: SetupMfaUnauthenticatedDto) {
+    return this.authService.setupMfaUnauthenticated(dto.email, dto.setupToken);
   }
 
   /**

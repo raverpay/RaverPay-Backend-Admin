@@ -1,5 +1,12 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, Length, Matches } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsString,
+  IsNotEmpty,
+  Length,
+  Matches,
+  IsOptional,
+  IsEmail,
+} from 'class-validator';
 
 export class SetupMfaResponseDto {
   @ApiProperty({
@@ -136,4 +143,23 @@ export class MfaStatusDto {
     nullable: true,
   })
   lastMfaSuccess: Date | null;
+}
+
+export class SetupMfaUnauthenticatedDto {
+  @ApiProperty({
+    description: 'Email address of the admin account',
+    example: 'admin@raverpay.com',
+  })
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Temporary setup token (sent via email when admin is created). If not provided, account must be created < 24 hours ago and email verified.',
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+  })
+  @IsString()
+  @IsOptional()
+  setupToken?: string;
 }

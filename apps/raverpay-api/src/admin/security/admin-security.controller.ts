@@ -24,6 +24,7 @@ import {
 import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { ReAuthGuard } from '../../common/guards/re-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { GetUser } from '../../auth/decorators';
 import { AdminSecurityService } from './admin-security.service';
@@ -71,7 +72,7 @@ export class AdminSecurityController {
   @ApiOperation({
     summary: 'Add IP to whitelist',
     description:
-      'Add a new IP address or CIDR range to the whitelist. Can be global (all admins) or user-specific.',
+      'Add a new IP address or CIDR range to the whitelist. Can be global (all admins) or user-specific. Requires re-authentication.',
   })
   @ApiResponse({
     status: 201,
@@ -79,6 +80,8 @@ export class AdminSecurityController {
   })
   @ApiResponse({ status: 400, description: 'Invalid IP address format' })
   @ApiResponse({ status: 409, description: 'IP address already whitelisted' })
+  @ApiResponse({ status: 428, description: 'Re-authentication required' })
+  @UseGuards(ReAuthGuard)
   @Post()
   async addIpWhitelist(
     @Body() dto: CreateIpWhitelistDto,
@@ -90,7 +93,7 @@ export class AdminSecurityController {
   @ApiOperation({
     summary: 'Update IP whitelist entry',
     description:
-      'Update description or active status of an IP whitelist entry.',
+      'Update description or active status of an IP whitelist entry. Requires re-authentication.',
   })
   @ApiParam({ name: 'id', description: 'IP whitelist entry ID' })
   @ApiResponse({
@@ -98,6 +101,8 @@ export class AdminSecurityController {
     description: 'IP whitelist entry updated successfully',
   })
   @ApiResponse({ status: 404, description: 'IP whitelist entry not found' })
+  @ApiResponse({ status: 428, description: 'Re-authentication required' })
+  @UseGuards(ReAuthGuard)
   @Patch(':id')
   async updateIpWhitelist(
     @Param('id') id: string,
@@ -108,7 +113,8 @@ export class AdminSecurityController {
 
   @ApiOperation({
     summary: 'Remove IP from whitelist',
-    description: 'Remove an IP address or CIDR range from the whitelist.',
+    description:
+      'Remove an IP address or CIDR range from the whitelist. Requires re-authentication.',
   })
   @ApiParam({ name: 'id', description: 'IP whitelist entry ID' })
   @ApiResponse({
@@ -116,6 +122,8 @@ export class AdminSecurityController {
     description: 'IP address removed from whitelist successfully',
   })
   @ApiResponse({ status: 404, description: 'IP whitelist entry not found' })
+  @ApiResponse({ status: 428, description: 'Re-authentication required' })
+  @UseGuards(ReAuthGuard)
   @Delete(':id')
   async removeIpWhitelist(@Param('id') id: string) {
     return this.adminSecurityService.removeIpWhitelist(id);
