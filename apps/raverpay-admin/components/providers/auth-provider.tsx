@@ -18,23 +18,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
+    const isLoginPage = pathname === '/login';
 
     // Redirect to login if not authenticated and trying to access protected route
-    if (!isAuthenticated && !isPublicRoute) {
+    // BUT: Don't redirect if already on login page (prevents toast from disappearing)
+    if (!isAuthenticated && !isPublicRoute && !isLoginPage) {
       router.push('/login');
       return;
     }
 
     // Redirect to dashboard if authenticated and trying to access login/forgot-password
     // But allow stay on circle-challenge even if authenticated
+    // IMPORTANT: Add a small delay to allow toasts to display before redirect
     if (
       isAuthenticated &&
       isPublicRoute &&
       pathname !== '/circle-challenge' &&
       pathname !== '/circle-modular'
     ) {
-      router.push('/dashboard');
-      return;
+      // Small delay to ensure any error toasts are visible before redirect
+      const redirectTimer = setTimeout(() => {
+        router.push('/dashboard');
+      }, 100);
+      return () => clearTimeout(redirectTimer);
     }
 
     // Check if user has admin role

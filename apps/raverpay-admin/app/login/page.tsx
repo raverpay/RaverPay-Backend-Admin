@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { Loader2, Shield } from 'lucide-react';
+import { Loader2, Shield, Eye, EyeOff } from 'lucide-react';
 
 import { authApi } from '@/lib/api/auth';
 import { useAuthStore } from '@/lib/auth-store';
@@ -46,7 +46,7 @@ type BackupCodeFormData = z.infer<typeof backupCodeSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
-  const [showPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(false);
   const [tempToken, setTempToken] = useState<string | null>(null);
   const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
@@ -133,9 +133,28 @@ export default function LoginPage() {
     onError: (error: AxiosError<ApiError>) => {
       const statusCode = error.response?.status;
       const errorData = error.response?.data;
-      const errorMessage = Array.isArray(errorData?.message)
-        ? errorData.message[0]
-        : errorData?.message || 'Login failed. Please try again.';
+
+      // Extract error message - handle both string and array formats
+      let errorMessage: string;
+
+      if (errorData) {
+        // Check for message property
+        if (errorData.message) {
+          if (Array.isArray(errorData.message)) {
+            errorMessage = errorData.message[0] || 'Login failed. Please try again.';
+          } else if (typeof errorData.message === 'string') {
+            errorMessage = errorData.message;
+          } else {
+            errorMessage = 'Login failed. Please try again.';
+          }
+        } else {
+          // Fallback to error property if message doesn't exist
+          errorMessage = errorData.error || 'Login failed. Please try again.';
+        }
+      } else {
+        // If no errorData, try to get message from error itself
+        errorMessage = error.message || 'Login failed. Please try again.';
+      }
 
       // Parse error message to determine error type and show appropriate message
       let title = 'Login Failed';
@@ -180,9 +199,16 @@ export default function LoginPage() {
         description = 'The login service is currently unavailable. Please try again later.';
       }
 
+      // Increase duration for critical errors
+      const isCriticalError =
+        statusCode === 401 &&
+        (errorMessage.toLowerCase().includes('locked') ||
+          errorMessage.toLowerCase().includes('banned') ||
+          errorMessage.toLowerCase().includes('suspended'));
+
       toast.error(title, {
         description,
-        duration: 5000,
+        duration: isCriticalError ? 10000 : 8000, // 10 seconds for critical, 8 for others
       });
     },
   });
@@ -252,9 +278,12 @@ export default function LoginPage() {
         description = errorMessage;
       }
 
+      // Increase duration for critical errors
+      const isCriticalError = statusCode === 401 && errorMessage.toLowerCase().includes('locked');
+
       toast.error(title, {
         description,
-        duration: 5000,
+        duration: isCriticalError ? 10000 : 8000,
       });
     },
   });
@@ -328,11 +357,12 @@ export default function LoginPage() {
         description = errorMessage;
       }
 
-      console.log(title, description);
+      // Increase duration for critical errors
+      const isCriticalError = statusCode === 401 && errorMessage.toLowerCase().includes('locked');
 
       toast.error(title, {
         description,
-        duration: 5000,
+        duration: isCriticalError ? 10000 : 8000,
       });
     },
   });
@@ -385,6 +415,20 @@ export default function LoginPage() {
                     {...registerLogin('password')}
                     disabled={loginMutation.isPending}
                   />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={loginMutation.isPending}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
                 </div>
                 {loginErrors.password && (
                   <p className="text-sm text-destructive">{loginErrors.password.message}</p>

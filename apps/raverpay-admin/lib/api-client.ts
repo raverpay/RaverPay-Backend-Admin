@@ -93,13 +93,22 @@ apiClient.interceptors.response.use(
     }
 
     // If 401 and we haven't retried yet, try to refresh token
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // BUT: Skip token refresh for auth endpoints (login, register, etc.) - these should pass through the original error
+    const isAuthEndpoint =
+      originalRequest.url?.includes('/auth/login') ||
+      originalRequest.url?.includes('/auth/register') ||
+      originalRequest.url?.includes('/auth/forgot-password') ||
+      originalRequest.url?.includes('/auth/reset-password') ||
+      originalRequest.url?.includes('/admin/auth/change-password');
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
 
       try {
         const refreshToken = localStorage.getItem('refreshToken');
         if (!refreshToken) {
-          throw new Error('No refresh token');
+          // No refresh token - reject with original error to preserve the original error message
+          return Promise.reject(error);
         }
 
         const response = await axios.post(`${API_URL}/auth/refresh`, {
@@ -123,11 +132,24 @@ apiClient.interceptors.response.use(
         if (typeof window !== 'undefined') {
           const { useAuthStore } = await import('@/lib/auth-store');
           useAuthStore.getState().clearAuth();
-          window.location.href = '/login';
+          // Only redirect if not already on login page (prevents toast clearing)
+          // Use window.location.pathname check to avoid unnecessary redirects
+          if (window.location.pathname !== '/login') {
+            // Small delay to allow any error toasts to display before redirect
+            setTimeout(() => {
+              window.location.href = '/login';
+            }, 500);
+          }
         }
 
-        return Promise.reject(refreshError);
+        // Reject with original error to preserve the original error message
+        return Promise.reject(error);
       }
+    }
+
+    // For auth endpoints, always pass through the original error
+    if (isAuthEndpoint) {
+      return Promise.reject(error);
     }
 
     return Promise.reject(error);
