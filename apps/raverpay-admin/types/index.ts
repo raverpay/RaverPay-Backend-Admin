@@ -45,6 +45,7 @@ export interface User {
   passwordChangedAt?: string | null;
   // MFA fields
   twoFactorEnabled?: boolean;
+  twoFactorSecret?: string | null;
 }
 
 // Wallet Types

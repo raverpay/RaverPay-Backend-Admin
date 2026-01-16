@@ -54,8 +54,6 @@ const createPasswordChangeSchema = (mfaRequired: boolean) =>
       path: ['newPassword'],
     });
 
-type PasswordChangeFormData = z.infer<typeof passwordChangeSchema>;
-
 interface PasswordChangeModalProps {
   open: boolean;
   passwordChangeToken: string;
@@ -99,7 +97,7 @@ export function PasswordChangeModal({
         currentPassword: data.currentPassword,
         newPassword: data.newPassword,
         confirmPassword: data.confirmPassword,
-        mfaCode: data.mfaCode || undefined, // Only send if provided
+        mfaCode: data.mfaCode, // Only send if provided
       }),
     onSuccess: (data) => {
       // Update auth store with new tokens
