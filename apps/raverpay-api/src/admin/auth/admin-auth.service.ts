@@ -112,10 +112,27 @@ export class AdminAuthService {
       );
     }
 
-    // Verify MFA code if MFA is enabled
-    if (user.twoFactorEnabled && user.twoFactorSecret) {
+    // Verify MFA code if MFA secret exists (regardless of enabled status)
+    // This handles pre-provisioned MFA that needs to be verified during password change
+    const hasMfaSecret = !!user.twoFactorSecret;
+    const isMfaEnabled = user.twoFactorEnabled === true;
+    const needsMfaVerification = hasMfaSecret; // Require MFA if secret exists (pre-provisioned or enabled)
+
+    if (needsMfaVerification) {
       if (!dto.mfaCode) {
-        throw new BadRequestException('MFA code is required');
+        throw new BadRequestException(
+          'MFA code is required. Please enter the code from your authenticator app or use a backup code.',
+        );
+      }
+
+      // Check if account is locked due to MFA failures
+      if (user.lockedUntil && new Date() < user.lockedUntil) {
+        const minutesRemaining = Math.ceil(
+          (user.lockedUntil.getTime() - Date.now()) / (1000 * 60),
+        );
+        throw new UnauthorizedException(
+          `Account temporarily locked due to multiple failed MFA attempts. Please try again in ${minutesRemaining} minute(s) or contact support.`,
+        );
       }
 
       // Validate MFA code format: must be 6 digits (TOTP) or 8 digits (backup code)
@@ -131,6 +148,7 @@ export class AdminAuthService {
             reason: 'INVALID_MFA_CODE_FORMAT',
             ipAddress,
             codeLength: dto.mfaCode.length,
+            context: 'PASSWORD_CHANGE',
           },
         });
 
@@ -139,34 +157,72 @@ export class AdminAuthService {
         );
       }
 
+      // Determine if secret is encrypted (MFA enabled) or temporary (pre-provisioned)
+      let secret: string;
+      let isTemporarySecret = false;
+
+      if (isMfaEnabled) {
+        // MFA is enabled - secret is encrypted
+        secret = this.mfaEncryption.decryptSecret(user.twoFactorSecret);
+      } else {
+        // MFA is pre-provisioned but not enabled - secret is temporary (base32, not encrypted)
+        secret = user.twoFactorSecret;
+        isTemporarySecret = true;
+      }
+
       // Try TOTP code first (6 digits)
       let isValidTotp = false;
       if (dto.mfaCode.length === 6) {
-        const secret = this.mfaEncryption.decryptSecret(user.twoFactorSecret);
-        isValidTotp = speakeasy.totp.verify({
-          secret,
-          encoding: 'base32',
-          token: dto.mfaCode,
-          window: 1,
-        });
+        try {
+          // CRITICAL: Verify TOTP code - must return exactly true to be valid
+          const verifyResult = speakeasy.totp.verify({
+            secret,
+            encoding: 'base32',
+            token: dto.mfaCode,
+            window: 1, // Allow 30 seconds clock drift
+          });
+          
+          // speakeasy.totp.verify returns true/false/null/undefined
+          // ONLY accept explicit true - anything else is invalid
+          isValidTotp = verifyResult === true;
+          
+          // Log verification attempt for debugging (use warn level so it's visible)
+          this.logger.warn(
+            `[MFA VERIFICATION] user=${user.id}, email=${user.email}, code=${dto.mfaCode}, secretLength=${secret.length}, verifyResult=${verifyResult}, isValidTotp=${isValidTotp}, isTemporarySecret=${isTemporarySecret}`,
+          );
+          
+          // Additional safety check: if verifyResult is not explicitly true, ensure isValidTotp is false
+          if (verifyResult !== true) {
+            isValidTotp = false;
+            this.logger.warn(
+              `[MFA VERIFICATION FAILED] verifyResult was not true: ${verifyResult} (type: ${typeof verifyResult})`,
+            );
+          }
+        } catch (error) {
+          // If verification throws an error (e.g., invalid secret format), treat as invalid
+          this.logger.error(
+            `[MFA VERIFICATION ERROR] user=${user.id}, error=${error instanceof Error ? error.message : String(error)}, stack=${error instanceof Error ? error.stack : 'N/A'}`,
+          );
+          isValidTotp = false;
+        }
+      } else {
+        // Code is not 6 digits, so TOTP verification won't be attempted
+        isValidTotp = false;
+        this.logger.warn(
+          `[MFA VERIFICATION] Code length is ${dto.mfaCode.length}, not 6 digits. Skipping TOTP verification.`,
+        );
       }
 
       // If TOTP fails or code is 8 digits, try backup code
       let isValidBackup = false;
+      let matchedBackupIndex = -1;
       if (!isValidTotp && dto.mfaCode.length === 8) {
         const backupCodes = user.mfaBackupCodes || [];
-        for (const backupCode of backupCodes) {
+        for (let i = 0; i < backupCodes.length; i++) {
           try {
-            isValidBackup = await argon2.verify(backupCode, dto.mfaCode);
+            isValidBackup = await argon2.verify(backupCodes[i], dto.mfaCode);
             if (isValidBackup) {
-              // Remove used backup code
-              const updatedBackupCodes = backupCodes.filter(
-                (code) => code !== backupCode,
-              );
-              await this.prisma.user.update({
-                where: { id: user.id },
-                data: { mfaBackupCodes: updatedBackupCodes },
-              });
+              matchedBackupIndex = i;
               break;
             }
           } catch {
@@ -175,7 +231,23 @@ export class AdminAuthService {
         }
       }
 
+      // CRITICAL: Always check if MFA verification passed before allowing password change
       if (!isValidTotp && !isValidBackup) {
+        // MFA verification failed - DO NOT allow password change
+        this.logger.warn(
+          `MFA verification failed for password change: user=${user.id}, email=${user.email}, codeLength=${dto.mfaCode.length}, isTemporarySecret=${isTemporarySecret}`,
+        );
+
+        // Increment failed attempts
+        const updatedUser = await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            mfaFailedAttempts: { increment: 1 },
+            lastMfaFailure: new Date(),
+          },
+        });
+
+        // Log failed attempt
         await this.auditService.log({
           userId: user.id,
           action: AuditAction.MFA_VERIFICATION_FAILED,
@@ -186,10 +258,159 @@ export class AdminAuthService {
             reason: 'PASSWORD_CHANGE_MFA_FAILED',
             ipAddress,
             codeLength: dto.mfaCode.length,
+            attemptCount: updatedUser.mfaFailedAttempts,
+            isPreProvisioned: isTemporarySecret,
+            isValidTotp,
+            isValidBackup,
           },
         });
 
-        throw new UnauthorizedException('Invalid MFA code');
+        // Lock account after 5 failed attempts (30 minutes lockout)
+        if (updatedUser.mfaFailedAttempts >= 5) {
+          const lockoutUntil = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+          await this.prisma.user.update({
+            where: { id: user.id },
+            data: {
+              lockedUntil: lockoutUntil,
+            },
+          });
+
+          this.logger.warn(
+            `Account locked due to MFA failures during password change: ${user.email} (IP: ${ipAddress})`,
+          );
+
+          throw new UnauthorizedException(
+            'Account temporarily locked due to multiple failed MFA attempts. Please try again in 30 minutes or contact support.',
+          );
+        }
+
+        const attemptsRemaining = 5 - updatedUser.mfaFailedAttempts;
+        throw new UnauthorizedException(
+          `Invalid MFA code. ${attemptsRemaining} attempt(s) remaining.`,
+        );
+      }
+
+      // MFA verification passed - log success
+      // CRITICAL: Double-check that verification actually passed
+      if (!isValidTotp && !isValidBackup) {
+        // This should never happen if the code above is correct, but add defensive check
+        this.logger.error(
+          `CRITICAL: MFA verification check passed but both isValidTotp and isValidBackup are false! user=${user.id}`,
+        );
+        throw new UnauthorizedException('MFA verification failed');
+      }
+
+      this.logger.log(
+        `MFA verification successful for password change: user=${user.id}, email=${user.email}, method=${isValidTotp ? 'TOTP' : 'BACKUP'}, isValidTotp=${isValidTotp}, isValidBackup=${isValidBackup}`,
+      );
+
+      // MFA verification successful!
+      // If this was a pre-provisioned MFA (temporary secret), enable it now
+      if (isTemporarySecret && isValidTotp) {
+        // Encrypt the secret and enable MFA
+        const encryptedSecret = this.mfaEncryption.encryptSecret(secret);
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            twoFactorSecret: encryptedSecret,
+            twoFactorEnabled: true,
+            mfaEnabledAt: new Date(),
+            mfaFailedAttempts: 0, // Reset failed attempts
+            lastMfaSuccess: new Date(),
+          },
+        });
+
+        this.logger.log(
+          `MFA enabled during password change for user: ${user.email} (pre-provisioned)`,
+        );
+
+        await this.auditService.log({
+          userId: user.id,
+          action: AuditAction.MFA_ENABLED,
+          resource: 'AUTH',
+          status: AuditStatus.SUCCESS,
+          severity: AuditSeverity.HIGH,
+          metadata: {
+            method: 'PASSWORD_CHANGE_VERIFICATION',
+            ipAddress,
+            enabledAt: new Date().toISOString(),
+          },
+        });
+      } else if (isValidBackup && matchedBackupIndex >= 0) {
+        // Backup code used - remove it
+        const backupCodes = user.mfaBackupCodes || [];
+        const updatedBackupCodes = backupCodes.filter(
+          (_code, index) => index !== matchedBackupIndex,
+        );
+
+        // If MFA was pre-provisioned, enable it now
+        const updateData: any = {
+          mfaBackupCodes: updatedBackupCodes,
+          mfaFailedAttempts: 0,
+          lastMfaSuccess: new Date(),
+        };
+
+        if (isTemporarySecret) {
+          const encryptedSecret = this.mfaEncryption.encryptSecret(secret);
+          updateData.twoFactorSecret = encryptedSecret;
+          updateData.twoFactorEnabled = true;
+          updateData.mfaEnabledAt = new Date();
+
+          await this.auditService.log({
+            userId: user.id,
+            action: AuditAction.MFA_ENABLED,
+            resource: 'AUTH',
+            status: AuditStatus.SUCCESS,
+            severity: AuditSeverity.HIGH,
+            metadata: {
+              method: 'PASSWORD_CHANGE_BACKUP_CODE',
+              ipAddress,
+              enabledAt: new Date().toISOString(),
+            },
+          });
+        }
+
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: updateData,
+        });
+      } else if (isValidTotp && !isTemporarySecret) {
+        // MFA already enabled and verified with TOTP
+        // Note: mfaEnabledAt should already be set (when MFA was first enabled)
+        // We only update lastMfaSuccess (when it was last verified), not mfaEnabledAt
+        // If mfaEnabledAt is null (data inconsistency), set it now as a safety measure
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            mfaFailedAttempts: 0,
+            lastMfaSuccess: new Date(), // Update last successful verification
+            // Only set mfaEnabledAt if it's null (data inconsistency fix)
+            // Otherwise, preserve the original mfaEnabledAt timestamp (when MFA was first enabled)
+            ...(user.mfaEnabledAt ? {} : { mfaEnabledAt: new Date() }),
+          },
+        });
+      } else if (isValidBackup && !isTemporarySecret) {
+        // MFA already enabled and verified with backup code
+        // Same logic: update lastMfaSuccess, preserve mfaEnabledAt
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            mfaFailedAttempts: 0,
+            lastMfaSuccess: new Date(), // Update last successful verification
+            // Only set mfaEnabledAt if it's null (data inconsistency fix)
+            ...(user.mfaEnabledAt ? {} : { mfaEnabledAt: new Date() }),
+          },
+        });
+      } else {
+        // MFA already enabled, reset failed attempts
+        // This shouldn't happen if verification passed, but add as fallback
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            mfaFailedAttempts: 0,
+            lastMfaSuccess: new Date(),
+          },
+        });
       }
     }
 
@@ -197,6 +418,7 @@ export class AdminAuthService {
     const hashedNewPassword = await argon2.hash(dto.newPassword);
 
     // Update password and clear mustChangePassword flag
+    // Note: mfaFailedAttempts is reset in MFA verification section above if MFA was verified
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
@@ -204,7 +426,11 @@ export class AdminAuthService {
         mustChangePassword: false,
         passwordChangedAt: new Date(),
         lastPasswordChange: new Date(),
-        mfaFailedAttempts: 0, // Reset MFA failed attempts
+        // Don't reset mfaFailedAttempts here - it's handled in MFA verification section
+        // Only reset if MFA was not required (no secret exists)
+        ...(needsMfaVerification
+          ? {}
+          : { mfaFailedAttempts: 0 }), // Reset if no MFA was required
       },
     });
 

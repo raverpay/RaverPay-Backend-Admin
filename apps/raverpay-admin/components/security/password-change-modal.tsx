@@ -75,8 +75,9 @@ export function PasswordChangeModal({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { setAuth } = useAuthStore();
 
-  // Check if MFA is enabled
-  const mfaRequired = user?.twoFactorEnabled === true;
+  // Check if MFA is required: if twoFactorSecret exists (pre-provisioned or enabled)
+  // This allows pre-provisioned MFA to be verified during password change
+  const mfaRequired = !!user?.twoFactorSecret;
 
   // Create schema based on MFA requirement
   const passwordChangeSchema = createPasswordChangeSchema(mfaRequired);

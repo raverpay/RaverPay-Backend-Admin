@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, MinLength, Matches } from 'class-validator';
+import { IsString, MinLength, Matches, IsOptional } from 'class-validator';
 
 export class ChangePasswordDto {
   @ApiProperty({
@@ -31,10 +31,11 @@ export class ChangePasswordDto {
   confirmPassword: string;
 
   @ApiProperty({
-    description: 'MFA code (TOTP) or backup code',
+    description: 'MFA code (TOTP) or backup code. Required if MFA secret exists.',
     example: '123456',
     required: false,
   })
+  @IsOptional()
   @IsString()
   mfaCode?: string;
 

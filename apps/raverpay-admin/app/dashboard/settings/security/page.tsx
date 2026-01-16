@@ -50,6 +50,8 @@ type DisableMfaFormData = z.infer<typeof disableMfaSchema>;
 export default function SecuritySettingsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  // Note: This page is accessible to all admin roles (ADMIN, SUPER_ADMIN, SUPPORT)
+  // to allow self-service MFA management. System settings remain SUPER_ADMIN only.
   const [showDisableDialog, setShowDisableDialog] = useState(false);
   const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
   const [showMfaVerifyModal, setShowMfaVerifyModal] = useState(false);
