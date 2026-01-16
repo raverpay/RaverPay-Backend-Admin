@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { Loader2, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-import { authApi } from '@/lib/api/auth';
+import { authApi, ChangePasswordRequest } from '@/lib/api/auth';
 import { useAuthStore } from '@/lib/auth-store';
 import { User } from '@/types';
 import {
@@ -95,17 +95,13 @@ export function PasswordChangeModal({
   const changePasswordMutation = useMutation({
     mutationFn: (data: PasswordChangeFormData) => {
       // Ensure mfaCode is sent when MFA is required
-      const requestData: unknown = {
+      const requestData: ChangePasswordRequest = {
         passwordChangeToken,
         currentPassword: data.currentPassword,
         newPassword: data.newPassword,
         confirmPassword: data.confirmPassword,
+        ...(mfaRequired && { mfaCode: data.mfaCode || '' }),
       };
-
-      // Always include mfaCode if MFA is required (even if empty, backend will validate)
-      if (mfaRequired) {
-        requestData.mfaCode = data.mfaCode || '';
-      }
 
       return authApi.changePassword(requestData);
     },
