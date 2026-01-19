@@ -365,6 +365,11 @@ export interface RevenueAnalytics {
     revenue: string;
     count: number;
   }>;
+  timeSeries?: Array<{
+    date: string;
+    revenue: string;
+    count: number;
+  }>;
 }
 
 export interface UserGrowthAnalytics {
@@ -377,6 +382,10 @@ export interface UserGrowthAnalytics {
     status: UserStatus;
     count: number;
   }>;
+  timeSeries?: Array<{
+    date: string;
+    count: number;
+  }>;
 }
 
 export interface TransactionTrendsAnalytics {
@@ -386,6 +395,12 @@ export interface TransactionTrendsAnalytics {
   byStatus: Array<{
     status: TransactionStatus;
     count: number;
+  }>;
+  timeSeries?: Array<{
+    date: string;
+    volume: string;
+    count: number;
+    successCount: number;
   }>;
 }
 

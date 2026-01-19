@@ -1,8 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { TrendingUp, Users, Wallet, DollarSign } from 'lucide-react';
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
+import { format } from 'date-fns';
 
 import { analyticsApi } from '@/lib/api/analytics';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -66,6 +83,101 @@ export default function AnalyticsPage() {
     queryKey: ['analytics-transaction-trends', dateRange],
     queryFn: () => analyticsApi.getTransactionTrends(getDateParams()),
   });
+
+  // Chart color palettes - using oklch colors from CSS variables
+  const CHART_COLORS = [
+    'oklch(0.646 0.222 41.116)', // chart-1
+    'oklch(0.6 0.118 184.704)', // chart-2
+    'oklch(0.398 0.07 227.392)', // chart-3
+    'oklch(0.828 0.189 84.429)', // chart-4
+    'oklch(0.769 0.188 70.08)', // chart-5
+  ];
+
+  const STATUS_COLORS: Record<string, string> = {
+    COMPLETED: 'oklch(0.646 0.222 41.116)', // green
+    PENDING: 'oklch(0.828 0.189 84.429)', // yellow
+    PROCESSING: 'oklch(0.6 0.118 184.704)', // blue
+    FAILED: 'oklch(0.398 0.07 227.392)', // red
+    CANCELLED: 'oklch(0.5 0 0)', // gray
+    REVERSED: 'oklch(0.5 0.1 0)', // dark red
+  };
+
+  // Prepare revenue time-series data
+  const revenueTimeSeriesData = useMemo(() => {
+    if (!revenueData?.timeSeries) return [];
+    return revenueData.timeSeries.map((item) => {
+      let formattedDate: string;
+      if (revenueGroupBy === 'month') {
+        // Handle YYYY-MM format
+        const [year, month] = item.date.split('-');
+        formattedDate = format(new Date(parseInt(year), parseInt(month) - 1, 1), 'MMM yyyy');
+      } else {
+        formattedDate = format(new Date(item.date), 'MMM dd');
+      }
+      return {
+        date: formattedDate,
+        revenue: Number(item.revenue),
+        count: item.count,
+      };
+    });
+  }, [revenueData, revenueGroupBy]);
+
+  // Prepare revenue by type data
+  const revenueByTypeData = useMemo(() => {
+    if (!revenueData?.byType) return [];
+    return revenueData.byType.map((item) => ({
+      name: item.type.replace(/_/g, ' '),
+      revenue: Number(item.revenue),
+      count: item.count,
+    }));
+  }, [revenueData]);
+
+  // Prepare user growth time-series data
+  const userGrowthTimeSeriesData = useMemo(() => {
+    if (!userGrowthData?.timeSeries) return [];
+    return userGrowthData.timeSeries.map((item) => ({
+      date: format(new Date(item.date), 'MMM dd'),
+      count: item.count,
+    }));
+  }, [userGrowthData]);
+
+  // Prepare user growth by KYC tier data
+  const userGrowthByKYCTierData = useMemo(() => {
+    if (!userGrowthData?.byKYCTier) return [];
+    return userGrowthData.byKYCTier.map((item) => ({
+      name: item.tier.replace(/_/g, ' '),
+      value: item.count,
+    }));
+  }, [userGrowthData]);
+
+  // Prepare user growth by status data
+  const userGrowthByStatusData = useMemo(() => {
+    if (!userGrowthData?.byStatus) return [];
+    return userGrowthData.byStatus.map((item) => ({
+      name: item.status.replace(/_/g, ' '),
+      value: item.count,
+    }));
+  }, [userGrowthData]);
+
+  // Prepare transaction trends time-series data
+  const transactionTrendsTimeSeriesData = useMemo(() => {
+    if (!transactionTrendsData?.timeSeries) return [];
+    return transactionTrendsData.timeSeries.map((item) => ({
+      date: format(new Date(item.date), 'MMM dd'),
+      volume: Number(item.volume),
+      count: item.count,
+      successRate: item.count > 0 ? ((item.successCount / item.count) * 100).toFixed(1) : '0',
+    }));
+  }, [transactionTrendsData]);
+
+  // Prepare transaction trends by status data
+  const transactionTrendsByStatusData = useMemo(() => {
+    if (!transactionTrendsData?.byStatus) return [];
+    return transactionTrendsData.byStatus.map((item) => ({
+      name: item.status.replace(/_/g, ' '),
+      value: item.count,
+    }));
+  }, [transactionTrendsData]);
 
   return (
     <div className="space-y-6">
@@ -211,23 +323,92 @@ export default function AnalyticsPage() {
                 </div>
               </div>
 
-              {revenueData?.byType && revenueData.byType.length > 0 && (
+              {/* Revenue Time-Series Chart */}
+              {revenueTimeSeriesData.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium mb-4">Revenue by Type</h4>
-                  <div className="space-y-3">
-                    {revenueData.byType.map((item) => (
-                      <div
-                        key={item.type}
-                        className="flex items-center justify-between p-3 rounded-lg bg-muted/30"
-                      >
-                        <div>
-                          <p className="font-medium">{item.type}</p>
-                          <p className="text-sm text-muted-foreground">{item.count} transactions</p>
-                        </div>
-                        <p className="font-bold">{formatCurrency(item.revenue)}</p>
-                      </div>
-                    ))}
-                  </div>
+                  <h4 className="text-sm font-medium mb-4">Revenue Over Time</h4>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={revenueTimeSeriesData}>
+                      <defs>
+                        <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                          <stop
+                            offset="5%"
+                            stopColor="oklch(0.646 0.222 41.116)"
+                            stopOpacity={0.8}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="oklch(0.646 0.222 41.116)"
+                            stopOpacity={0}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="date" className="text-xs" tick={{ fill: 'currentColor' }} />
+                      <YAxis
+                        className="text-xs"
+                        tick={{ fill: 'currentColor' }}
+                        tickFormatter={(value) => `₦${(value / 1000).toFixed(0)}k`}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--background))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '6px',
+                        }}
+                        formatter={(value: number | undefined) =>
+                          formatCurrency(String(value ?? 0))
+                        }
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="revenue"
+                        stroke="oklch(0.646 0.222 41.116)"
+                        fillOpacity={1}
+                        fill="url(#colorRevenue)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* Revenue by Type Bar Chart */}
+              {revenueByTypeData.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium mb-4">Revenue by Transaction Type</h4>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={revenueByTypeData}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis
+                        dataKey="name"
+                        className="text-xs"
+                        tick={{ fill: 'currentColor' }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={80}
+                      />
+                      <YAxis
+                        className="text-xs"
+                        tick={{ fill: 'currentColor' }}
+                        tickFormatter={(value) => `₦${(value / 1000).toFixed(0)}k`}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--background))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '6px',
+                        }}
+                        formatter={(value: number | undefined) =>
+                          formatCurrency(String(value ?? 0))
+                        }
+                      />
+                      <Bar
+                        dataKey="revenue"
+                        fill="oklch(0.646 0.222 41.116)"
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               )}
             </div>
@@ -254,31 +435,105 @@ export default function AnalyticsPage() {
                   </p>
                 </div>
 
-                {userGrowthData?.byKYCTier && userGrowthData.byKYCTier.length > 0 && (
+                {/* User Growth Time-Series Chart */}
+                {userGrowthTimeSeriesData.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-medium mb-3">By KYC Tier</h4>
-                    <div className="space-y-2">
-                      {userGrowthData.byKYCTier.map((item) => (
-                        <div key={item.tier} className="flex items-center justify-between py-2">
-                          <span className="text-sm">{item.tier}</span>
-                          <span className="font-medium">{item.count}</span>
-                        </div>
-                      ))}
-                    </div>
+                    <h4 className="text-sm font-medium mb-3">New Users Over Time</h4>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <LineChart data={userGrowthTimeSeriesData}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis dataKey="date" className="text-xs" tick={{ fill: 'currentColor' }} />
+                        <YAxis className="text-xs" tick={{ fill: 'currentColor' }} />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--background))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '6px',
+                          }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="count"
+                          stroke="oklch(0.646 0.222 41.116)"
+                          strokeWidth={2}
+                          dot={{ r: 3 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
                   </div>
                 )}
 
-                {userGrowthData?.byStatus && userGrowthData.byStatus.length > 0 && (
+                {/* User Growth by KYC Tier Pie Chart */}
+                {userGrowthByKYCTierData.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-3">By KYC Tier</h4>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={userGrowthByKYCTierData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) =>
+                            `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
+                          }
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {userGrowthByKYCTierData.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={CHART_COLORS[index % CHART_COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--background))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '6px',
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* User Growth by Status Pie Chart */}
+                {userGrowthByStatusData.length > 0 && (
                   <div>
                     <h4 className="text-sm font-medium mb-3">By Status</h4>
-                    <div className="space-y-2">
-                      {userGrowthData.byStatus.map((item) => (
-                        <div key={item.status} className="flex items-center justify-between py-2">
-                          <span className="text-sm">{item.status}</span>
-                          <span className="font-medium">{item.count}</span>
-                        </div>
-                      ))}
-                    </div>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={userGrowthByStatusData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) =>
+                            `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
+                          }
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {userGrowthByStatusData.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={CHART_COLORS[index % CHART_COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--background))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '6px',
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
                 )}
               </div>
@@ -319,17 +574,92 @@ export default function AnalyticsPage() {
                   </p>
                 </div>
 
-                {transactionTrendsData?.byStatus && transactionTrendsData.byStatus.length > 0 && (
+                {/* Transaction Trends Time-Series Chart */}
+                {transactionTrendsTimeSeriesData.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-3">Transaction Volume Over Time</h4>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <AreaChart data={transactionTrendsTimeSeriesData}>
+                        <defs>
+                          <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
+                            <stop
+                              offset="5%"
+                              stopColor="oklch(0.646 0.222 41.116)"
+                              stopOpacity={0.8}
+                            />
+                            <stop
+                              offset="95%"
+                              stopColor="oklch(0.646 0.222 41.116)"
+                              stopOpacity={0}
+                            />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis dataKey="date" className="text-xs" tick={{ fill: 'currentColor' }} />
+                        <YAxis
+                          className="text-xs"
+                          tick={{ fill: 'currentColor' }}
+                          tickFormatter={(value) => `₦${(value / 1000).toFixed(0)}k`}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--background))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '6px',
+                          }}
+                          formatter={(value: number | undefined) =>
+                            formatCurrency(String(value ?? 0))
+                          }
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="volume"
+                          stroke="oklch(0.646 0.222 41.116)"
+                          fillOpacity={1}
+                          fill="url(#colorVolume)"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Transaction Trends by Status Pie Chart */}
+                {transactionTrendsByStatusData.length > 0 && (
                   <div>
                     <h4 className="text-sm font-medium mb-3">By Status</h4>
-                    <div className="space-y-2">
-                      {transactionTrendsData.byStatus.map((item) => (
-                        <div key={item.status} className="flex items-center justify-between py-2">
-                          <span className="text-sm">{item.status}</span>
-                          <span className="font-medium">{item.count}</span>
-                        </div>
-                      ))}
-                    </div>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={transactionTrendsByStatusData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) =>
+                            `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
+                          }
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {transactionTrendsByStatusData.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={
+                                STATUS_COLORS[entry.name.replace(/\s/g, '_')] ||
+                                CHART_COLORS[index % CHART_COLORS.length]
+                              }
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--background))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '6px',
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
                 )}
               </div>
