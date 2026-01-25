@@ -44,6 +44,7 @@ import { PostHogModule } from './common/analytics/posthog.module';
 import { PrismaPulseModule } from './common/monitoring/prisma-pulse.module';
 import { DiagnosticModule } from './diagnostic/diagnostic.module';
 import { CommonModule } from './common/common.module';
+import { AlchemyModule } from './alchemy/alchemy.module';
 
 @Module({
   imports: [
@@ -109,6 +110,7 @@ import { CommonModule } from './common/common.module';
     AppConfigModule, // App configuration (rating prompts, etc.)
     DiagnosticModule, // Diagnostic endpoints for testing monitoring services
     AdminModule, // Admin module for dashboard
+    AlchemyModule, // Alchemy integration (wallets, transactions, webhooks, admin)
   ],
   controllers: [AppController],
   providers: [
