@@ -110,6 +110,8 @@ model User {
   receivedEmails         OutboundEmail[]          @relation("ReceivedEmails")
   ipWhitelists           AdminIpWhitelist[]        @relation("IpWhitelistCreator")
   assignedIpWhitelists   AdminIpWhitelist[]
+  alchemyWallets         AlchemyWallet[]
+  alchemyTransactions    AlchemyTransaction[]
 
   @@index([email])
   @@index([phone])
@@ -1876,4 +1878,184 @@ enum AuditStatus {
   SUCCESS
   FAILURE
   PENDING
+}
+
+// ============================================
+// ALCHEMY INTEGRATION MODELS
+// ============================================
+
+// Alchemy Account Type
+enum AlchemyAccountType {
+  EOA              // Externally Owned Account (traditional wallet)
+  SMART_CONTRACT   // Smart Contract Account (Account Abstraction)
+}
+
+// Alchemy Wallet State
+enum AlchemyWalletState {
+  ACTIVE
+  INACTIVE
+  LOCKED
+  COMPROMISED
+}
+
+// Alchemy Transaction Type
+enum AlchemyTransactionType {
+  SEND      // Send USDC/USDT to external address
+  RECEIVE   // Receive USDC/USDT
+  INTERNAL  // Internal transfer between RaverPay users
+  SWAP      // Token swap (future feature)
+  BRIDGE    // Cross-chain bridge (future feature)
+}
+
+// Alchemy Transaction State
+enum AlchemyTransactionState {
+  PENDING    // Transaction created but not submitted
+  SUBMITTED  // Submitted to blockchain
+  CONFIRMED  // Included in block
+  COMPLETED  // Finalized with sufficient confirmations
+  FAILED     // Transaction failed
+  CANCELLED  // User cancelled
+}
+
+// Alchemy Wallet - Manages user's Alchemy smart wallets
+model AlchemyWallet {
+  id                    String                 @id @default(uuid())
+  userId                String
+  address               String                 @unique
+  encryptedPrivateKey   String                 // AES-256-GCM encrypted private key
+  blockchain            String                 // POLYGON, ARBITRUM, BASE
+  network               String                 // mainnet, testnet
+  accountType           AlchemyAccountType     @default(SMART_CONTRACT)
+  state                 AlchemyWalletState     @default(ACTIVE)
+  name                  String?
+  isGasSponsored        Boolean                @default(true)
+  gasPolicyId           String?                // Alchemy Gas Manager policy ID
+  alchemyAppId          String?                // Alchemy app ID
+  webhookId             String?                // Alchemy webhook ID for this address
+  lastKeyRotation       DateTime?
+  keyRotationCount      Int                    @default(0)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  
+  // Relations
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alchemyTransactions   AlchemyTransaction[]
+  alchemyUserOps        AlchemyUserOperation[]
+  
+  @@unique([userId, blockchain, network])
+  @@index([userId])
+  @@index([address])
+  @@index([blockchain])
+  @@index([network])
+  @@index([state])
+  @@map("alchemy_wallets")
+}
+
+// Alchemy Transaction - Track all blockchain transactions
+model AlchemyTransaction {
+  id                    String                    @id @default(uuid())
+  reference             String                    @unique
+  userId                String
+  walletId              String
+  type                  AlchemyTransactionType
+  state                 AlchemyTransactionState   @default(PENDING)
+  sourceAddress         String?
+  destinationAddress    String
+  tokenAddress          String?                   // ERC20 token address (USDC, USDT, etc.)
+  blockchain            String
+  network               String
+  amount                String                    // Amount in wei/smallest unit
+  amountFormatted       String?                   // Human-readable amount
+  transactionHash       String?                   @unique
+  blockNumber           BigInt?
+  blockHash             String?
+  gasUsed               String?
+  gasPrice              String?
+  networkFee            String?                   // in native token (POL, ETH, etc.)
+  networkFeeUsd         String?
+  userOperationHash     String?                   @unique
+  serviceFee            String?                   // Service fee in USDC
+  feeCollected          Boolean                   @default(false)
+  errorCode             String?
+  errorMessage          String?
+  confirmations         Int                       @default(0)
+  isInternal            Boolean                   @default(false) // true if both addresses are internal
+  metadata              Json?
+  completedAt           DateTime?
+  failedAt              DateTime?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  
+  // Relations
+  user                  User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet                AlchemyWallet             @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([walletId])
+  @@index([state])
+  @@index([type])
+  @@index([transactionHash])
+  @@index([userOperationHash])
+  @@index([createdAt])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("alchemy_transactions")
+}
+
+// Alchemy UserOperation - Track Account Abstraction UserOps
+model AlchemyUserOperation {
+  id                    String         @id @default(uuid())
+  userOperationHash     String         @unique
+  walletId              String
+  userId                String
+  sender                String         // Smart account address
+  nonce                 String
+  callData              String         @db.Text // Hex-encoded call data
+  callGasLimit          String
+  verificationGasLimit  String
+  preVerificationGas    String
+  maxFeePerGas          String
+  maxPriorityFeePerGas  String
+  paymasterAndData      String?        @db.Text // Paymaster info if gas sponsored
+  signature             String         @db.Text // User signature
+  bundlerUsed           Boolean        @default(true)
+  gasPolicyId           String?        // Gas Manager policy used
+  gasSponsored          Boolean        @default(false)
+  transactionHash       String?        // Final transaction hash
+  blockNumber           BigInt?
+  status                String         @default("PENDING") // PENDING, INCLUDED, FAILED
+  errorMessage          String?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  
+  // Relations
+  wallet                AlchemyWallet  @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  
+  @@index([walletId])
+  @@index([userId])
+  @@index([userOperationHash])
+  @@index([status])
+  @@index([createdAt])
+  @@map("alchemy_user_operations")
+}
+
+// Gas Manager Spending Tracker
+model AlchemyGasSpending {
+  id                String    @id @default(uuid())
+  userId            String
+  walletAddress     String
+  blockchain        String
+  network           String
+  gasPolicyId       String
+  date              DateTime  @default(now()) // Date for daily tracking
+  totalGasUsed      String    // in wei
+  totalGasUsd       String    // in USD
+  transactionCount  Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@unique([userId, walletAddress, date])
+  @@index([userId])
+  @@index([date])
+  @@index([walletAddress])
+  @@map("alchemy_gas_spending")
 }
