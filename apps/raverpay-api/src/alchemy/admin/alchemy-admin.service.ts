@@ -146,8 +146,11 @@ export class AlchemyAdminService {
     }, {});
 
     // Calculate totals
-    const totals = Object.values(byBlockchain).reduce(
-      (acc: any, curr: any) => ({
+    const totals = Object.values(byBlockchain).reduce<{
+      totalTransactions: number;
+      totalGasUsd: number;
+    }>(
+      (acc, curr: any) => ({
         totalTransactions: acc.totalTransactions + curr.totalTransactions,
         totalGasUsd: acc.totalGasUsd + curr.totalGasUsd,
       }),
@@ -157,7 +160,7 @@ export class AlchemyAdminService {
     return {
       byBlockchain: Object.values(byBlockchain),
       totals: {
-        ...totals,
+        totalTransactions: totals.totalTransactions,
         totalGasUsd: `$${totals.totalGasUsd.toFixed(2)}`,
         averagePerTransaction:
           totals.totalTransactions > 0
@@ -235,14 +238,22 @@ export class AlchemyAdminService {
   async getUserWalletsOverview(userId: string) {
     const wallets = await this.prisma.alchemyWallet.findMany({
       where: { userId },
-      include: {
-        _count: {
-          select: {
-            transactions: true,
-          },
-        },
-      },
     });
+
+    // Get transaction counts separately
+    const transactionCounts = await Promise.all(
+      wallets.map(async (w) => ({
+        walletId: w.id,
+        count: await this.prisma.alchemyTransaction.count({
+          where: { walletId: w.id },
+        }),
+      })),
+    );
+
+    const countMap = transactionCounts.reduce((acc, item) => {
+      acc[item.walletId] = item.count;
+      return acc;
+    }, {});
 
     const transactions = await this.prisma.alchemyTransaction.findMany({
       where: { userId },
@@ -260,7 +271,7 @@ export class AlchemyAdminService {
         accountType: w.accountType,
         state: w.state,
         isGasSponsored: w.isGasSponsored,
-        transactionCount: w._count.transactions,
+        transactionCount: countMap[w.id] || 0,
         createdAt: w.createdAt,
       })),
       recentTransactions: transactions.map((tx) => ({

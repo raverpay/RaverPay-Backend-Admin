@@ -296,7 +296,7 @@ export class AlchemyTransactionService {
       tokenType,
       tokenAddress,
       balance: formattedBalance,
-      balanceRaw: balance.toString(),
+      balanceRaw: (balance as bigint).toString(),
       blockchain: wallet.blockchain,
       network: wallet.network,
     };
