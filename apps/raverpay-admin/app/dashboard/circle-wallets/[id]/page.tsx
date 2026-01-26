@@ -160,7 +160,7 @@ export default function WalletDetailsPage() {
               </div>
               <div>
                 <CardTitle>Wallet Information</CardTitle>
-                <CardDescription>Developer-controlled USDC wallet</CardDescription>
+                <CardDescription> USDC wallet</CardDescription>
               </div>
             </div>
           </div>

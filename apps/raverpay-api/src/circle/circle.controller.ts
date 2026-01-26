@@ -401,6 +401,8 @@ export class CircleController {
       amount: dto.amount,
       feeLevel: dto.feeLevel as CircleFeeLevel,
       memo: dto.memo,
+      tokenId: dto.tokenId,
+      tokenAddress: dto.tokenAddress,
     });
 
     return {

@@ -151,6 +151,22 @@ export class TransferUsdcDto {
   @IsOptional()
   @IsString()
   memo?: string;
+
+  @ApiPropertyOptional({
+    description: 'Circle Token ID (for native tokens)',
+    example: '0c8f8485-f74f-5e28-80f2-3cc4e80ef71c',
+  })
+  @IsOptional()
+  @IsString()
+  tokenId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Token contract address (for non-USDC ERC20s)',
+    example: '0x...',
+  })
+  @IsOptional()
+  @IsString()
+  tokenAddress?: string;
 }
 
 export class EstimateFeeDto {

@@ -18,7 +18,10 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { AlchemyAdminService } from './alchemy-admin.service';
-import { AlchemyTransactionState } from '@prisma/client';
+import { AlchemyTransactionState, UserRole } from '@prisma/client';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 /**
  * Alchemy Admin Controller
@@ -30,7 +33,8 @@ import { AlchemyTransactionState } from '@prisma/client';
  */
 @ApiTags('Alchemy Admin')
 @Controller('alchemy/admin')
-// @UseGuards(AdminAuthGuard) // Uncomment in production!
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
 @ApiBearerAuth()
 export class AlchemyAdminController {
   private readonly logger = new Logger(AlchemyAdminController.name);

@@ -55,6 +55,8 @@ export class CircleTransactionService {
     blockchain?: CircleBlockchain;
     feeLevel?: CircleFeeLevel;
     memo?: string;
+    tokenId?: string;
+    tokenAddress?: string;
   }): Promise<{ transactionId: string; reference: string; state: string }> {
     const {
       userId,
@@ -64,6 +66,8 @@ export class CircleTransactionService {
       blockchain,
       feeLevel = 'MEDIUM',
       memo,
+      tokenId,
+      tokenAddress: customTokenAddress,
     } = params;
 
     // Get wallet
@@ -91,24 +95,37 @@ export class CircleTransactionService {
       `Transfer requested: ${amount} USDC + ${serviceFee} USDC fee = ${totalRequired} USDC total`,
     );
 
-    // Get USDC token address
+    // Get token address/ID
     const usdcTokenAddress = this.config.getUsdcTokenAddress(wallet.blockchain);
-    if (!usdcTokenAddress) {
+    
+    // Determine which token to use
+    // If tokenId is provided, we use it (highest priority)
+    // If customTokenAddress is provided, we use it
+    // Otherwise default to USDC
+    let activeTokenAddress = customTokenAddress || (tokenId ? undefined : usdcTokenAddress);
+    
+    if (!tokenId && !activeTokenAddress) {
       throw new BadRequestException(
-        `USDC not supported on ${wallet.blockchain}`,
+        `Token not specified and USDC not supported on ${wallet.blockchain}`,
       );
     }
 
-    // Check balance (must have amount + fee)
-    const balance = await this.walletService.getUsdcBalance(
-      wallet.circleWalletId,
-    );
-    const balanceNum = parseFloat(balance);
+    // Skip balance check and fee for native/other tokens for now if tokenId is provided 
+    // to keep it simple for gas funding
+    const isUsdc = !tokenId && (!activeTokenAddress || activeTokenAddress === usdcTokenAddress);
 
-    if (balanceNum < totalRequired) {
-      throw new BadRequestException(
-        `Insufficient balance. Required: ${totalRequired.toFixed(6)} USDC (${amount} + ${serviceFee.toFixed(6)} fee), Available: ${balance} USDC`,
+    if (isUsdc) {
+      // Check balance (must have amount + fee)
+      const balance = await this.walletService.getUsdcBalance(
+        wallet.circleWalletId,
       );
+      const balanceNum = parseFloat(balance);
+
+      if (balanceNum < totalRequired) {
+        throw new BadRequestException(
+          `Insufficient balance. Required: ${totalRequired.toFixed(6)} USDC (${amount} + ${serviceFee.toFixed(6)} fee), Available: ${balance} USDC`,
+        );
+      }
     }
 
     // Get fee collection wallet for this blockchain
@@ -138,7 +155,8 @@ export class CircleTransactionService {
         walletId: wallet.circleWalletId,
         destinationAddress,
         amounts: [amount],
-        tokenAddress: usdcTokenAddress,
+        tokenAddress: activeTokenAddress ?? undefined,
+        tokenId: tokenId,
         blockchain: (blockchain || wallet.blockchain) as CircleBlockchain,
         feeLevel,
         refId: reference,
@@ -201,7 +219,7 @@ export class CircleTransactionService {
             walletId: wallet.circleWalletId,
             destinationAddress: collectionWallet,
             amounts: [serviceFee.toString()],
-            tokenAddress: usdcTokenAddress,
+            tokenAddress: usdcTokenAddress ?? undefined,
             blockchain: (blockchain || wallet.blockchain) as CircleBlockchain,
             feeLevel,
             refId: `FEE-${reference}`,

@@ -8,9 +8,14 @@ import {
   UnauthorizedException,
   Logger,
   Get,
+  UseGuards,
 } from '@nestjs/common';
 import { AlchemyWebhookService } from './alchemy-webhook.service';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { UserRole } from '@prisma/client';
 
 /**
  * Alchemy Webhook Controller
@@ -94,9 +99,11 @@ export class AlchemyWebhookController {
 
   /**
    * Get webhook statistics (for monitoring)
-   * This endpoint requires authentication in production
    */
   @Get('stats')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get webhook statistics' })
   @ApiResponse({ status: 200, description: 'Statistics retrieved successfully' })
   async getStats() {
