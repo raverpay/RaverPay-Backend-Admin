@@ -307,6 +307,13 @@ export class AlchemySmartAccountService {
       throw new Error('Wallet is already a Smart Account');
     }
 
+    // Validate wallet has blockchain/network
+    if (!eoaWallet.blockchain || !eoaWallet.network) {
+      throw new Error(
+        'Wallet blockchain and network are required. Please create a stablecoin wallet first.',
+      );
+    }
+
     // 2. Create new smart account
     const smartAccount = await this.createSmartAccount({
       userId,

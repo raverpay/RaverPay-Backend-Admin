@@ -112,6 +112,7 @@ model User {
   assignedIpWhitelists   AdminIpWhitelist[]
   alchemyWallets         AlchemyWallet[]
   alchemyTransactions    AlchemyTransaction[]
+  stablecoinWallets      StablecoinWallet[]
 
   @@index([email])
   @@index([phone])
@@ -1918,18 +1919,19 @@ enum AlchemyTransactionState {
 }
 
 // Alchemy Wallet - Manages user's Alchemy smart wallets
+// ONE wallet per user that works across ALL EVM networks
 model AlchemyWallet {
   id                    String                 @id @default(uuid())
   userId                String
   address               String                 @unique
   encryptedPrivateKey   String                 // AES-256-GCM encrypted private key
   encryptedMnemonic     String?                // AES-256-GCM encrypted BIP-39 mnemonic (12 words) - nullable for existing wallets
-  blockchain            String                 // POLYGON, ARBITRUM, BASE
-  network               String                 // mainnet, testnet
-  accountType           AlchemyAccountType     @default(SMART_CONTRACT)
+  blockchain            String?                // Optional - for reference only (POLYGON, ARBITRUM, BASE)
+  network               String?                // Optional - for reference only (mainnet, testnet)
+  accountType           AlchemyAccountType     @default(EOA)
   state                 AlchemyWalletState     @default(ACTIVE)
   name                  String?
-  isGasSponsored        Boolean                @default(true)
+  isGasSponsored        Boolean                @default(false)
   gasPolicyId           String?                // Alchemy Gas Manager policy ID
   alchemyAppId          String?                // Alchemy app ID
   webhookId             String?                // Alchemy webhook ID for this address
@@ -1942,8 +1944,9 @@ model AlchemyWallet {
   user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   alchemyTransactions   AlchemyTransaction[]
   alchemyUserOps        AlchemyUserOperation[]
+  stablecoinWallets     StablecoinWallet[]
   
-  @@unique([userId, blockchain, network])
+  @@unique([userId])  // ONE wallet per user (not per network)
   @@index([userId])
   @@index([address])
   @@index([blockchain])
@@ -2059,4 +2062,68 @@ model AlchemyGasSpending {
   @@index([date])
   @@index([walletAddress])
   @@map("alchemy_gas_spending")
+}
+
+// Stablecoin Wallet - Tracks stablecoin wallet configurations per token/network
+model StablecoinWallet {
+  id                String   @id @default(cuid())
+  userId            String
+  alchemyWalletId  String   // Reference to AlchemyWallet.id
+  tokenType         String   // 'USDT' | 'USDC'
+  blockchain        String   // 'ETHEREUM' | 'POLYGON' | 'ARBITRUM' | 'BSC' | 'SOLANA'
+  network           String   // 'mainnet' | 'sepolia' | 'mumbai' | 'amoy' | 'bsc-testnet' | 'solana-devnet'
+  address           String   // Same as AlchemyWallet.address
+  monthlyIncomeRange String?  // Income range selected
+  bankStatementUrl  String?  // Cloudinary URL
+  termsAccepted     Boolean  @default(false)
+  termsAcceptedAt   DateTime?
+  status            String   @default("ACTIVE") // 'ACTIVE' | 'SUSPENDED' | 'CLOSED'
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alchemyWallet     AlchemyWallet @relation(fields: [alchemyWalletId], references: [id], onDelete: Cascade)
+  deposits          StablecoinDeposit[]
+
+  @@unique([userId, tokenType, blockchain, network])
+  @@index([userId])
+  @@index([address])
+  @@index([tokenType])
+  @@index([blockchain])
+  @@index([network])
+  @@index([status])
+  @@map("stablecoin_wallets")
+}
+
+// Stablecoin Deposit - Tracks incoming stablecoin deposits
+model StablecoinDeposit {
+  id                String   @id @default(cuid())
+  stablecoinWalletId String
+  transactionHash   String   @unique
+  tokenType         String   // 'USDT' | 'USDC'
+  amount            String   // Amount in token units (e.g., "100.50")
+  amountUSD         Decimal? // Converted USD amount
+  blockchain        String
+  network           String
+  blockNumber       String?
+  status            String   @default("PENDING") // 'PENDING' | 'CONFIRMED' | 'CONVERTED' | 'FAILED'
+  confirmedAt       DateTime?
+  convertedAt       DateTime?
+  nairaCredited     Boolean  @default(false) // V2: Whether Naira was credited
+  nairaAmount       Decimal? // V2: Amount credited in Naira
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  stablecoinWallet StablecoinWallet @relation(fields: [stablecoinWalletId], references: [id], onDelete: Cascade)
+
+  @@index([stablecoinWalletId])
+  @@index([transactionHash])
+  @@index([status])
+  @@index([tokenType])
+  @@index([blockchain])
+  @@index([network])
+  @@index([createdAt])
+  @@map("stablecoin_deposits")
 }

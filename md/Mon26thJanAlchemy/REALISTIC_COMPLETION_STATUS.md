@@ -72,6 +72,7 @@
   - ⚠️ Send native token (fails with insufficient balance - expected for test wallet)
 
 **Technical Details**:
+
 - Used `viem/accounts` for mnemonic generation (ESM-compatible)
 - Private key extraction from HD key using `getHdKey()` method
 - Proper error handling for invalid mnemonics
@@ -203,16 +204,16 @@ OVERALL PROGRESS:         ████████░░  75% (realistic) ⬆️
 
 ## ⏱️ **Timeline Snapshot**
 
-| Phase                           | Duration        | Status        |
-| ------------------------------- | --------------- | ------------- |
-| Phases 1-7                      | ✅ DONE         | COMPLETED     |
-| Phase 8: Admin Dashboard        | ✅ DONE         | COMPLETED     |
-| Phase 11: Integration Testing   | ✅ DONE         | COMPLETED     |
-| Phase 11.5: Seed Phrase & Import | ✅ DONE         | COMPLETED ✨  |
-| Phase 12: Mobile Integration    | 4-6 hours       | TODO          |
-| Phase 13: Production Deployment | 2-3 hours       | TODO          |
-| Phase 14: SDK Enhancement       | 2-4 hours       | Optional      |
-| **TOTAL REMAINING**             | **~6-10 hours** | **~75% done** ⬆️ |
+| Phase                            | Duration        | Status           |
+| -------------------------------- | --------------- | ---------------- |
+| Phases 1-7                       | ✅ DONE         | COMPLETED        |
+| Phase 8: Admin Dashboard         | ✅ DONE         | COMPLETED        |
+| Phase 11: Integration Testing    | ✅ DONE         | COMPLETED        |
+| Phase 11.5: Seed Phrase & Import | ✅ DONE         | COMPLETED ✨     |
+| Phase 12: Mobile Integration     | 4-6 hours       | TODO             |
+| Phase 13: Production Deployment  | 2-3 hours       | TODO             |
+| Phase 14: SDK Enhancement        | 2-4 hours       | Optional         |
+| **TOTAL REMAINING**              | **~6-10 hours** | **~75% done** ⬆️ |
 
 ---
 

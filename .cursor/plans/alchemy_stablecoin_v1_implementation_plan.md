@@ -194,6 +194,19 @@ This plan implements **V1** of Alchemy stablecoin integration focused exclusivel
 
 ---
 
+## ⚠️ CRITICAL: Backend Changes Required Before Implementation
+
+**IMPORTANT**: Read `.cursor/plans/alchemy_stablecoin_backend_changes.md` for detailed backend changes required.
+
+### Key Changes:
+
+1. **Single Wallet Per User**: Users should have ONE wallet that works across ALL networks (not one per network)
+2. **Audit Logging**: All Alchemy operations must be audit logged (currently missing)
+3. **Webhook Handler**: Must detect ERC-20 deposits and create StablecoinDeposit records
+4. **Database Schema**: Update AlchemyWallet model to support one wallet per user
+
+---
+
 ## Backend Changes Required
 
 ### 1. Database Schema Updates
@@ -228,14 +241,45 @@ model StablecoinWallet {
 
 #### Update `AlchemyWallet` Model
 
-Add relation to `StablecoinWallet`:
+**CRITICAL CHANGE**: Update to support ONE wallet per user (not per network):
 
 ```prisma
 model AlchemyWallet {
-  // ... existing fields
-  stablecoinWallet StablecoinWallet?
+  id                    String                 @id @default(uuid())
+  userId                String
+  address               String                 @unique  // Same address for all networks
+  encryptedPrivateKey   String
+  encryptedMnemonic     String?
+  blockchain            String?                // Optional - for reference only
+  network               String?                // Optional - for reference only
+  accountType           AlchemyAccountType     @default(EOA)
+  state                 AlchemyWalletState     @default(ACTIVE)
+  name                  String?
+  isGasSponsored        Boolean                @default(false)
+  gasPolicyId           String?
+  alchemyAppId          String?
+  webhookId             String?
+  lastKeyRotation       DateTime?
+  keyRotationCount      Int                    @default(0)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alchemyTransactions   AlchemyTransaction[]
+  stablecoinWallets     StablecoinWallet[]    // NEW: Relation to stablecoin wallets
+
+  @@unique([userId])  // ONE wallet per user (not per network)
+  @@index([userId])
+  @@index([address])
 }
 ```
+
+**Key Changes:**
+
+- Remove `@@unique([userId, blockchain, network])` constraint
+- Add `@@unique([userId])` to ensure one wallet per user
+- Make `blockchain` and `network` optional (for reference only)
+- Add `stablecoinWallets` relation
 
 #### New Table: `stablecoin_deposits` (for tracking incoming transactions)
 
@@ -300,11 +344,15 @@ export class CreateStablecoinWalletDto {
 
 **Service Logic**:
 
-1. Validate user doesn't already have wallet for this tokenType/blockchain/network combo
-2. Create Alchemy wallet using existing `AlchemyWalletGenerationService`
-3. Create `StablecoinWallet` record
-4. Store KYC info and terms acceptance
-5. Return wallet details (address, network info)
+1. **Check if user already has ANY AlchemyWallet**:
+   - If yes → Use existing wallet address (same address for all networks)
+   - If no → Create new AlchemyWallet
+2. Check if `StablecoinWallet` already exists for this tokenType/blockchain/network combo
+   - If yes → Return existing wallet (same address)
+   - If no → Create new `StablecoinWallet` record linking to existing AlchemyWallet
+3. Store KYC info and terms acceptance
+4. Return wallet details (address, network info)
+5. **Create audit log** (see Audit Logging section below)
 
 **Response**:
 
@@ -350,18 +398,27 @@ export class CreateStablecoinWalletDto {
 **Flow**:
 
 1. Receive webhook from Alchemy about incoming transaction
-2. Verify transaction is for USDT/USDC
-3. Check if destination address matches any `StablecoinWallet.address`
+2. Verify transaction is for USDT/USDC (check `category === 'erc20'`)
+3. Check if destination address matches any `StablecoinWallet.address` (or `AlchemyWallet.address`)
 4. Create `StablecoinDeposit` record with status `PENDING`
-5. Wait for confirmations (or use Alchemy's confirmation status)
-6. Update status to `CONFIRMED` when transaction is confirmed
-7. **V2**: Trigger conversion to USD/Naira workflow
+5. **Create audit log** for deposit received
+6. Wait for confirmations (or use Alchemy's confirmation status)
+7. Update status to `CONFIRMED` when transaction is confirmed
+8. **Create audit log** for deposit confirmed
+9. **V2**: Trigger conversion to USD/Naira workflow
 
 **Webhook Event Types to Handle**:
 
-- `TRANSACTION_RECEIVED` - New incoming transaction
-- `TRANSACTION_CONFIRMED` - Transaction confirmed on blockchain
-- `TRANSACTION_FAILED` - Transaction failed
+- `ADDRESS_ACTIVITY` - New incoming transaction (ERC-20 token transfer)
+- `MINED_TRANSACTION` - Transaction confirmed on blockchain
+- `DROPPED_TRANSACTION` - Transaction failed
+
+**Implementation Notes**:
+
+- Check `activity.category === 'erc20'` to detect token transfers
+- Match `activity.toAddress` to `StablecoinWallet.address`
+- Extract token amount from `activity.value`
+- Extract token contract address from `activity.asset`
 
 ### 4. Network Configuration
 
@@ -440,6 +497,64 @@ export class CreditNairaDto {
 8. Send notification to user
 
 **Note**: This endpoint is prepared for V2 but can be tested manually in V1.
+
+### 6. Audit Logging Implementation
+
+**CRITICAL**: All Alchemy operations must be audit logged. Currently missing!
+
+**Required Changes**:
+
+1. **Add AuditService to AlchemyModule**:
+
+   ```typescript
+   // In alchemy.module.ts
+   import { CommonModule } from '../common/common.module';
+
+   @Module({
+     imports: [UsersModule, CommonModule], // Add CommonModule
+     providers: [
+       // ... existing providers
+       AuditService, // Add AuditService
+     ],
+   })
+   ```
+
+2. **Add Audit Actions** (`apps/raverpay-api/src/common/types/audit-log.types.ts`):
+
+   ```typescript
+   // ALCHEMY ACTIONS
+   ALCHEMY_WALLET_CREATED = 'ALCHEMY_WALLET_CREATED',
+   ALCHEMY_WALLET_RETRIEVED = 'ALCHEMY_WALLET_RETRIEVED',
+   ALCHEMY_PRIVATE_KEY_ACCESSED = 'ALCHEMY_PRIVATE_KEY_ACCESSED',
+   ALCHEMY_SEED_PHRASE_EXPORTED = 'ALCHEMY_SEED_PHRASE_EXPORTED',
+   ALCHEMY_TOKEN_SENT = 'ALCHEMY_TOKEN_SENT',
+   ALCHEMY_TOKEN_RECEIVED = 'ALCHEMY_TOKEN_RECEIVED',
+   ALCHEMY_BALANCE_CHECKED = 'ALCHEMY_BALANCE_CHECKED',
+   ALCHEMY_WEBHOOK_RECEIVED = 'ALCHEMY_WEBHOOK_RECEIVED',
+   ALCHEMY_WEBHOOK_PROCESSED = 'ALCHEMY_WEBHOOK_PROCESSED',
+   STABLECOIN_WALLET_CREATED = 'STABLECOIN_WALLET_CREATED',
+   STABLECOIN_DEPOSIT_RECEIVED = 'STABLECOIN_DEPOSIT_RECEIVED',
+   STABLECOIN_DEPOSIT_CONFIRMED = 'STABLECOIN_DEPOSIT_CONFIRMED',
+   ```
+
+3. **Add Audit Resources**:
+
+   ```typescript
+   ALCHEMY = 'ALCHEMY',
+   ALCHEMY_WALLET = 'ALCHEMY_WALLET',
+   ALCHEMY_TRANSACTION = 'ALCHEMY_TRANSACTION',
+   STABLECOIN_WALLET = 'STABLECOIN_WALLET',
+   STABLECOIN_DEPOSIT = 'STABLECOIN_DEPOSIT',
+   ```
+
+4. **Update Services**:
+   - `alchemy-wallet-generation.service.ts`: Log wallet creation, private key access, seed phrase export
+   - `alchemy-transaction.service.ts`: Log token sends, balance checks
+   - `alchemy-webhook.service.ts`: Log webhook received/processed
+   - `create-stablecoin-wallet` endpoint: Log stablecoin wallet creation
+   - Webhook handler: Log deposit received/confirmed
+
+**See**: `.cursor/plans/alchemy_stablecoin_backend_changes.md` for detailed implementation.
 
 ---
 
@@ -1017,4 +1132,28 @@ model StablecoinConversion {
 2. What markup percentage should be applied for stablecoin → Naira conversion? (Default: 2%?)
 3. Should conversion to Naira be automatic (with admin oversight) or manual (admin-initiated)?
 4. Which exchange should be used for selling stablecoins? (Binance, Luno, other?)
-5. Should users be able to have multiple stablecoin wallets (different networks) or one per token type?
+5. ~~Should users be able to have multiple stablecoin wallets (different networks) or one per token type?~~ **ANSWERED**: One wallet per user that works across all networks.
+
+---
+
+## ✅ Alchemy Free Tier Features - Implementation Status
+
+### Must Have Features:
+
+| Feature                                        | Status             | Implementation                                                 |
+| ---------------------------------------------- | ------------------ | -------------------------------------------------------------- |
+| **1. Node API** - Basic blockchain access      | ✅ **IMPLEMENTED** | Using `viem` with Alchemy RPC endpoints                        |
+| **2. Token API** - Easy balance checking       | ✅ **IMPLEMENTED** | `getTokenBalance()` in `alchemy-transaction.service.ts`        |
+| **3. Webhooks (5 included)** - Detect deposits | ✅ **IMPLEMENTED** | `alchemy-webhook.service.ts` handles address activity          |
+| **4. Transfers API** - Transaction history     | ✅ **IMPLEMENTED** | `getTransactionHistory()` in `alchemy-transaction.service.ts`  |
+| **5. Mainnet + Testnet** - Build and deploy    | ✅ **IMPLEMENTED** | Network config supports both (see `alchemy-config.service.ts`) |
+
+### Nice to Have Features:
+
+| Feature                          | Status                 | Notes                                                    |
+| -------------------------------- | ---------------------- | -------------------------------------------------------- |
+| **Transaction Simulation**       | ❌ **NOT IMPLEMENTED** | Could be useful for gas estimation (not critical for V1) |
+| **Smart Websockets**             | ❌ **NOT IMPLEMENTED** | Currently using webhooks (sufficient for V1)             |
+| **Analytics & Request Explorer** | ❌ **NOT IMPLEMENTED** | Available in Alchemy dashboard (not needed in code)      |
+
+**Conclusion**: All **Must Have** features are implemented. Nice-to-have features are not critical for V1.

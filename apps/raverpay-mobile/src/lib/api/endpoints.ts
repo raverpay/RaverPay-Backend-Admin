@@ -273,4 +273,22 @@ export const API_ENDPOINTS = {
       CREATE_TRANSACTION: '/circle/user-controlled/transactions/create',
     },
   },
+
+  // Alchemy Stablecoin Wallets
+  ALCHEMY: {
+    STABLECOIN: {
+      CREATE_WALLET: '/alchemy/wallets/create-stablecoin-wallet',
+      GET_WALLETS: '/alchemy/wallets/stablecoin',
+      GET_WALLET: (walletId: string) => `/alchemy/wallets/stablecoin/${walletId}`,
+      GET_BY_TOKEN: (tokenType: string, blockchain: string, network: string) =>
+        `/alchemy/wallets/stablecoin/by-token/${tokenType}/${blockchain}/${network}`,
+      GET_NETWORKS: '/alchemy/wallets/stablecoin/networks',
+    },
+  },
+
+  // Upload
+  UPLOAD: {
+    DOCUMENT: '/upload/document',
+    IMAGE: '/upload/image',
+  },
 } as const;

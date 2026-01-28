@@ -46,6 +46,7 @@ const getQuickAmounts = (singleTransactionLimit: number): number[] => {
 };
 
 type PaymentTab = 'card' | 'transfer';
+type Currency = 'NGN' | 'USD' | 'EUR' | 'GBP';
 
 interface FundCardResponse {
   reference: string;
@@ -65,6 +66,7 @@ function FundWalletContent() {
   const { isDark } = useTheme();
   const { balance, dailyRemaining, singleTransactionLimit, kycTier } = useWalletStore();
   const queryClient = useQueryClient();
+  const [selectedCurrency, setSelectedCurrency] = useState<Currency>('NGN');
   const [activeTab, setActiveTab] = useState<PaymentTab>('card');
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -245,6 +247,13 @@ function FundWalletContent() {
     router.push('/virtual-account/consent');
   };
 
+  const handleSelectStablecoin = (tokenType?: 'USDT' | 'USDC') => {
+    router.push({
+      pathname: '/stablecoin/select-token',
+      params: tokenType ? { preselectedToken: tokenType } : undefined,
+    });
+  };
+
   const handleCancelPayment = async () => {
     Alert.alert('Cancel Payment', 'Are you sure you want to cancel this payment?', [
       {
@@ -318,206 +327,255 @@ function FundWalletContent() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 200 }}
       >
-        {/* Balance Card */}
-        {/* <Card variant="primary" className="p-5 mb-6 bg-[#5B55F6]">
-          <Text variant="caption" className="text-purple-100 mb-2">
-            Current Balance
+        {/* Currency Selector */}
+        <Card variant="elevated" className="p-4 mb-6">
+          <Text variant="bodyMedium" className="mb-3 font-semibold">
+            Select Currency
           </Text>
-          <Text variant="h2" className="text-white">
-            {formatCurrency(balance)}
-          </Text>
-          <Text variant="caption" className=" mt-2">
-            Daily remaining:{" "}
-            {formatCurrency(parseFloat(dailyRemaining.toString()))}
-          </Text>
-        </Card> */}
-
-        {/* Tabs */}
-        <View className="flex-row mb-6 bg-gray-200 dark:bg-gray-700 rounded-xl p-1">
-          <TouchableOpacity
-            className={`flex-1 py-3 rounded-lg ${activeTab === 'card' ? 'bg-white dark:bg-gray-800' : ''}`}
-            onPress={() => setActiveTab('card')}
-          >
-            <Text
-              variant="bodyMedium"
-              align="center"
-              className={
-                activeTab === 'card'
-                  ? 'text-[#5B55F6] dark:text-[#5B55F6]'
-                  : 'text-gray-600 dark:text-gray-400'
-              }
+          <View className="flex-row gap-2">
+            <TouchableOpacity
+              onPress={() => setSelectedCurrency('NGN')}
+              className={`flex-1 py-3 px-4 rounded-2xl border-2 ${
+                selectedCurrency === 'NGN'
+                  ? 'bg-purple-100 dark:bg-purple-900/30 border-[#5B55F6]'
+                  : 'bg-white dark:bg-gray-800 border-gray-800 dark:border-gray-600'
+              }`}
             >
-              Pay with Card
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className={`flex-1 py-3 rounded-lg ${activeTab === 'transfer' ? 'bg-white dark:bg-gray-800' : ''}`}
-            onPress={() => setActiveTab('transfer')}
-          >
-            <Text
-              variant="bodyMedium"
-              align="center"
-              className={
-                activeTab === 'transfer'
-                  ? 'text-[#5B55F6] dark:text-[#5B55F6]'
-                  : 'text-gray-600 dark:text-gray-400'
-              }
-            >
-              Bank Transfer
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Card Tab Content */}
-        {activeTab === 'card' && (
-          <>
-            {/* Amount Input */}
-            <Card variant="elevated" className="p-5 mb-4">
-              <Text variant="h5" className="mb-4">
-                Enter Amount
+              <Text
+                variant="body"
+                align="center"
+                className={
+                  selectedCurrency === 'NGN'
+                    ? 'text-[#5B55F6] font-semibold'
+                    : 'text-gray-600 dark:text-gray-400'
+                }
+              >
+                ₦ Naira
               </Text>
+            </TouchableOpacity>
 
-              <Input
-                placeholder="0.00"
-                value={amount}
-                onChangeText={setAmount}
-                keyboardType="numeric"
-              />
-
-              {/* Quick Amounts */}
-              <View className="flex-row justify-between mt-4 gap-2">
-                {getQuickAmounts(parseFloat(singleTransactionLimit.toString())).map((value) => (
-                  <TouchableOpacity
-                    key={value}
-                    onPress={() => handleQuickAmount(value)}
-                    className="flex-1 min-w-[30%]"
-                  >
-                    <Card
-                      variant={amount === value.toString() ? 'filled' : 'elevated'}
-                      className={`p-3 items-center ${
-                        amount === value.toString() ? 'bg-purple-100 border-2 border-[#5B55F6]' : ''
-                      }`}
-                    >
-                      <Text variant="caption" weight="semibold">
-                        {formatCurrency(value)}
-                      </Text>
-                    </Card>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </Card>
-
-            {/* Limit Info */}
-            <Card variant="elevated" className="p-4 mb-4 bg-purple-50">
-              <View className="flex-row items-start">
-                <Ionicons name="shield-checkmark-outline" size={20} color="#5B55F6" />
-                <View className="ml-3 flex-1">
-                  <Text variant="bodyMedium" className="text-purple-800 mb-1">
-                    Your Limits ({kycTier})
-                  </Text>
-                  <Text variant="caption" className="text-purple-700">
-                    Max per transaction:{' '}
-                    {formatCurrency(parseFloat(singleTransactionLimit.toString()))}
-                  </Text>
-                  <Text variant="caption" className="text-purple-700">
-                    Daily remaining: {formatCurrency(parseFloat(dailyRemaining.toString()))}
-                  </Text>
-                </View>
-              </View>
-            </Card>
-
-            {/* Fee Info */}
-            {/* <Card variant="elevated" className="p-4 mb-6 bg-blue-50">
-              <View className="flex-row items-start">
-                <Ionicons
-                  name="information-circle-outline"
-                  size={20}
-                  color="#3B82F6"
-                />
-                <View className="ml-3 flex-1">
-                  {(() => {
-                    const amountValue = parseFloat(amount) || 0;
-                    let fee = 0;
-
-                    if (amountValue < 2500) {
-                      // ₦100 fee waived, only charge 1.5%
-                      fee = amountValue * 0.015;
-                    } else {
-                      // Full fee: 1.5% + ₦100, capped at ₦2,000
-                      fee = Math.min(amountValue * 0.015 + 100, 2000);
-                    }
-
-                    const totalCharge = amountValue + fee;
-
-                    return (
-                      <>
-                        <Text
-                          variant="bodyMedium"
-                          className="text-blue-800 mb-1"
-                        >
-                          Payment Summary
-                        </Text>
-                        {amountValue === 0 ? (
-                          <Text variant="caption" className="text-blue-700">
-                            Under ₦2,500: Only 1.5% • ₦2,500+: 1.5% + ₦100
-                          </Text>
-                        ) : (
-                          <>
-                            <View className="space-y-1">
-                              <Text variant="caption" className="text-blue-700">
-                                Amount to add: {formatCurrency(amountValue)}
-                              </Text>
-                              <Text variant="caption" className="text-blue-700">
-                                Processing fee: {formatCurrency(fee)}{" "}
-                                {amountValue < 2500
-                                  ? "(1.5% only, ₦100 waived)"
-                                  : "(1.5% + ₦100)"}
-                              </Text>
-                              <View className="border-t border-blue-200 mt-2 pt-2">
-                                <Text
-                                  variant="bodyMedium"
-                                  className="text-blue-900 font-semibold"
-                                >
-                                  Total to pay: {formatCurrency(totalCharge)}
-                                </Text>
-                              </View>
-                            </View>
-                          </>
-                        )}
-                      </>
-                    );
-                  })()}
-                </View>
-              </View>
-            </Card> */}
-
-            {/* Fund Button */}
-            <Button
-              variant="primary"
-              onPress={handleFundWithCard}
-              loading={isLoading}
-              disabled={isLoading || isVerifying || !amount}
+            <TouchableOpacity
+              onPress={() => setSelectedCurrency('USD')}
+              className={`flex-1 py-3 px-4 rounded-2xl border-2 ${
+                selectedCurrency === 'USD'
+                  ? 'bg-purple-100 dark:bg-purple-900/30 border-[#5B55F6]'
+                  : 'bg-white dark:bg-gray-800 border-gray-800 dark:border-gray-600'
+              }`}
             >
-              Fund Wallet
-            </Button>
+              <Text
+                variant="body"
+                align="center"
+                className={
+                  selectedCurrency === 'USD'
+                    ? 'text-[#5B55F6] font-semibold'
+                    : 'text-gray-600 dark:text-gray-400'
+                }
+              >
+                $ USD
+              </Text>
+            </TouchableOpacity>
+            {/* 
+            <TouchableOpacity
+              onPress={() => Alert.alert('Coming Soon', 'EUR funding will be available soon')}
+              className="flex-1 py-3 px-4 rounded-lg border-2 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 opacity-50"
+              disabled
+            >
+              <Text variant="body" align="center" className="text-gray-400 dark:text-gray-500">
+                € EUR
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => Alert.alert('Coming Soon', 'GBP funding will be available soon')}
+              className="flex-1 py-3 px-4 rounded-lg border-2 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 opacity-50"
+              disabled
+            >
+              <Text variant="body" align="center" className="text-gray-400 dark:text-gray-500">
+                £ GBP
+              </Text>
+            </TouchableOpacity> */}
+          </View>
+        </Card>
+
+        {/* USD Flow - Show Stablecoin Options */}
+        {selectedCurrency === 'USD' && (
+          <>
+            <Card variant="elevated" className="p-5 mb-4">
+              <View className="flex-row items-start mb-4">
+                <Ionicons name="information-circle" size={24} color="#3B82F6" />
+                <Text variant="body" className="ml-3 flex-1 text-gray-600 dark:text-gray-400">
+                  Receive USD via stablecoins (USDT/USDC). Your stablecoin will be automatically
+                  converted to USD.
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => handleSelectStablecoin('USDT')}
+                className="flex-row items-center justify-between py-4 px-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700"
+              >
+                <View className="flex-row items-center">
+                  <Ionicons name="wallet" size={24} color="#22c55e" />
+                  <View className="ml-3">
+                    <Text variant="bodyMedium" className="font-semibold">
+                      Receive USDT
+                    </Text>
+                    <Text variant="caption" className="text-gray-600 dark:text-gray-400">
+                      Ethereum, Polygon, BSC, Arbitrum
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => handleSelectStablecoin('USDC')}
+                className="flex-row items-center justify-between py-4 px-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 mt-3"
+              >
+                <View className="flex-row items-center">
+                  <Ionicons name="wallet" size={24} color="#3b82f6" />
+                  <View className="ml-3">
+                    <Text variant="bodyMedium" className="font-semibold">
+                      Receive USDC
+                    </Text>
+                    <Text variant="caption" className="text-gray-600 dark:text-gray-400">
+                      Ethereum, Polygon, Arbitrum
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+              </TouchableOpacity>
+            </Card>
           </>
         )}
 
-        {/* Bank Transfer Tab Content */}
-        {activeTab === 'transfer' && (
+        {/* NGN Flow - Existing Tabs */}
+        {selectedCurrency === 'NGN' && (
           <>
-            {isLoadingVirtualAccount ? (
-              <VirtualAccountLoading />
-            ) : virtualAccount && virtualAccount.isActive ? (
-              <ActiveVirtualAccount
-                virtualAccount={virtualAccount}
-                onCopyAccountNumber={handleCopyAccountNumber}
-                onShareAccount={handleShareAccount}
-                onRequeryAccount={handleRequeryAccount}
-              />
-            ) : (
-              <RequestVirtualAccount onRequestAccount={handleRequestVirtualAccount} />
+            {/* Tabs */}
+            <View className="flex-row mb-6 bg-gray-200 dark:bg-gray-700 rounded-xl p-1">
+              <TouchableOpacity
+                className={`flex-1 py-3 rounded-lg ${activeTab === 'card' ? 'bg-white dark:bg-gray-800' : ''}`}
+                onPress={() => setActiveTab('card')}
+              >
+                <Text
+                  variant="bodyMedium"
+                  align="center"
+                  className={
+                    activeTab === 'card'
+                      ? 'text-[#5B55F6] dark:text-[#5B55F6]'
+                      : 'text-gray-600 dark:text-gray-400'
+                  }
+                >
+                  Pay with Card
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className={`flex-1 py-3 rounded-lg ${activeTab === 'transfer' ? 'bg-white dark:bg-gray-800' : ''}`}
+                onPress={() => setActiveTab('transfer')}
+              >
+                <Text
+                  variant="bodyMedium"
+                  align="center"
+                  className={
+                    activeTab === 'transfer'
+                      ? 'text-[#5B55F6] dark:text-[#5B55F6]'
+                      : 'text-gray-600 dark:text-gray-400'
+                  }
+                >
+                  Bank Transfer
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Card Tab Content */}
+            {activeTab === 'card' && (
+              <>
+                {/* Amount Input */}
+                <Card variant="elevated" className="p-5 mb-4">
+                  <Text variant="h5" className="mb-4">
+                    Enter Amount
+                  </Text>
+
+                  <Input
+                    placeholder="0.00"
+                    value={amount}
+                    onChangeText={setAmount}
+                    keyboardType="numeric"
+                  />
+
+                  {/* Quick Amounts */}
+                  <View className="flex-row justify-between mt-4 gap-2">
+                    {getQuickAmounts(parseFloat(singleTransactionLimit.toString())).map((value) => (
+                      <TouchableOpacity
+                        key={value}
+                        onPress={() => handleQuickAmount(value)}
+                        className="flex-1 min-w-[30%]"
+                      >
+                        <Card
+                          variant={amount === value.toString() ? 'filled' : 'elevated'}
+                          className={`p-3 items-center ${
+                            amount === value.toString()
+                              ? 'bg-purple-100 border-2 border-[#5B55F6]'
+                              : ''
+                          }`}
+                        >
+                          <Text variant="caption" weight="semibold">
+                            {formatCurrency(value)}
+                          </Text>
+                        </Card>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </Card>
+
+                {/* Limit Info */}
+                <Card variant="elevated" className="p-4 mb-4 bg-purple-50">
+                  <View className="flex-row items-start">
+                    <Ionicons name="shield-checkmark-outline" size={20} color="#5B55F6" />
+                    <View className="ml-3 flex-1">
+                      <Text variant="bodyMedium" className="text-purple-800 mb-1">
+                        Your Limits ({kycTier})
+                      </Text>
+                      <Text variant="caption" className="text-purple-700">
+                        Max per transaction:{' '}
+                        {formatCurrency(parseFloat(singleTransactionLimit.toString()))}
+                      </Text>
+                      <Text variant="caption" className="text-purple-700">
+                        Daily remaining: {formatCurrency(parseFloat(dailyRemaining.toString()))}
+                      </Text>
+                    </View>
+                  </View>
+                </Card>
+
+                {/* Fund Button */}
+                <Button
+                  variant="primary"
+                  onPress={handleFundWithCard}
+                  loading={isLoading}
+                  disabled={isLoading || isVerifying || !amount}
+                >
+                  Fund Wallet
+                </Button>
+              </>
+            )}
+
+            {/* Bank Transfer Tab Content */}
+            {activeTab === 'transfer' && (
+              <>
+                {isLoadingVirtualAccount ? (
+                  <VirtualAccountLoading />
+                ) : virtualAccount && virtualAccount.isActive ? (
+                  <ActiveVirtualAccount
+                    virtualAccount={virtualAccount}
+                    onCopyAccountNumber={handleCopyAccountNumber}
+                    onShareAccount={handleShareAccount}
+                    onRequeryAccount={handleRequeryAccount}
+                  />
+                ) : (
+                  <RequestVirtualAccount onRequestAccount={handleRequestVirtualAccount} />
+                )}
+              </>
             )}
           </>
         )}

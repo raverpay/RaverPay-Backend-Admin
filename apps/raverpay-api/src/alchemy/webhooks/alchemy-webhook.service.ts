@@ -3,6 +3,16 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AlchemyTransactionState } from '@prisma/client';
 import * as crypto from 'crypto';
+import { AuditService } from '../../common/services/audit.service';
+import {
+  AuditAction,
+  AuditResource,
+  AuditSeverity,
+  ActorType,
+  AuditStatus,
+} from '../../common/types/audit-log.types';
+import { StablecoinDepositService } from '../deposits/stablecoin-deposit.service';
+import { AlchemyConfigService } from '../config/alchemy-config.service';
 
 /**
  * Alchemy Webhook Service
@@ -20,6 +30,9 @@ export class AlchemyWebhookService {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
+    private readonly stablecoinDepositService: StablecoinDepositService,
+    private readonly alchemyConfigService: AlchemyConfigService,
   ) {
     this.logger.log('Alchemy webhook service initialized');
   }
@@ -108,20 +121,46 @@ export class AlchemyWebhookService {
    * Process individual blockchain activity
    * @private
    */
-  private async processActivity(activity: any, network: string) {
-    const { hash, blockNum, fromAddress, toAddress, category } = activity;
+  private async processActivity(
+    activity: {
+      hash: string;
+      blockNum?: string;
+      fromAddress: string;
+      toAddress: string;
+      category: string;
+      value?: string;
+      asset?: string;
+    },
+    network: string,
+  ) {
+    const { hash, blockNum, fromAddress, toAddress, category, value, asset } =
+      activity;
 
     this.logger.debug(`Processing activity: ${hash} on ${network}`);
 
-    // Find transaction by hash
+    // Check if this is an ERC-20 token transfer (stablecoin deposit)
+    if (category === 'erc20' && asset && value && toAddress) {
+      await this.processStablecoinDeposit(
+        hash,
+        toAddress,
+        asset,
+        value,
+        network,
+        blockNum,
+      );
+    }
+
+    // Find transaction by hash (for existing transactions)
     const transaction = await this.prisma.alchemyTransaction.findUnique({
       where: { transactionHash: hash },
     });
 
     if (!transaction) {
       this.logger.debug(
-        `Transaction ${hash} not found in database - might be external transaction`,
+        `Transaction ${hash} not found in database - might be external transaction or deposit`,
       );
+      // Don't return early - might be a deposit we need to process
+      // Continue to check if it's a deposit
       return;
     }
 
@@ -219,6 +258,136 @@ export class AlchemyWebhookService {
       this.logger.debug(`Tracked gas spending for user ${transaction.userId}`);
     } catch (error) {
       this.logger.error('Error tracking gas spending', error.stack);
+    }
+  }
+
+  /**
+   * Process stablecoin deposit from ERC-20 transfer
+   * @private
+   */
+  private async processStablecoinDeposit(
+    transactionHash: string,
+    toAddress: string,
+    tokenContractAddress: string,
+    amount: string,
+    network: string,
+    blockNumber?: string,
+  ) {
+    try {
+      this.logger.log(
+        `Processing stablecoin deposit: ${transactionHash} to ${toAddress}`,
+      );
+
+      // Normalize addresses to lowercase for comparison
+      const normalizedToAddress = toAddress.toLowerCase();
+      const normalizedTokenAddress = tokenContractAddress.toLowerCase();
+
+      // Find matching StablecoinWallet by address
+      const stablecoinWallet = await this.prisma.stablecoinWallet.findFirst({
+        where: {
+          address: normalizedToAddress,
+          status: 'ACTIVE',
+        },
+        include: {
+          alchemyWallet: true,
+        },
+      });
+
+      if (!stablecoinWallet) {
+        this.logger.debug(
+          `No stablecoin wallet found for address ${normalizedToAddress}`,
+        );
+        return;
+      }
+
+      // Determine token type by matching contract address
+      // Get network config to check token addresses
+      let tokenType: 'USDC' | 'USDT' | null = null;
+      let blockchain: string | null = null;
+
+      try {
+        // Try to get network config from stablecoin wallet
+        const networkConfig = this.alchemyConfigService.getNetworkConfig(
+          stablecoinWallet.blockchain,
+          stablecoinWallet.network,
+        );
+
+        // Check if token address matches USDC or USDT
+        if (
+          networkConfig.usdcAddress?.toLowerCase() === normalizedTokenAddress
+        ) {
+          tokenType = 'USDC';
+          blockchain = stablecoinWallet.blockchain;
+        } else if (
+          networkConfig.usdtAddress?.toLowerCase() === normalizedTokenAddress
+        ) {
+          tokenType = 'USDT';
+          blockchain = stablecoinWallet.blockchain;
+        } else {
+          this.logger.debug(
+            `Token contract ${normalizedTokenAddress} does not match USDC/USDT for ${stablecoinWallet.blockchain}-${stablecoinWallet.network}`,
+          );
+          return;
+        }
+      } catch (error) {
+        this.logger.error(
+          `Failed to determine token type: ${error.message}`,
+          error.stack,
+        );
+        return;
+      }
+
+      // Verify token type matches stablecoin wallet token type
+      if (stablecoinWallet.tokenType !== tokenType) {
+        this.logger.debug(
+          `Token type mismatch: wallet expects ${stablecoinWallet.tokenType}, received ${tokenType}`,
+        );
+        return;
+      }
+
+      // Create deposit record
+      const deposit = await this.stablecoinDepositService.createDeposit({
+        stablecoinWalletId: stablecoinWallet.id,
+        transactionHash,
+        tokenType,
+        amount,
+        blockchain: blockchain || stablecoinWallet.blockchain,
+        network: stablecoinWallet.network,
+        blockNumber: blockNumber?.toString(),
+      });
+
+      // Audit log: Deposit received
+      await this.auditService.log({
+        userId: stablecoinWallet.userId,
+        action: AuditAction.STABLECOIN_DEPOSIT_RECEIVED,
+        resource: AuditResource.STABLECOIN_DEPOSIT,
+        resourceId: deposit.id,
+        metadata: {
+          transactionHash,
+          tokenType,
+          amount,
+          blockchain: stablecoinWallet.blockchain,
+          network: stablecoinWallet.network,
+          stablecoinWalletId: stablecoinWallet.id,
+        },
+        actorType: ActorType.SYSTEM,
+        severity: AuditSeverity.MEDIUM,
+        status: AuditStatus.SUCCESS,
+      });
+
+      this.logger.log(
+        `Created stablecoin deposit record ${deposit.id} for wallet ${stablecoinWallet.id}`,
+      );
+
+      // Update deposit status to CONFIRMED after a short delay or based on block confirmations
+      // For now, we'll mark as PENDING and let a separate process confirm it
+      // In production, you might want to wait for multiple confirmations
+    } catch (error) {
+      this.logger.error(
+        `Error processing stablecoin deposit: ${error.message}`,
+        error.stack,
+      );
+      // Don't throw - log error but continue processing other activities
     }
   }
 

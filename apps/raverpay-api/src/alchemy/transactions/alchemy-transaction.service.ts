@@ -23,6 +23,14 @@ import {
   AlchemyTransactionState,
   AlchemyTransactionType,
 } from '@prisma/client';
+import { AuditService } from '../../common/services/audit.service';
+import {
+  AuditAction,
+  AuditResource,
+  AuditSeverity,
+  ActorType,
+  AuditStatus,
+} from '../../common/types/audit-log.types';
 
 // ERC20 Token ABI (minimal - just what we need)
 const ERC20_ABI = [
@@ -69,6 +77,7 @@ export class AlchemyTransactionService {
     private readonly walletService: AlchemyWalletGenerationService,
     private readonly configService: AlchemyConfigService,
     private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
   ) {
     this.logger.log('Alchemy transaction service initialized');
   }
@@ -94,6 +103,13 @@ export class AlchemyTransactionService {
 
     // 1. Get wallet and verify ownership
     const wallet = await this.walletService.getWallet(walletId, userId);
+
+    // Validate wallet has blockchain/network (required for transactions)
+    if (!wallet.blockchain || !wallet.network) {
+      throw new BadRequestException(
+        'Wallet blockchain and network are required for transactions. Please create a stablecoin wallet first.',
+      );
+    }
 
     // 2. Get network configuration
     const networkConfig = this.configService.getNetworkConfig(
@@ -217,6 +233,32 @@ export class AlchemyTransactionService {
         },
       });
 
+      // 14. Audit log: Token sent
+      await this.auditService.log({
+        userId,
+        action: AuditAction.ALCHEMY_TOKEN_SENT,
+        resource: AuditResource.ALCHEMY_TRANSACTION,
+        resourceId: finalTx.id,
+        metadata: {
+          walletId,
+          tokenType,
+          amount,
+          destinationAddress,
+          transactionHash: finalTx.transactionHash || hash,
+          blockchain: wallet.blockchain,
+          network: wallet.network,
+          status: receipt.status,
+        },
+        actorType: ActorType.USER,
+        severity: AuditSeverity.HIGH,
+        status:
+          receipt.status === 'success'
+            ? AuditStatus.SUCCESS
+            : AuditStatus.FAILURE,
+        errorMessage:
+          receipt.status === 'success' ? undefined : 'Transaction reverted',
+      });
+
       return {
         id: finalTx.id,
         reference: finalTx.reference,
@@ -263,6 +305,13 @@ export class AlchemyTransactionService {
     // 1. Get wallet and verify ownership
     const wallet = await this.walletService.getWallet(walletId, userId);
 
+    // Validate wallet has blockchain/network
+    if (!wallet.blockchain || !wallet.network) {
+      throw new Error(
+        'Wallet blockchain and network are required. Please create a stablecoin wallet first.',
+      );
+    }
+
     // DEBUG: Log wallet details
     this.logger.debug(
       `Getting balance for wallet: ${walletId}, blockchain: ${wallet.blockchain}, network: ${wallet.network}`,
@@ -304,6 +353,23 @@ export class AlchemyTransactionService {
     // 6. Format balance (USDC/USDT use 6 decimals)
     const formattedBalance = formatUnits(balance as bigint, 6);
 
+    // 7. Audit log: Balance checked
+    await this.auditService.log({
+      userId,
+      action: AuditAction.ALCHEMY_BALANCE_CHECKED,
+      resource: AuditResource.ALCHEMY_WALLET,
+      resourceId: walletId,
+      metadata: {
+        tokenType,
+        balance: formattedBalance,
+        blockchain: wallet.blockchain ?? 'UNKNOWN',
+        network: wallet.network ?? 'UNKNOWN',
+      },
+      actorType: ActorType.USER,
+      severity: AuditSeverity.LOW,
+      status: AuditStatus.SUCCESS,
+    });
+
     return {
       walletId: wallet.id,
       address: wallet.address,
@@ -339,6 +405,23 @@ export class AlchemyTransactionService {
       orderBy: { createdAt: 'desc' },
       take: limit,
       skip: offset,
+    });
+
+    // Audit log: Transaction history viewed
+    await this.auditService.log({
+      userId,
+      action: AuditAction.ALCHEMY_TRANSACTION_HISTORY_VIEWED,
+      resource: AuditResource.ALCHEMY_TRANSACTION,
+      resourceId: walletId,
+      metadata: {
+        walletId,
+        transactionCount: transactions.length,
+        limit,
+        offset,
+      },
+      actorType: ActorType.USER,
+      severity: AuditSeverity.LOW,
+      status: AuditStatus.SUCCESS,
     });
 
     return transactions.map((tx) => ({
@@ -416,6 +499,13 @@ export class AlchemyTransactionService {
     // 1. Get wallet and verify ownership
     const wallet = await this.walletService.getWallet(walletId, userId);
 
+    // Validate wallet has blockchain/network
+    if (!wallet.blockchain || !wallet.network) {
+      throw new Error(
+        'Wallet blockchain and network are required. Please create a stablecoin wallet first.',
+      );
+    }
+
     // 2. Get network configuration
     const networkConfig = this.configService.getNetworkConfig(
       wallet.blockchain,
@@ -469,6 +559,13 @@ export class AlchemyTransactionService {
 
     // 1. Get wallet and verify ownership
     const wallet = await this.walletService.getWallet(walletId, userId);
+
+    // Validate wallet has blockchain/network
+    if (!wallet.blockchain || !wallet.network) {
+      throw new BadRequestException(
+        'Wallet blockchain and network are required for transactions. Please create a stablecoin wallet first.',
+      );
+    }
 
     // 2. Validate destination address using viem's isAddress
     if (!isAddress(destinationAddress)) {

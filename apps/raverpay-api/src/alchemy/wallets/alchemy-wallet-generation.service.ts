@@ -17,6 +17,14 @@ import { AlchemyKeyEncryptionService } from '../encryption/alchemy-key-encryptio
 import { AlchemyConfigService } from '../config/alchemy-config.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AlchemyAccountType, AlchemyWalletState } from '@prisma/client';
+import { AuditService } from '../../common/services/audit.service';
+import {
+  AuditAction,
+  AuditResource,
+  AuditSeverity,
+  ActorType,
+  AuditStatus,
+} from '../../common/types/audit-log.types';
 
 /**
  * Alchemy Wallet Generation Service
@@ -40,6 +48,7 @@ export class AlchemyWalletGenerationService {
     private readonly encryptionService: AlchemyKeyEncryptionService,
     private readonly configService: AlchemyConfigService,
     private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
   ) {
     this.logger.log('Alchemy wallet generation service initialized');
   }
@@ -48,51 +57,62 @@ export class AlchemyWalletGenerationService {
    * Generate a new EOA (Externally Owned Account) wallet for a user
    *
    * Flow:
-   * 1. Generate random private key
-   * 2. Derive public address from private key
-   * 3. Encrypt private key
-   * 4. Store in database
+   * 1. Check if user already has ANY wallet (one wallet per user)
+   * 2. If exists, return existing wallet (same address for all networks)
+   * 3. If not, generate new wallet
+   * 4. Encrypt private key
+   * 5. Store in database
    *
    * @param userId - User ID who owns this wallet
-   * @param blockchain - Blockchain name (POLYGON, ARBITRUM, BASE)
-   * @param network - Network name (mainnet, sepolia, amoy)
+   * @param blockchain - Optional blockchain name (for reference only)
+   * @param network - Optional network name (for reference only)
    * @param name - Optional wallet name
-   * @returns Created wallet info (without private key!)
+   * @returns Created or existing wallet info (without private key!)
    */
   async generateEOAWallet(params: {
     userId: string;
-    blockchain: string;
-    network: string;
+    blockchain?: string;
+    network?: string;
     name?: string;
   }) {
     const { userId, blockchain, network, name } = params;
 
     this.logger.log(
-      `Generating EOA wallet for user ${userId} on ${blockchain}-${network}`,
+      `Generating EOA wallet for user ${userId}${blockchain && network ? ` on ${blockchain}-${network}` : ''}`,
     );
 
-    // 1. Validate network is supported
-    if (!this.configService.isValidNetwork(blockchain, network)) {
-      throw new Error(
-        `Invalid network: ${blockchain}-${network}. Please use a supported network.`,
-      );
-    }
-
-    // 2. Check if user already has a wallet on this network
+    // 1. Check if user already has ANY wallet (one wallet per user)
     const existingWallet = await this.prisma.alchemyWallet.findUnique({
       where: {
-        userId_blockchain_network: {
-          userId,
-          blockchain,
-          network,
-        },
+        userId,
       },
     });
 
     if (existingWallet) {
-      throw new ConflictException(
-        `User already has a wallet on ${blockchain}-${network}. Wallet ID: ${existingWallet.id}`,
+      // Return existing wallet - same address for all networks
+      this.logger.log(
+        `User ${userId} already has wallet ${existingWallet.id}, returning existing wallet`,
       );
+      return {
+        id: existingWallet.id,
+        address: existingWallet.address,
+        blockchain: existingWallet.blockchain ?? blockchain ?? 'MULTI_CHAIN',
+        network: existingWallet.network ?? network ?? 'MULTI_NETWORK',
+        accountType: existingWallet.accountType,
+        name: existingWallet.name,
+        isGasSponsored: existingWallet.isGasSponsored,
+        hasSeedPhrase: !!existingWallet.encryptedMnemonic,
+        createdAt: existingWallet.createdAt,
+      };
+    }
+
+    // 2. Validate network is supported (if provided)
+    if (blockchain && network) {
+      if (!this.configService.isValidNetwork(blockchain, network)) {
+        throw new Error(
+          `Invalid network: ${blockchain}-${network}. Please use a supported network.`,
+        );
+      }
     }
 
     // 3. Generate BIP-39 mnemonic (12-word seed phrase)
@@ -132,11 +152,11 @@ export class AlchemyWalletGenerationService {
         address: address.toLowerCase(), // Normalize to lowercase
         encryptedPrivateKey,
         encryptedMnemonic,
-        blockchain,
-        network,
+        blockchain: blockchain || null, // Optional - for reference only
+        network: network || null, // Optional - for reference only
         accountType: AlchemyAccountType.EOA,
         state: AlchemyWalletState.ACTIVE,
-        name: name || `${blockchain} ${network} Wallet`,
+        name: name || 'Stablecoin Wallet',
         isGasSponsored: false, // EOA wallets don't get gas sponsorship
       },
     });
@@ -145,7 +165,25 @@ export class AlchemyWalletGenerationService {
       `Created Alchemy EOA wallet ${wallet.id} for user ${userId}`,
     );
 
-    // 7. Return wallet info (WITHOUT private key or mnemonic!)
+    // 7. Audit log: Wallet created
+    await this.auditService.log({
+      userId,
+      action: AuditAction.ALCHEMY_WALLET_CREATED,
+      resource: AuditResource.ALCHEMY_WALLET,
+      resourceId: wallet.id,
+      metadata: {
+        address: wallet.address,
+        blockchain: blockchain || 'MULTI_CHAIN',
+        network: network || 'MULTI_NETWORK',
+        accountType: 'EOA',
+        name: wallet.name,
+      },
+      actorType: ActorType.USER,
+      severity: AuditSeverity.MEDIUM,
+      status: AuditStatus.SUCCESS,
+    });
+
+    // 8. Return wallet info (WITHOUT private key or mnemonic!)
     return {
       id: wallet.id,
       address: wallet.address,
@@ -181,6 +219,22 @@ export class AlchemyWalletGenerationService {
       );
       throw new ForbiddenException('Access denied: You do not own this wallet');
     }
+
+    // Audit log: Wallet retrieved
+    await this.auditService.log({
+      userId,
+      action: AuditAction.ALCHEMY_WALLET_RETRIEVED,
+      resource: AuditResource.ALCHEMY_WALLET,
+      resourceId: walletId,
+      metadata: {
+        address: wallet.address,
+        blockchain: wallet.blockchain,
+        network: wallet.network,
+      },
+      actorType: ActorType.USER,
+      severity: AuditSeverity.LOW,
+      status: AuditStatus.SUCCESS,
+    });
 
     // Return without private key or mnemonic (security)
     return {
@@ -237,13 +291,10 @@ export class AlchemyWalletGenerationService {
     blockchain: string,
     network: string,
   ) {
+    // Since we now have one wallet per user, just get the user's wallet
     const wallet = await this.prisma.alchemyWallet.findUnique({
       where: {
-        userId_blockchain_network: {
-          userId,
-          blockchain,
-          network,
-        },
+        userId,
       },
     });
 
@@ -307,7 +358,22 @@ export class AlchemyWalletGenerationService {
       userId,
     );
 
-    // 5. Audit log (security event)
+    // 5. Audit log: Seed phrase exported (CRITICAL security event)
+    await this.auditService.log({
+      userId,
+      action: AuditAction.ALCHEMY_SEED_PHRASE_EXPORTED,
+      resource: AuditResource.ALCHEMY_WALLET,
+      resourceId: walletId,
+      metadata: {
+        address: wallet.address,
+        blockchain: wallet.blockchain,
+        network: wallet.network,
+      },
+      actorType: ActorType.USER,
+      severity: AuditSeverity.CRITICAL,
+      status: AuditStatus.SUCCESS,
+    });
+
     this.logger.warn(
       `⚠️ SEED PHRASE EXPORT: User ${userId} exported seed phrase for wallet ${walletId}`,
     );
@@ -348,16 +414,16 @@ export class AlchemyWalletGenerationService {
       throw new Error(`Invalid network: ${blockchain}-${network}`);
     }
 
-    // 2. Check for existing wallet
+    // 2. Check for existing wallet (one per user)
     const existingWallet = await this.prisma.alchemyWallet.findUnique({
       where: {
-        userId_blockchain_network: { userId, blockchain, network },
+        userId,
       },
     });
 
     if (existingWallet) {
       throw new Error(
-        `Wallet already exists on ${blockchain}-${network}. Wallet ID: ${existingWallet.id}`,
+        `User already has a wallet. Wallet ID: ${existingWallet.id}`,
       );
     }
 

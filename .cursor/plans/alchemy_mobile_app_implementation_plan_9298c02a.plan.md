@@ -779,7 +779,6 @@ Create import wallet flow:
 
 1. Choose import method (Seed Phrase / Private Key)
 2. Input method:
-
    - Seed phrase: 12-word input with autocomplete
    - Private key: Text input or QR scanner
 

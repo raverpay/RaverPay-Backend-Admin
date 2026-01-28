@@ -45,6 +45,8 @@ import { AdminAuthService } from './auth/admin-auth.service';
 import { AdminAuthModule } from './auth/admin-auth.module';
 import { AdminAlchemyController } from './alchemy/admin-alchemy.controller';
 import { AdminAlchemyService } from './alchemy/admin-alchemy.service';
+import { AdminStablecoinDepositsController } from './alchemy/stablecoin-deposits/admin-stablecoin-deposits.controller';
+import { AdminStablecoinDepositsService } from './alchemy/stablecoin-deposits/admin-stablecoin-deposits.service';
 import { HierarchyService } from '../common/services/hierarchy.service';
 import { AccountLockingService } from '../common/services/account-locking.service';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -123,6 +125,7 @@ import { DeviceModule } from '../device/device.module';
     // AdminVenlyWalletsService, // COMMENTED OUT (not using Venly anymore, using Circle)
     AdminCircleService,
     AdminAlchemyService,
+    AdminStablecoinDepositsService,
     AdminEmailsService,
     RateLimitsService,
     AdminSecurityService,

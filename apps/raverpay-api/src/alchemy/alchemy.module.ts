@@ -8,6 +8,9 @@ import { AlchemyWebhookService } from './webhooks/alchemy-webhook.service';
 import { AlchemyWebhookController } from './webhooks/alchemy-webhook.controller';
 import { AlchemyWalletController } from './controllers/alchemy-wallet.controller';
 import { AlchemyTransactionController } from './controllers/alchemy-transaction.controller';
+import { AlchemyStablecoinWalletController } from './controllers/alchemy-stablecoin-wallet.controller';
+import { StablecoinWalletService } from './wallets/stablecoin-wallet.service';
+import { StablecoinDepositService } from './deposits/stablecoin-deposit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { UsersModule } from '../users/users.module';
 
@@ -27,6 +30,7 @@ import { UsersModule } from '../users/users.module';
     AlchemyWalletController,
     AlchemyTransactionController,
     AlchemyWebhookController,
+    AlchemyStablecoinWalletController,
   ],
   providers: [
     // Core Services
@@ -43,6 +47,10 @@ import { UsersModule } from '../users/users.module';
     // Webhook Services
     AlchemyWebhookService,
 
+    // Stablecoin Services
+    StablecoinWalletService,
+    StablecoinDepositService,
+
     // Prisma (if not global)
     PrismaService,
   ],
@@ -54,6 +62,8 @@ import { UsersModule } from '../users/users.module';
     AlchemySmartAccountService,
     AlchemyTransactionService,
     AlchemyWebhookService,
+    StablecoinWalletService,
+    StablecoinDepositService,
   ],
 })
 export class AlchemyModule {}
