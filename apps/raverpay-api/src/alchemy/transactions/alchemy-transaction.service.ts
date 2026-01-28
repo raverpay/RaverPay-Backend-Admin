@@ -1,10 +1,17 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import {
   createPublicClient,
   createWalletClient,
   http,
   parseUnits,
   formatUnits,
+  isAddress,
   type Address,
   type Hash,
 } from 'viem';
@@ -108,7 +115,9 @@ export class AlchemyTransactionService {
 
     // 4. Validate destination address
     if (!destinationAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
-      throw new Error('Invalid destination address format');
+      throw new BadRequestException(
+        `Invalid destination address format: ${destinationAddress}. Please provide a valid Ethereum address.`,
+      );
     }
 
     // 5. Get decrypted private key
@@ -364,12 +373,14 @@ export class AlchemyTransactionService {
     });
 
     if (!tx) {
-      throw new Error('Transaction not found');
+      throw new NotFoundException('Transaction not found');
     }
 
     // Verify ownership
     if (tx.userId !== userId) {
-      throw new Error('Access denied');
+      throw new ForbiddenException(
+        'Access denied: You do not own this transaction',
+      );
     }
 
     return {
@@ -459,9 +470,11 @@ export class AlchemyTransactionService {
     // 1. Get wallet and verify ownership
     const wallet = await this.walletService.getWallet(walletId, userId);
 
-    // 2. Validate destination address
-    if (!destinationAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
-      throw new Error('Invalid destination address format');
+    // 2. Validate destination address using viem's isAddress
+    if (!isAddress(destinationAddress)) {
+      throw new BadRequestException(
+        `Invalid destination address format: ${destinationAddress}. Please provide a valid Ethereum address.`,
+      );
     }
 
     // 3. Get network configuration
@@ -522,7 +535,7 @@ export class AlchemyTransactionService {
       );
 
       const hash = await walletClient.sendTransaction({
-        to: destinationAddress as Address,
+        to: destinationAddress,
         value: amountInWei,
       });
 

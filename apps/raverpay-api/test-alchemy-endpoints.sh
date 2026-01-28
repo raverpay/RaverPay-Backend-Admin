@@ -6,7 +6,7 @@
 # Get JWT token by logging in:
 # curl -X POST http://localhost:3001/api/auth/login \
 #   -H "Content-Type: application/json" \
-#   -d '{"email":"your@email.com","password":"yourpassword"}'
+#   -d '{"identifier":"your@email.com","password":"yourpassword"}'
 
 set -e
 
@@ -20,7 +20,8 @@ if [ -z "$JWT_TOKEN" ]; then
   echo "Get token by logging in:"
   echo "curl -X POST $BASE_URL/auth/login \\"
   echo "  -H 'Content-Type: application/json' \\"
-  echo "  -d '{\"email\":\"test.user2@raverpay.com\",\"password\":\"TestPass123!\"}'"
+  echo "  -H 'ngrok-skip-browser-warning: true' \\"
+  echo "  -d '{\"identifier\":\"test.user2@raverpay.com\",\"password\":\"TestPass123!\"}'"
   exit 1
 fi
 
@@ -40,39 +41,76 @@ echo "POST $BASE_URL/alchemy/wallets"
 WALLET_RESPONSE=$(curl -s -X POST "$BASE_URL/alchemy/wallets" \
   -H "Authorization: Bearer $JWT_TOKEN" \
   -H "Content-Type: application/json" \
+  -H "ngrok-skip-browser-warning: true" \
   -d '{
     "blockchain": "BASE",
     "network": "sepolia",
     "name": "Test Wallet"
   }')
 
-echo "$WALLET_RESPONSE" | jq '.' || echo "$WALLET_RESPONSE"
-WALLET_ID=$(echo "$WALLET_RESPONSE" | jq -r '.data.id // empty')
-
-if [ -z "$WALLET_ID" ] || [ "$WALLET_ID" = "null" ]; then
-  echo -e "${RED}❌ Failed to create wallet. Cannot continue tests.${NC}"
-  exit 1
+if command -v jq &> /dev/null; then
+  echo "$WALLET_RESPONSE" | jq '.'
+  WALLET_ID=$(echo "$WALLET_RESPONSE" | jq -r '.data.id // empty')
+  ERROR_MSG=$(echo "$WALLET_RESPONSE" | jq -r '.message // empty')
+else
+  echo "$WALLET_RESPONSE"
+  WALLET_ID=$(echo "$WALLET_RESPONSE" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+  ERROR_MSG=$(echo "$WALLET_RESPONSE" | grep -o '"message":"[^"]*"' | head -1 | cut -d'"' -f4)
 fi
 
-echo -e "${GREEN}✅ Wallet created: $WALLET_ID${NC}"
+# If wallet creation failed, try to get existing wallets
+if [ -z "$WALLET_ID" ] || [ "$WALLET_ID" = "null" ]; then
+  echo -e "${YELLOW}⚠️  Wallet creation failed (may already exist). Fetching existing wallets...${NC}"
+  EXISTING_WALLETS=$(curl -s -X GET "$BASE_URL/alchemy/wallets" \
+    -H "Authorization: Bearer $JWT_TOKEN" \
+    -H "ngrok-skip-browser-warning: true")
+  
+  if command -v jq &> /dev/null; then
+    echo "$EXISTING_WALLETS" | jq '.'
+    WALLET_ID=$(echo "$EXISTING_WALLETS" | jq -r '.data[0].id // empty')
+  else
+    echo "$EXISTING_WALLETS"
+    WALLET_ID=$(echo "$EXISTING_WALLETS" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+  fi
+  
+  if [ -n "$WALLET_ID" ] && [ "$WALLET_ID" != "null" ]; then
+    echo -e "${GREEN}✅ Using existing wallet: $WALLET_ID${NC}"
+  else
+    echo -e "${RED}❌ Failed to get existing wallet. Cannot continue tests.${NC}"
+    echo "Error response: $WALLET_RESPONSE"
+    exit 1
+  fi
+else
+  echo -e "${GREEN}✅ Wallet created: $WALLET_ID${NC}"
+fi
 echo ""
 
 # Test 2: Get Native Token Balance
 echo -e "${YELLOW}Test 2: Get Native Token Balance${NC}"
 echo "GET $BASE_URL/alchemy/transactions/balance/native/$WALLET_ID"
 BALANCE_RESPONSE=$(curl -s -X GET "$BASE_URL/alchemy/transactions/balance/native/$WALLET_ID" \
-  -H "Authorization: Bearer $JWT_TOKEN")
+  -H "Authorization: Bearer $JWT_TOKEN" \
+  -H "ngrok-skip-browser-warning: true")
 
-echo "$BALANCE_RESPONSE" | jq '.' || echo "$BALANCE_RESPONSE"
+if command -v jq &> /dev/null; then
+  echo "$BALANCE_RESPONSE" | jq '.'
+else
+  echo "$BALANCE_RESPONSE"
+fi
 echo ""
 
 # Test 3: Get Gas Price
 echo -e "${YELLOW}Test 3: Get Gas Price${NC}"
 echo "GET $BASE_URL/alchemy/transactions/gas-price/BASE/sepolia"
 GAS_RESPONSE=$(curl -s -X GET "$BASE_URL/alchemy/transactions/gas-price/BASE/sepolia" \
-  -H "Authorization: Bearer $JWT_TOKEN")
+  -H "Authorization: Bearer $JWT_TOKEN" \
+  -H "ngrok-skip-browser-warning: true")
 
-echo "$GAS_RESPONSE" | jq '.' || echo "$GAS_RESPONSE"
+if command -v jq &> /dev/null; then
+  echo "$GAS_RESPONSE" | jq '.'
+else
+  echo "$GAS_RESPONSE"
+fi
 echo ""
 
 # Test 4: Export Seed Phrase (requires PIN)
@@ -82,11 +120,16 @@ echo "Note: This requires a valid PIN. Update PIN in the script if needed."
 EXPORT_RESPONSE=$(curl -s -X POST "$BASE_URL/alchemy/wallets/$WALLET_ID/export-seed" \
   -H "Authorization: Bearer $JWT_TOKEN" \
   -H "Content-Type: application/json" \
+  -H "ngrok-skip-browser-warning: true" \
   -d '{
     "pin": "9406"
   }')
 
-echo "$EXPORT_RESPONSE" | jq '.' || echo "$EXPORT_RESPONSE"
+if command -v jq &> /dev/null; then
+  echo "$EXPORT_RESPONSE" | jq '.'
+else
+  echo "$EXPORT_RESPONSE"
+fi
 echo ""
 
 # Test 5: Import Wallet via Seed Phrase
@@ -96,6 +139,7 @@ echo "Note: Using a test seed phrase. Replace with a real one if needed."
 IMPORT_RESPONSE=$(curl -s -X POST "$BASE_URL/alchemy/wallets/import" \
   -H "Authorization: Bearer $JWT_TOKEN" \
   -H "Content-Type: application/json" \
+  -H "ngrok-skip-browser-warning: true" \
   -d '{
     "method": "SEED_PHRASE",
     "seedPhrase": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
@@ -104,8 +148,13 @@ IMPORT_RESPONSE=$(curl -s -X POST "$BASE_URL/alchemy/wallets/import" \
     "name": "Imported Test Wallet"
   }')
 
-echo "$IMPORT_RESPONSE" | jq '.' || echo "$IMPORT_RESPONSE"
-IMPORTED_WALLET_ID=$(echo "$IMPORT_RESPONSE" | jq -r '.data.id // empty')
+if command -v jq &> /dev/null; then
+  echo "$IMPORT_RESPONSE" | jq '.'
+  IMPORTED_WALLET_ID=$(echo "$IMPORT_RESPONSE" | jq -r '.data.id // empty')
+else
+  echo "$IMPORT_RESPONSE"
+  IMPORTED_WALLET_ID=$(echo "$IMPORT_RESPONSE" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+fi
 echo ""
 
 # Test 6: Import Wallet via Private Key
@@ -115,6 +164,7 @@ echo "Note: Using a test private key. Replace with a real one if needed."
 IMPORT_KEY_RESPONSE=$(curl -s -X POST "$BASE_URL/alchemy/wallets/import" \
   -H "Authorization: Bearer $JWT_TOKEN" \
   -H "Content-Type: application/json" \
+  -H "ngrok-skip-browser-warning: true" \
   -d '{
     "method": "PRIVATE_KEY",
     "privateKey": "0x0000000000000000000000000000000000000000000000000000000000000001",
@@ -123,17 +173,27 @@ IMPORT_KEY_RESPONSE=$(curl -s -X POST "$BASE_URL/alchemy/wallets/import" \
     "name": "Imported Private Key Wallet"
   }')
 
-echo "$IMPORT_KEY_RESPONSE" | jq '.' || echo "$IMPORT_KEY_RESPONSE"
+if command -v jq &> /dev/null; then
+  echo "$IMPORT_KEY_RESPONSE" | jq '.'
+else
+  echo "$IMPORT_KEY_RESPONSE"
+fi
 echo ""
 
 # Test 7: Get Wallet Details (verify hasSeedPhrase flag)
 echo -e "${YELLOW}Test 7: Get Wallet Details (check hasSeedPhrase)${NC}"
 echo "GET $BASE_URL/alchemy/wallets/$WALLET_ID"
 WALLET_DETAILS=$(curl -s -X GET "$BASE_URL/alchemy/wallets/$WALLET_ID" \
-  -H "Authorization: Bearer $JWT_TOKEN")
+  -H "Authorization: Bearer $JWT_TOKEN" \
+  -H "ngrok-skip-browser-warning: true")
 
-echo "$WALLET_DETAILS" | jq '.' || echo "$WALLET_DETAILS"
-HAS_SEED=$(echo "$WALLET_DETAILS" | jq -r '.data.hasSeedPhrase // false')
+if command -v jq &> /dev/null; then
+  echo "$WALLET_DETAILS" | jq '.'
+  HAS_SEED=$(echo "$WALLET_DETAILS" | jq -r '.data.hasSeedPhrase // false')
+else
+  echo "$WALLET_DETAILS"
+  HAS_SEED=$(echo "$WALLET_DETAILS" | grep -o '"hasSeedPhrase":[^,}]*' | grep -o 'true\|false' | head -1 || echo "false")
+fi
 echo -e "${GREEN}✅ hasSeedPhrase flag: $HAS_SEED${NC}"
 echo ""
 
@@ -144,13 +204,18 @@ echo "Note: This will fail if wallet has no balance. This is expected for test w
 SEND_RESPONSE=$(curl -s -X POST "$BASE_URL/alchemy/transactions/send-native" \
   -H "Authorization: Bearer $JWT_TOKEN" \
   -H "Content-Type: application/json" \
+  -H "ngrok-skip-browser-warning: true" \
   -d "{
     \"walletId\": \"$WALLET_ID\",
     \"destinationAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb\",
     \"amount\": \"0.001\"
   }")
 
-echo "$SEND_RESPONSE" | jq '.' || echo "$SEND_RESPONSE"
+if command -v jq &> /dev/null; then
+  echo "$SEND_RESPONSE" | jq '.'
+else
+  echo "$SEND_RESPONSE"
+fi
 echo ""
 
 echo -e "${GREEN}✅ All tests completed!${NC}"

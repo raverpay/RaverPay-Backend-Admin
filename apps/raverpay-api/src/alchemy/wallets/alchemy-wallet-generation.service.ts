@@ -1,4 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+  ConflictException,
+} from '@nestjs/common';
 import {
   generatePrivateKey,
   privateKeyToAccount,
@@ -83,7 +90,7 @@ export class AlchemyWalletGenerationService {
     });
 
     if (existingWallet) {
-      throw new Error(
+      throw new ConflictException(
         `User already has a wallet on ${blockchain}-${network}. Wallet ID: ${existingWallet.id}`,
       );
     }
@@ -164,7 +171,7 @@ export class AlchemyWalletGenerationService {
     });
 
     if (!wallet) {
-      throw new Error('Wallet not found');
+      throw new NotFoundException('Wallet not found');
     }
 
     // Verify ownership
@@ -172,10 +179,10 @@ export class AlchemyWalletGenerationService {
       this.logger.warn(
         `Access denied: User ${userId} attempted to access wallet ${walletId} owned by ${wallet.userId}`,
       );
-      throw new Error('Access denied: You do not own this wallet');
+      throw new ForbiddenException('Access denied: You do not own this wallet');
     }
 
-    // Return without private key
+    // Return without private key or mnemonic (security)
     return {
       id: wallet.id,
       address: wallet.address,
@@ -185,6 +192,7 @@ export class AlchemyWalletGenerationService {
       state: wallet.state,
       name: wallet.name,
       isGasSponsored: wallet.isGasSponsored,
+      hasSeedPhrase: !!wallet.encryptedMnemonic, // Boolean flag only
       createdAt: wallet.createdAt,
       updatedAt: wallet.updatedAt,
     };

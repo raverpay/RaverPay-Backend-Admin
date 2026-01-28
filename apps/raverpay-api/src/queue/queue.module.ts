@@ -59,7 +59,7 @@ import { SmsModule } from '../services/sms/sms.module';
                 retryStrategy: () => null, // Don't retry
                 connectTimeout: 1000,
                 maxRetriesPerRequest: null, // BullMQ requirement
-                enableOfflineQueue: false,
+                enableOfflineQueue: true, // Required for BullMQ - allows commands to queue during disconnections
                 lazyConnect: true,
               },
             };
@@ -91,7 +91,7 @@ import { SmsModule } from '../services/sms/sms.module';
           },
           connectTimeout: 10000,
           maxRetriesPerRequest: null, // BullMQ requirement - must be null
-          enableOfflineQueue: false,
+          enableOfflineQueue: true, // Required for BullMQ - allows commands to queue during disconnections
           showFriendlyErrorStack: false,
           lazyConnect: true, // Don't connect immediately
         };

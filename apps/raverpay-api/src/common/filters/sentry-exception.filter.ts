@@ -32,18 +32,55 @@ export class SentryExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     // Get status code
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    let status: number;
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+    } else if (exception instanceof Error) {
+      // For validation/input errors, use 400 instead of 500
+      const errorMessage = exception.message?.toLowerCase() || '';
+      if (
+        errorMessage.includes('invalid') ||
+        errorMessage.includes('missing') ||
+        errorMessage.includes('required') ||
+        errorMessage.includes('format') ||
+        errorMessage.includes('not found')
+      ) {
+        status = HttpStatus.BAD_REQUEST;
+      } else {
+        status = HttpStatus.INTERNAL_SERVER_ERROR;
+      }
+    } else {
+      status = HttpStatus.INTERNAL_SERVER_ERROR;
+    }
 
     // Get error message
-    const message =
-      exception instanceof HttpException
-        ? exception.getResponse()
-        : exception instanceof Error
-          ? exception.message
-          : 'Internal server error';
+    let message: string | object;
+    if (exception instanceof HttpException) {
+      message = exception.getResponse();
+    } else if (exception instanceof Error) {
+      // For non-HTTP exceptions, return the error message with 400 status for validation errors
+      // or 500 for unexpected errors
+      const errorMessage = exception.message || 'Internal server error';
+      // Check if it's a validation/input error (common patterns)
+      if (
+        errorMessage.toLowerCase().includes('invalid') ||
+        errorMessage.toLowerCase().includes('missing') ||
+        errorMessage.toLowerCase().includes('required') ||
+        errorMessage.toLowerCase().includes('format') ||
+        errorMessage.toLowerCase().includes('not found')
+      ) {
+        // Return as BadRequestException message format
+        message = {
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: errorMessage,
+          error: 'Bad Request',
+        };
+      } else {
+        message = errorMessage;
+      }
+    } else {
+      message = 'Internal server error';
+    }
 
     // Extract user ID from request if available
     const userId = (request as any).user?.id || (request as any).user?.userId;
@@ -122,18 +159,35 @@ export class SentryExceptionFilter implements ExceptionFilter {
     this.betterStackService.info('HTTP Request Failed', errorLog);
 
     // Send response
-    response.status(status).json({
-      statusCode: status,
-      timestamp: new Date().toISOString(),
-      path: request.url,
-      message:
-        typeof message === 'string'
-          ? message
-          : (message as any).message || 'Internal server error',
-      ...(process.env.NODE_ENV !== 'production' && {
-        error: exception instanceof Error ? exception.stack : undefined,
-      }),
-    });
+    // If message is already an object (from HttpException or our custom format), use it
+    if (
+      typeof message === 'object' &&
+      message !== null &&
+      'statusCode' in message
+    ) {
+      response.status((message as any).statusCode || status).json({
+        ...message,
+        timestamp: new Date().toISOString(),
+        path: request.url,
+        ...(process.env.NODE_ENV !== 'production' && {
+          error: exception instanceof Error ? exception.stack : undefined,
+        }),
+      });
+    } else {
+      // Otherwise, format as standard error response
+      response.status(status).json({
+        statusCode: status,
+        timestamp: new Date().toISOString(),
+        path: request.url,
+        message:
+          typeof message === 'string'
+            ? message
+            : (message as any).message || 'Internal server error',
+        ...(process.env.NODE_ENV !== 'production' && {
+          error: exception instanceof Error ? exception.stack : undefined,
+        }),
+      });
+    }
   }
 
   /**

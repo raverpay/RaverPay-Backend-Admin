@@ -259,7 +259,12 @@ describe('AlchemyWalletGenerationService', () => {
     it('should get all wallets for a user', async () => {
       const mockWallets = [
         mockWallet,
-        { ...mockWallet, id: 'wallet-2', network: 'mainnet' },
+        {
+          ...mockWallet,
+          id: 'wallet-2',
+          network: 'mainnet',
+          encryptedMnemonic: null,
+        },
       ];
 
       jest
@@ -354,6 +359,7 @@ describe('AlchemyWalletGenerationService', () => {
       jest.spyOn(prismaService.alchemyWallet, 'findUnique').mockResolvedValue({
         ...mockWallet,
         userId: 'different-user',
+        encryptedMnemonic: null,
       });
 
       await expect(
@@ -365,6 +371,7 @@ describe('AlchemyWalletGenerationService', () => {
       jest.spyOn(prismaService.alchemyWallet, 'findUnique').mockResolvedValue({
         ...mockWallet,
         state: AlchemyWalletState.LOCKED,
+        encryptedMnemonic: null,
       });
 
       await expect(
@@ -382,6 +389,7 @@ describe('AlchemyWalletGenerationService', () => {
       jest.spyOn(prismaService.alchemyWallet, 'update').mockResolvedValue({
         ...mockWallet,
         name: 'New Name',
+        encryptedMnemonic: null,
       });
 
       const result = await service.updateWalletName(
@@ -409,6 +417,7 @@ describe('AlchemyWalletGenerationService', () => {
       jest.spyOn(prismaService.alchemyWallet, 'update').mockResolvedValue({
         ...mockWallet,
         state: AlchemyWalletState.INACTIVE,
+        encryptedMnemonic: null,
       });
 
       const result = await service.deactivateWallet(mockWalletId, mockUserId);
@@ -432,6 +441,7 @@ describe('AlchemyWalletGenerationService', () => {
       jest.spyOn(prismaService.alchemyWallet, 'update').mockResolvedValue({
         ...mockWallet,
         state: AlchemyWalletState.LOCKED,
+        encryptedMnemonic: null,
       });
 
       const result = await service.lockWallet(mockWalletId, mockUserId);
@@ -449,6 +459,7 @@ describe('AlchemyWalletGenerationService', () => {
       jest.spyOn(prismaService.alchemyWallet, 'update').mockResolvedValue({
         ...mockWallet,
         state: AlchemyWalletState.COMPROMISED,
+        encryptedMnemonic: null,
       });
 
       const result = await service.markWalletCompromised(
