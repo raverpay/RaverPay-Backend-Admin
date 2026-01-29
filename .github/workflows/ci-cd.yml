@@ -186,7 +186,6 @@ jobs:
           NEXT_PUBLIC_API_URL: 'https://api.raverpay.com'
         continue-on-error: false
 
-      - name: Build Web (if changed)
       - name: Build Summary
         run: |
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
