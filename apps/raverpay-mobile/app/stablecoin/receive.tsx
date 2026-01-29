@@ -5,7 +5,7 @@ import { stablecoinService } from '@/src/services/stablecoin.service';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useRef, useState, useEffect } from 'react';
 import {
@@ -114,7 +114,7 @@ export default function ReceiveScreen() {
   return (
     <View className="flex-1 bg-gray-50 dark:bg-gray-900">
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <ScreenHeader title="Receive Stablecoin" />
+      <ScreenHeader title="Receive Stablecoins" onBack={() => router.replace('/(tabs)')} />
 
       <ScrollView
         className="flex-1"

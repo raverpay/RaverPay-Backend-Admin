@@ -167,7 +167,7 @@ export default function CreatingWalletScreen() {
               style={{ marginTop: 24 }}
             />
 
-            <Text variant="h3" className="mt-6 font-semibold">
+            <Text variant="h4" className="mt-6 font-semibold">
               {status === 'uploading' ? 'Uploading Document...' : 'Creating Your Wallet...'}
             </Text>
 

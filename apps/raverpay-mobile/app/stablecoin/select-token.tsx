@@ -87,7 +87,8 @@ export default function SelectTokenScreen() {
       }
     } catch (error: any) {
       // If wallet doesn't exist (404), continue to KYC flow
-      if (error?.response?.status === 404) {
+      // Note: error has been transformed by handleApiError, so we check statusCode
+      if (error?.statusCode === 404 || error?.response?.status === 404) {
         // Continue to KYC info screen
         router.push({
           pathname: '/stablecoin/kyc-info',

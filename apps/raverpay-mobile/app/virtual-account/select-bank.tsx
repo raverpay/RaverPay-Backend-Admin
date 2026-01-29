@@ -45,9 +45,11 @@ export default function SelectBankScreen() {
         : apiError.message || 'Failed to create virtual account';
 
       // Check if error is transient (retryable)
+      // Note: error may have either statusCode (from handleApiError) or response.status (raw axios)
+      const statusCode = error?.statusCode || error?.response?.status;
       const isTransientError =
-        error?.response?.status >= 500 ||
-        error?.response?.status === 408 ||
+        statusCode >= 500 ||
+        statusCode === 408 ||
         error?.message?.includes('timeout') ||
         error?.message?.includes('network') ||
         error?.code === 'ECONNABORTED' ||
@@ -55,7 +57,7 @@ export default function SelectBankScreen() {
 
       // Check if it's a non-retryable validation error
       const isValidationError =
-        error?.response?.status === 400 &&
+        statusCode === 400 &&
         (errorMessage.toLowerCase().includes('bvn') ||
           errorMessage.toLowerCase().includes('invalid') ||
           errorMessage.toLowerCase().includes('required') ||

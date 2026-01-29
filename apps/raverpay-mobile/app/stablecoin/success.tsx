@@ -29,7 +29,7 @@ export default function SuccessScreen() {
   return (
     <View className="flex-1 bg-gray-50 dark:bg-gray-900">
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <ScreenHeader title="" />
+      <ScreenHeader title="" onBack={() => router.replace('/(tabs)')} />
 
       <View className="flex-1 items-center justify-center px-6">
         <Animated.View
@@ -40,7 +40,7 @@ export default function SuccessScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeIn.delay(200).duration(500)}>
-          <Text variant="h2" className="mt-8 font-bold">
+          <Text variant="h3" className="mt-8 font-bold">
             Approved!
           </Text>
         </Animated.View>
