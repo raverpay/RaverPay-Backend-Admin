@@ -33,13 +33,13 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
         }}
       />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="circle-wallet"
         options={{
           title: 'USDC',
           tabBarIcon: ({ color, size }) => <Ionicons name="logo-usd" size={size} color={color} />,
         }}
-      />
+      /> */}
       {/* <Tabs.Screen
         name="services"
         options={{
