@@ -57,10 +57,7 @@ if echo "$CHANGED_FILES" | grep -q "^apps/raverpay-admin/"; then
   echo "✅ Admin changed"
 fi
 
-if echo "$CHANGED_FILES" | grep -q "^apps/raverpay-web/"; then
-  WEB_CHANGED=true
-  echo "✅ Web changed"
-fi
+# Web app builds are disabled in CI/CD
 
 if echo "$CHANGED_FILES" | grep -q "^packages/shared/"; then
   SHARED_CHANGED=true
@@ -75,18 +72,16 @@ fi
 
 # If shared package changed, mark all apps as changed (safety)
 if [ "$SHARED_CHANGED" = true ]; then
-  echo "⚠️ Shared package changed - will build all apps for safety"
+  echo "⚠️ Shared package changed - will build API/Admin for safety"
   API_CHANGED=true
   ADMIN_CHANGED=true
-  WEB_CHANGED=true
 fi
 
 # If root config changed, mark all apps as changed (safety)
 if [ "$ROOT_CHANGED" = true ]; then
-  echo "⚠️ Root config changed - will build all apps for safety"
+  echo "⚠️ Root config changed - will build API/Admin for safety"
   API_CHANGED=true
   ADMIN_CHANGED=true
-  WEB_CHANGED=true
 fi
 
 # Check if only documentation/config files changed
