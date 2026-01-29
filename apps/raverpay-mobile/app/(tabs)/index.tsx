@@ -3,6 +3,7 @@ import { Card, Skeleton, SkeletonCircle, Text } from '@/src/components/ui';
 import { TransactionItem } from '@/src/components/wallet/TransactionItem';
 import { useCashbackWallet } from '@/src/hooks/useCashback';
 import { useUnreadCount } from '@/src/hooks/useNotifications';
+import { useStablecoinBalance } from '@/src/hooks/useStablecoinBalance';
 import { useTransactions } from '@/src/hooks/useTransactions';
 import { useWallet } from '@/src/hooks/useWallet';
 import { formatCurrency } from '@/src/lib/utils/formatters';
@@ -14,8 +15,13 @@ import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { useFocusEffect } from '@react-navigation/native';
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Alert, Image, ScrollView, TouchableOpacity, View } from 'react-native';
+import {
+  PanGestureHandler,
+  State,
+  type GestureHandlerStateChangeEvent,
+} from 'react-native-gesture-handler';
 
 // Quick Actions configuration
 const QUICK_ACTIONS = [
@@ -61,6 +67,7 @@ export default function HomeScreen() {
   const { user } = useUserStore();
   const { balance, isBalanceVisible, toggleBalanceVisibility, isLocked, lockedReason, kycTier } =
     useWalletStore();
+  const [showUSD, setShowUSD] = useState(false);
   // const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Auto-refresh when screen comes into focus
@@ -99,11 +106,18 @@ export default function HomeScreen() {
     isPending: isLoadingTransactions,
   } = useTransactions({ limit: 5 });
 
+  const { totalUSD: stablecoinTotalUSD, refetch: refetchStablecoin } = useStablecoinBalance();
+
   const recentTransactions = transactionsData?.pages[0]?.data || [];
 
   const onRefresh = async () => {
     // setRefreshing(true);
-    await Promise.all([refetchWallet(), refetchCashback(), refetchTransactions()]);
+    await Promise.all([
+      refetchWallet(),
+      refetchCashback(),
+      refetchTransactions(),
+      refetchStablecoin(),
+    ]);
     //setRefreshing(false);
   };
 
@@ -141,6 +155,13 @@ export default function HomeScreen() {
       TIER_3: 'Already at max tier',
     };
     return tierMap[currentTier] || 'Higher Tier';
+  };
+
+  // Handle balance swipe to toggle currency
+  const handleBalanceSwipe = ({ nativeEvent }: GestureHandlerStateChangeEvent) => {
+    if (nativeEvent.state === State.END) {
+      setShowUSD(!showUSD);
+    }
   };
 
   return (
@@ -208,7 +229,7 @@ export default function HomeScreen() {
 
           {/* Balance Card */}
           <Card variant="filled" className="bg-white/10 backdrop-blur-lg p-5">
-            <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center justify-between mb-1">
               <Text variant="caption" className="text-white opacity-80">
                 Available Balance
               </Text>
@@ -231,11 +252,22 @@ export default function HomeScreen() {
                 style={{ backgroundColor: 'rgba(255, 255, 255, 0.3)' }}
               />
             ) : (
-              <View className="flex-row items-center h-14">
-                <Text variant="h2" className="text-white">
-                  {isBalanceVisible ? formatCurrency(balance) : '****'}
-                </Text>
-              </View>
+              <PanGestureHandler onHandlerStateChange={handleBalanceSwipe}>
+                <View>
+                  <Text variant="bodyMedium" className="text-white/90 mb-1">
+                    {showUSD ? 'USD Balance' : 'NGN Balance'}
+                  </Text>
+                  <View className="flex-row items-center h-14">
+                    <Text variant="h2" className="text-white">
+                      {isBalanceVisible
+                        ? showUSD
+                          ? `$${stablecoinTotalUSD.toFixed(2)}`
+                          : formatCurrency(balance)
+                        : '****'}
+                    </Text>
+                  </View>
+                </View>
+              </PanGestureHandler>
             )}
 
             <View className="flex-row gap-3">
@@ -537,6 +569,74 @@ export default function HomeScreen() {
               </Card>
             </View>
           )}
+
+          {/* Stablecoin Balance Card */}
+          {/* <View className="mt-4">
+            <Card variant="elevated" className="bg-gradient-to-r from-[#2775CA] to-[#1E5A99] p-4">
+              <View className="flex-row items-center justify-between mb-2">
+                <View className="flex-row items-center">
+                  <View className="w-10 h-10 rounded-full bg-white/20 items-center justify-center mr-3">
+                    <Text variant="h5" className="text-white font-bold">
+                      $
+                    </Text>
+                  </View>
+                  <Text variant="bodyMedium" className="text-white/80">
+                    Stablecoin Balance
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => refetchStablecoin()}
+                  disabled={isLoadingStablecoin}
+                >
+                  <Ionicons
+                    name="refresh"
+                    size={20}
+                    color={isLoadingStablecoin ? 'rgba(255,255,255,0.5)' : 'white'}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {isLoadingStablecoin ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <View>
+                  <Text variant="h3" className="text-white font-bold mb-1">
+                    ${stablecoinTotalUSD.toFixed(2)}
+                  </Text>
+                  {stablecoinBalances.length > 0 ? (
+                    <View className="flex-row flex-wrap gap-2 mb-3">
+                      {stablecoinBalances.map((balance, index) => (
+                        <View
+                          key={index}
+                          className="bg-white/20 rounded-full px-3 py-1 flex-row items-center"
+                        >
+                          <Text variant="caption" className="text-white">
+                            {balance.tokenSymbol}: ${balance.balanceUSD.toFixed(2)}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : (
+                    <Text variant="caption" className="text-white/70 mb-3">
+                      No stablecoin wallets yet
+                    </Text>
+                  )}
+
+                  <TouchableOpacity
+                    onPress={() => router.push('/stablecoin/select-token')}
+                    className="bg-white/20 rounded-xl py-3 items-center flex-row justify-center"
+                  >
+                    <Ionicons name="add-circle-outline" size={18} color="white" />
+                    <Text variant="bodyMedium" className="text-white font-semibold ml-2">
+                      {stablecoinBalances.length > 0
+                        ? 'Add Another Wallet'
+                        : 'Create Stablecoin Wallet'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </Card>
+          </View> */}
 
           {/* Deposit Limit Indicator */}
           {/* {!isLoadingWallet &&

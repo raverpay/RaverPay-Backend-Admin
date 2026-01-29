@@ -1,13 +1,21 @@
 // app/stablecoin/receive.tsx
 import { Button, ScreenHeader, Text } from '@/src/components/ui';
 import { useTheme } from '@/src/hooks/useTheme';
+import { stablecoinService } from '@/src/services/stablecoin.service';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import { useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useRef, useState } from 'react';
-import { Alert, Pressable, View, ScrollView } from 'react-native';
+import React, { useRef, useState, useEffect } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  View,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import ViewShot from 'react-native-view-shot';
 import { toast } from '@/src/lib/utils/toast';
@@ -17,6 +25,8 @@ export default function ReceiveScreen() {
   const { isDark } = useTheme();
   const viewShotRef = useRef<ViewShot>(null);
   const [showNetworkWarning, setShowNetworkWarning] = useState(false);
+  const [balance, setBalance] = useState<string>('0.00');
+  const [isLoadingBalance, setIsLoadingBalance] = useState(true);
 
   const params = useLocalSearchParams<{
     walletId: string;
@@ -27,13 +37,45 @@ export default function ReceiveScreen() {
     networkLabel: string;
   }>();
 
+  useEffect(() => {
+    fetchBalance();
+  }, []);
+
+  const fetchBalance = async () => {
+    try {
+      setIsLoadingBalance(true);
+      const response = await stablecoinService.getTokenBalance({
+        address: params.address,
+        tokenType: params.tokenType as 'USDT' | 'USDC',
+        blockchain: params.blockchain as 'ETHEREUM' | 'POLYGON' | 'ARBITRUM' | 'BSC' | 'SOLANA',
+        network: params.network as
+          | 'mainnet'
+          | 'sepolia'
+          | 'mumbai'
+          | 'amoy'
+          | 'bsc-testnet'
+          | 'solana-devnet',
+      });
+
+      if (response.success && response.data) {
+        setBalance(response.data.balance || '0.00');
+      }
+    } catch (error) {
+      console.error('Error fetching balance:', error);
+      toast.error('Failed to fetch balance');
+    } finally {
+      setIsLoadingBalance(false);
+    }
+  };
+
   const handleCopyAddress = async () => {
     try {
       await Clipboard.setStringAsync(params.address);
       setShowNetworkWarning(true);
       toast.success('Address copied to clipboard');
     } catch (error) {
-      toast.error(`Failed to copy address' ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to copy address: ${message}`);
     }
   };
 
@@ -82,6 +124,43 @@ export default function ReceiveScreen() {
         }}
       >
         <View className="flex-1 px-6 pt-6">
+          {/* Current Balance Card */}
+          <View className="w-full p-4 mb-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
+            <View className="flex-row items-center justify-between">
+              <View>
+                <Text variant="body" className="text-gray-600 dark:text-gray-400 mb-1">
+                  Current Balance
+                </Text>
+                {isLoadingBalance ? (
+                  <ActivityIndicator size="small" color={isDark ? '#9ca3af' : '#6b7280'} />
+                ) : (
+                  <Text variant="h4" className="font-bold">
+                    {balance} {params.tokenType}
+                  </Text>
+                )}
+              </View>
+              <TouchableOpacity
+                onPress={fetchBalance}
+                disabled={isLoadingBalance}
+                className="w-10 h-10 items-center justify-center"
+              >
+                <Ionicons
+                  name="refresh"
+                  size={24}
+                  color={
+                    isLoadingBalance
+                      ? isDark
+                        ? '#4b5563'
+                        : '#d1d5db'
+                      : isDark
+                        ? '#9ca3af'
+                        : '#6b7280'
+                  }
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
           <View className="items-center">
             <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 0.9 }}>
               <View className="p-6 bg-white dark:bg-gray-800 rounded-3xl items-center">

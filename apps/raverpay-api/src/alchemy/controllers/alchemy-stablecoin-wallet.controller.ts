@@ -254,6 +254,63 @@ export class AlchemyStablecoinWalletController {
   }
 
   /**
+   * Get all stablecoin wallets for the authenticated user (list endpoint for balance fetching)
+   */
+  @Get('stablecoin/list')
+  @ApiOperation({
+    summary: 'Get all stablecoin wallets list',
+    description: 'Returns all stablecoin wallets for the authenticated user',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Stablecoin wallets retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              address: { type: 'string' },
+              tokenType: { type: 'string' },
+              blockchain: { type: 'string' },
+              network: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+  })
+  async getStablecoinWalletsList(@Request() req: { user: { id: string } }) {
+    try {
+      const userId = req.user?.id;
+
+      if (!userId) {
+        throw new Error('User ID not found in request');
+      }
+
+      const wallets = await this.stablecoinWalletService.getStablecoinWallets(
+        userId,
+        {},
+      );
+
+      return {
+        success: true,
+        data: wallets,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error getting stablecoin wallets list: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Get stablecoin wallet by ID
    */
   @Get('stablecoin/:walletId')
@@ -354,63 +411,6 @@ export class AlchemyStablecoinWalletController {
     } catch (error) {
       this.logger.error(
         `Error getting stablecoin wallet by token: ${error.message}`,
-        error.stack,
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Get all stablecoin wallets for the authenticated user (list endpoint for balance fetching)
-   */
-  @Get('stablecoin/list')
-  @ApiOperation({
-    summary: 'Get all stablecoin wallets list',
-    description: 'Returns all stablecoin wallets for the authenticated user',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Stablecoin wallets retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        data: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'string' },
-              address: { type: 'string' },
-              tokenType: { type: 'string' },
-              blockchain: { type: 'string' },
-              network: { type: 'string' },
-            },
-          },
-        },
-      },
-    },
-  })
-  async getStablecoinWalletsList(@Request() req: { user: { id: string } }) {
-    try {
-      const userId = req.user?.id;
-
-      if (!userId) {
-        throw new Error('User ID not found in request');
-      }
-
-      const wallets = await this.stablecoinWalletService.getStablecoinWallets(
-        userId,
-        {},
-      );
-
-      return {
-        success: true,
-        data: wallets,
-      };
-    } catch (error) {
-      this.logger.error(
-        `Error getting stablecoin wallets list: ${error.message}`,
         error.stack,
       );
       throw error;

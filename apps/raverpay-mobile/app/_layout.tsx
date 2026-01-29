@@ -22,6 +22,7 @@ import { useEffect } from 'react';
 // import { LogLevel, OneSignal } from "react-native-onesignal";
 import Toast from 'react-native-toast-message';
 import '../global.css';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 // Import and initialize Sentry FIRST before any other code
 import { initializeSentry } from '@/src/utils/sentryConfig';
@@ -126,12 +127,14 @@ export default Sentry.wrap(function RootLayout() {
   }
 
   return (
-    <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <CircleSDKProvider>
-          <AppContent />
-        </CircleSDKProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <CircleSDKProvider>
+            <AppContent />
+          </CircleSDKProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 });

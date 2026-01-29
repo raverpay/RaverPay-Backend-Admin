@@ -1,7 +1,11 @@
 import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { stablecoinService } from '@/services/stablecoin.service';
-import { StablecoinWallet, TokenBalance, StablecoinBalanceSummary } from '@/types/stablecoin.types';
+import { stablecoinService } from '@/src/services/stablecoin.service';
+import {
+  StablecoinWallet,
+  TokenBalance,
+  StablecoinBalanceSummary,
+} from '@/src/types/stablecoin.types';
 
 interface UseStablecoinBalanceResult {
   balances: TokenBalance[];
@@ -93,7 +97,10 @@ export const useStablecoinBalance = (): UseStablecoinBalanceResult => {
       const fetchedBalances = await Promise.all(balancePromises);
 
       // 3. Calculate total USD
-      const total = fetchedBalances.reduce((sum, balance) => sum + balance.balanceUSD, 0);
+      const total = fetchedBalances.reduce(
+        (sum: number, balance: TokenBalance) => sum + balance.balanceUSD,
+        0,
+      );
 
       setBalances(fetchedBalances);
       setTotalUSD(total);
