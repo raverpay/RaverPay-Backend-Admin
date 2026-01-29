@@ -4,6 +4,9 @@ import { AlchemyWebhookService } from './alchemy-webhook.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AlchemyTransactionState } from '@prisma/client';
 import * as crypto from 'crypto';
+import { AuditService } from '../../common/services/audit.service';
+import { StablecoinDepositService } from '../deposits/stablecoin-deposit.service';
+import { AlchemyConfigService } from '../config/alchemy-config.service';
 
 describe('AlchemyWebhookService', () => {
   let service: AlchemyWebhookService;
@@ -54,6 +57,24 @@ describe('AlchemyWebhookService', () => {
               create: jest.fn(),
               update: jest.fn(),
             },
+          },
+        },
+        {
+          provide: AuditService,
+          useValue: {
+            log: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: StablecoinDepositService,
+          useValue: {
+            processDeposit: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: AlchemyConfigService,
+          useValue: {
+            getNetworkConfig: jest.fn().mockReturnValue({}),
           },
         },
       ],

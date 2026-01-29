@@ -3,6 +3,7 @@ import { AlchemyTransactionService } from './alchemy-transaction.service';
 import { AlchemyWalletGenerationService } from '../wallets/alchemy-wallet-generation.service';
 import { AlchemyConfigService } from '../config/alchemy-config.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuditService } from '../../common/services/audit.service';
 import {
   AlchemyTransactionState,
   AlchemyTransactionType,
@@ -115,6 +116,12 @@ describe('AlchemyTransactionService', () => {
               findMany: jest.fn(),
               update: jest.fn(),
             },
+          },
+        },
+        {
+          provide: AuditService,
+          useValue: {
+            log: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],

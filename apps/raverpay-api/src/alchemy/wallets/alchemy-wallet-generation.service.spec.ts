@@ -3,6 +3,7 @@ import { AlchemyWalletGenerationService } from './alchemy-wallet-generation.serv
 import { AlchemyKeyEncryptionService } from '../encryption/alchemy-key-encryption.service';
 import { AlchemyConfigService } from '../config/alchemy-config.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuditService } from '../../common/services/audit.service';
 import { AlchemyAccountType, AlchemyWalletState } from '@prisma/client';
 
 describe('AlchemyWalletGenerationService', () => {
@@ -49,6 +50,8 @@ describe('AlchemyWalletGenerationService', () => {
           useValue: {
             encryptPrivateKey: jest.fn().mockReturnValue(mockEncryptedKey),
             decryptPrivateKey: jest.fn().mockReturnValue(mockPrivateKey),
+            encryptMnemonic: jest.fn().mockReturnValue(mockEncryptedKey),
+            decryptMnemonic: jest.fn().mockReturnValue('test mnemonic phrase'),
           },
         },
         {
@@ -66,6 +69,12 @@ describe('AlchemyWalletGenerationService', () => {
               findMany: jest.fn(),
               update: jest.fn(),
             },
+          },
+        },
+        {
+          provide: AuditService,
+          useValue: {
+            log: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],
@@ -175,19 +184,22 @@ describe('AlchemyWalletGenerationService', () => {
       ).rejects.toThrow(/Invalid network/);
     });
 
-    it('should throw error if user already has wallet on this network', async () => {
+    it('should return existing wallet if user already has one', async () => {
       // Mock: Existing wallet found
       jest
         .spyOn(prismaService.alchemyWallet, 'findUnique')
         .mockResolvedValue(mockWallet as any);
 
-      await expect(
-        service.generateEOAWallet({
-          userId: mockUserId,
-          blockchain: 'BASE',
-          network: 'sepolia',
-        }),
-      ).rejects.toThrow(/already has a wallet/);
+      const result = await service.generateEOAWallet({
+        userId: mockUserId,
+        blockchain: 'BASE',
+        network: 'sepolia',
+      });
+
+      expect(result).toBeDefined();
+      expect(result.id).toBe(mockWallet.id);
+      expect(result.address).toBe(mockWallet.address);
+      expect(prismaService.alchemyWallet.create).not.toHaveBeenCalled();
     });
 
     it('should normalize address to lowercase', async () => {
