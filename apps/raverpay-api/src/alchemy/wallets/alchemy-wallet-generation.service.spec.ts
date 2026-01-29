@@ -189,6 +189,7 @@ describe('AlchemyWalletGenerationService', () => {
       jest
         .spyOn(prismaService.alchemyWallet, 'findUnique')
         .mockResolvedValue(mockWallet as any);
+      const createSpy = jest.spyOn(prismaService.alchemyWallet, 'create');
 
       const result = await service.generateEOAWallet({
         userId: mockUserId,
@@ -199,7 +200,7 @@ describe('AlchemyWalletGenerationService', () => {
       expect(result).toBeDefined();
       expect(result.id).toBe(mockWallet.id);
       expect(result.address).toBe(mockWallet.address);
-      expect(prismaService.alchemyWallet.create).not.toHaveBeenCalled();
+      expect(createSpy).not.toHaveBeenCalled();
     });
 
     it('should normalize address to lowercase', async () => {
