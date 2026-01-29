@@ -1,7 +1,7 @@
 export default {
   expo: {
     name: 'Raverpay',
-    slug: 'raverpay-mobile',
+    slug: 'raverpay',
     version: '1.1.0',
     orientation: 'portrait',
     icon: './assets/images/icon.png',
