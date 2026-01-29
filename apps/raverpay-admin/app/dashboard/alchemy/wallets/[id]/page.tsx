@@ -11,6 +11,7 @@ import {
   Zap,
   Activity,
   CheckCircle,
+  Coins,
 } from 'lucide-react';
 import { alchemyApi } from '@/lib/api/alchemy';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -254,6 +255,79 @@ export default function WalletDetailsPage() {
                   <code className="text-xs bg-muted px-2 py-1 rounded">{wallet.user.id}</code>
                 </div>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Stablecoin Wallets */}
+      {wallet.stablecoinWallets && wallet.stablecoinWallets.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Coins className="h-5 w-5" />
+              Stablecoin Wallets
+            </CardTitle>
+            <CardDescription>Stablecoin wallets linked to this Alchemy wallet</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Token</TableHead>
+                    <TableHead>Blockchain</TableHead>
+                    <TableHead>Network</TableHead>
+                    <TableHead>Address</TableHead>
+                    <TableHead>Income Range</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {wallet.stablecoinWallets.map((sw) => (
+                    <TableRow key={sw.id}>
+                      <TableCell>
+                        <Badge variant="outline" className="font-mono">
+                          {sw.tokenType}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={BLOCKCHAIN_COLORS[sw.blockchain] || 'bg-gray-100'}
+                        >
+                          {sw.blockchain}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm">{sw.network}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <code className="text-xs bg-muted px-2 py-1 rounded">
+                            {sw.address.slice(0, 6)}...{sw.address.slice(-4)}
+                          </code>
+                          <button
+                            onClick={() => copyToClipboard(sw.address)}
+                            className="p-1 hover:bg-muted rounded"
+                            title="Copy address"
+                          >
+                            {copied ? (
+                              <CheckCircle className="h-4 w-4" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm">{sw.monthlyIncomeRange || '-'}</TableCell>
+                      <TableCell>
+                        <Badge className="bg-green-100 text-green-800">{sw.status}</Badge>
+                      </TableCell>
+                      <TableCell className="text-sm">{formatDate(sw.createdAt)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           </CardContent>
         </Card>

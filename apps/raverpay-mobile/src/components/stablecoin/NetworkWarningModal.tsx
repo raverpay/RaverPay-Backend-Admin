@@ -21,8 +21,6 @@ export default function NetworkWarningModal({
   network,
   tokenType,
 }: NetworkWarningModalProps) {
-  const { isDark } = useTheme();
-
   const getWarningContent = () => {
     const isTestnet =
       network.includes('Sepolia') || network.includes('Goerli') || network.includes('Mumbai');
@@ -59,7 +57,7 @@ export default function NetworkWarningModal({
         />
 
         <Animated.View
-          entering={SlideInDown.springify().damping(20)}
+          entering={SlideInDown.springify().damping(200)}
           className="bg-white dark:bg-gray-800 rounded-t-3xl"
         >
           <View className="px-6 pt-6 pb-2">
@@ -73,10 +71,10 @@ export default function NetworkWarningModal({
               </View>
 
               <View className="ml-4 flex-1">
-                <Text variant="h3" className="font-bold mb-2">
+                <Text variant="h4" className="font-bold mb-2">
                   {warning.title}
                 </Text>
-                <Text variant="bodyMedium" className="text-gray-600 dark:text-gray-400">
+                <Text variant="body" className="text-gray-600 dark:text-gray-400">
                   {warning.message}
                 </Text>
               </View>
