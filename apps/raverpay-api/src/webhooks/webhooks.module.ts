@@ -13,7 +13,7 @@ import { ConfigModule } from '@nestjs/config';
 @Module({
   imports: [
     PrismaModule,
-    PaymentsModule,
+    forwardRef(() => PaymentsModule), // Use forwardRef to break circular dependency
     WalletModule,
     forwardRef(() => NotificationsModule), // Use forwardRef to break circular dependency
     SupportModule,

@@ -54,6 +54,16 @@ export class AlchemyConfigService {
   }
 
   /**
+   * Alias for getRpcUrl for backward compatibility
+   * @param blockchain - Blockchain name
+   * @param network - Network name
+   * @returns RPC URL
+   */
+  getAlchemyRpcUrl(blockchain: string, network: string): string {
+    return this.getRpcUrl(blockchain, network);
+  }
+
+  /**
    * Get Alchemy API key
    * @param environment - Environment (dev or prod)
    * @returns API key
@@ -71,6 +81,14 @@ export class AlchemyConfigService {
     }
 
     return apiKey;
+  }
+
+  /**
+   * Alias for getApiKey for backward compatibility
+   * @returns API key
+   */
+  getAlchemyApiKey(): string {
+    return this.getApiKey(this.getEnvironment());
   }
 
   /**

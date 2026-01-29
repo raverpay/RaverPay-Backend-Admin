@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AlchemyWalletGenerationService } from './alchemy-wallet-generation.service';
+import { AlchemyNetworkConfigService } from '../config/alchemy-network-config.service';
 import { AuditService } from '../../common/services/audit.service';
 import {
   AuditAction,
@@ -40,6 +41,7 @@ export class StablecoinWalletService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly walletService: AlchemyWalletGenerationService,
+    private readonly networkConfigService: AlchemyNetworkConfigService,
     private readonly auditService: AuditService,
   ) {
     this.logger.log('Stablecoin wallet service initialized');
@@ -63,6 +65,19 @@ export class StablecoinWalletService {
     this.logger.log(
       `Creating stablecoin wallet for user ${userId}: ${dto.tokenType} on ${dto.blockchain}-${dto.network}`,
     );
+
+    // Validate that the network is enabled
+    const isEnabled = await this.networkConfigService.isNetworkEnabled(
+      dto.tokenType,
+      dto.blockchain,
+      dto.network,
+    );
+
+    if (!isEnabled) {
+      throw new BadRequestException(
+        `Network not enabled: ${dto.tokenType} on ${dto.blockchain}-${dto.network}`,
+      );
+    }
 
     // 1. Get or create AlchemyWallet (one per user)
     // generateEOAWallet now returns existing wallet if user already has one

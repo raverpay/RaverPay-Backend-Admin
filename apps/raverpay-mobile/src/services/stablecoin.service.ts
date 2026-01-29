@@ -11,6 +11,8 @@ import {
   StablecoinBlockchain,
   StablecoinNetwork,
   SupportedNetworksResponse,
+  GetTokenBalanceParams,
+  GetTokenBalanceResponse,
 } from '../types/stablecoin.types';
 
 interface UploadDocumentResponse {
@@ -129,6 +131,35 @@ class StablecoinService {
         API_ENDPOINTS.ALCHEMY.STABLECOIN.GET_BY_TOKEN(tokenType, blockchain, network),
       );
       return response.data.data;
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  }
+
+  /**
+   * Get all stablecoin wallets list (for balance fetching)
+   */
+  async getStablecoinWalletsList(): Promise<GetStablecoinWalletsResponse> {
+    try {
+      const response = await apiClient.get<GetStablecoinWalletsResponse>(
+        API_ENDPOINTS.ALCHEMY.STABLECOIN.GET_STABLECOIN_WALLETS_LIST,
+      );
+      return response.data;
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  }
+
+  /**
+   * Get token balance for a specific wallet
+   */
+  async getTokenBalance(params: GetTokenBalanceParams): Promise<GetTokenBalanceResponse> {
+    try {
+      const response = await apiClient.post<GetTokenBalanceResponse>(
+        API_ENDPOINTS.ALCHEMY.STABLECOIN.GET_TOKEN_BALANCE,
+        params,
+      );
+      return response.data;
     } catch (error) {
       throw handleApiError(error);
     }

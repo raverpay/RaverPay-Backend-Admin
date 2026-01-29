@@ -83,3 +83,35 @@ export interface SupportedNetworksResponse {
     tokens: TokenOption[];
   };
 }
+
+export interface TokenBalance {
+  tokenType: StablecoinToken;
+  blockchain: StablecoinBlockchain;
+  network: StablecoinNetwork;
+  balance: string;
+  balanceUSD: number;
+  decimals: number;
+  tokenAddress: string;
+}
+
+export interface StablecoinBalanceSummary {
+  totalUSD: number;
+  balances: TokenBalance[];
+}
+
+export interface GetTokenBalanceParams {
+  address: string;
+  tokenType: StablecoinToken;
+  blockchain: StablecoinBlockchain;
+  network: StablecoinNetwork;
+}
+
+export interface GetTokenBalanceResponse {
+  success: boolean;
+  data: {
+    balance: string;
+    balanceUSD: number;
+    decimals: number;
+    tokenAddress: string;
+  };
+}

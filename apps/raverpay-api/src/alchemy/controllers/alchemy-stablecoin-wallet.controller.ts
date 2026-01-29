@@ -30,6 +30,7 @@ import {
   StablecoinNetwork,
 } from '../wallets/dto/stablecoin-wallet.dto';
 import { AlchemyConfigService } from '../config/alchemy-config.service';
+import { AlchemyNetworkConfigService } from '../config/alchemy-network-config.service';
 
 /**
  * Alchemy Stablecoin Wallet Controller
@@ -47,6 +48,7 @@ export class AlchemyStablecoinWalletController {
   constructor(
     private readonly stablecoinWalletService: StablecoinWalletService,
     private readonly alchemyConfigService: AlchemyConfigService,
+    private readonly networkConfigService: AlchemyNetworkConfigService,
   ) {}
 
   /**
@@ -110,119 +112,24 @@ export class AlchemyStablecoinWalletController {
   })
   async getSupportedNetworks() {
     try {
+      const groupedConfigs =
+        await this.networkConfigService.getEnabledNetworksGrouped();
+
       const networks = {
-        tokens: [
-          {
-            type: 'USDT',
-            name: 'Tether USD',
-            symbol: 'USDT',
-            blockchains: [
-              {
-                blockchain: 'POLYGON',
-                name: 'Polygon',
-                networks: [
-                  {
-                    network: 'mainnet',
-                    label: 'Polygon Mainnet',
-                    isTestnet: false,
-                  },
-                  {
-                    network: 'amoy',
-                    label: 'Polygon Amoy Testnet',
-                    isTestnet: true,
-                  },
-                ],
-              },
-              {
-                blockchain: 'ARBITRUM',
-                name: 'Arbitrum',
-                networks: [
-                  {
-                    network: 'mainnet',
-                    label: 'Arbitrum Mainnet',
-                    isTestnet: false,
-                  },
-                  {
-                    network: 'sepolia',
-                    label: 'Arbitrum Sepolia',
-                    isTestnet: true,
-                  },
-                ],
-              },
-              {
-                blockchain: 'BASE',
-                name: 'Base',
-                networks: [
-                  {
-                    network: 'mainnet',
-                    label: 'Base Mainnet',
-                    isTestnet: false,
-                  },
-                  {
-                    network: 'sepolia',
-                    label: 'Base Sepolia',
-                    isTestnet: true,
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'USDC',
-            name: 'USD Coin',
-            symbol: 'USDC',
-            blockchains: [
-              {
-                blockchain: 'POLYGON',
-                name: 'Polygon',
-                networks: [
-                  {
-                    network: 'mainnet',
-                    label: 'Polygon Mainnet',
-                    isTestnet: false,
-                  },
-                  {
-                    network: 'amoy',
-                    label: 'Polygon Amoy Testnet',
-                    isTestnet: true,
-                  },
-                ],
-              },
-              {
-                blockchain: 'ARBITRUM',
-                name: 'Arbitrum',
-                networks: [
-                  {
-                    network: 'mainnet',
-                    label: 'Arbitrum Mainnet',
-                    isTestnet: false,
-                  },
-                  {
-                    network: 'sepolia',
-                    label: 'Arbitrum Sepolia',
-                    isTestnet: true,
-                  },
-                ],
-              },
-              {
-                blockchain: 'BASE',
-                name: 'Base',
-                networks: [
-                  {
-                    network: 'mainnet',
-                    label: 'Base Mainnet',
-                    isTestnet: false,
-                  },
-                  {
-                    network: 'sepolia',
-                    label: 'Base Sepolia',
-                    isTestnet: true,
-                  },
-                ],
-              },
-            ],
-          },
-        ],
+        tokens: groupedConfigs.map((config) => ({
+          type: config.tokenType,
+          name: config.tokenSymbol === 'USDT' ? 'Tether USD' : 'USD Coin',
+          symbol: config.tokenSymbol,
+          blockchains: config.blockchains.map((blockchain) => ({
+            blockchain: blockchain.blockchain,
+            name: blockchain.blockchainName,
+            networks: blockchain.networks.map((network) => ({
+              network: network.network,
+              label: network.networkLabel,
+              isTestnet: network.isTestnet,
+            })),
+          })),
+        })),
       };
 
       return {
@@ -447,6 +354,195 @@ export class AlchemyStablecoinWalletController {
     } catch (error) {
       this.logger.error(
         `Error getting stablecoin wallet by token: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Get all stablecoin wallets for the authenticated user (list endpoint for balance fetching)
+   */
+  @Get('stablecoin/list')
+  @ApiOperation({
+    summary: 'Get all stablecoin wallets list',
+    description: 'Returns all stablecoin wallets for the authenticated user',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Stablecoin wallets retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              address: { type: 'string' },
+              tokenType: { type: 'string' },
+              blockchain: { type: 'string' },
+              network: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+  })
+  async getStablecoinWalletsList(@Request() req: { user: { id: string } }) {
+    try {
+      const userId = req.user?.id;
+
+      if (!userId) {
+        throw new Error('User ID not found in request');
+      }
+
+      const wallets = await this.stablecoinWalletService.getStablecoinWallets(
+        userId,
+        {},
+      );
+
+      return {
+        success: true,
+        data: wallets,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error getting stablecoin wallets list: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Get token balance for a specific wallet
+   */
+  @Post('stablecoin/balance')
+  @ApiOperation({
+    summary: 'Get token balance',
+    description:
+      'Returns the balance for a specific token on a specific blockchain/network',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Token balance retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        data: {
+          type: 'object',
+          properties: {
+            balance: { type: 'string', example: '100000000' },
+            balanceUSD: { type: 'number', example: 100.0 },
+            decimals: { type: 'number', example: 6 },
+            tokenAddress: { type: 'string' },
+          },
+        },
+      },
+    },
+  })
+  async getTokenBalance(
+    @Body()
+    body: {
+      address: string;
+      tokenType: StablecoinTokenType;
+      blockchain: StablecoinBlockchain;
+      network: StablecoinNetwork;
+    },
+    @Request() req: { user: { id: string } },
+  ) {
+    try {
+      const userId = req.user?.id;
+
+      if (!userId) {
+        throw new Error('User ID not found in request');
+      }
+
+      // Get network config to get token address
+      const networkConfig = await this.networkConfigService.getNetworkConfig(
+        body.tokenType,
+        body.blockchain,
+        body.network,
+      );
+
+      if (!networkConfig || !networkConfig.tokenAddress) {
+        throw new Error(
+          `Token address not found for ${body.tokenType} on ${body.blockchain}-${body.network}`,
+        );
+      }
+
+      // Get Alchemy config based on blockchain and network
+      const chainId =
+        body.blockchain === 'POLYGON' && body.network === 'mainnet'
+          ? 137
+          : body.blockchain === 'POLYGON' && body.network === 'amoy'
+            ? 80002
+            : body.blockchain === 'ARBITRUM' && body.network === 'mainnet'
+              ? 42161
+              : body.blockchain === 'ARBITRUM' && body.network === 'sepolia'
+                ? 421614
+                : body.blockchain === 'BASE' && body.network === 'mainnet'
+                  ? 8453
+                  : 84532; // Base Sepolia
+
+      const rpcUrl = this.alchemyConfigService.getAlchemyRpcUrl(
+        body.blockchain,
+        body.network,
+      );
+
+      // Fetch balance using viem
+      const { createPublicClient, http, formatUnits } = await import('viem');
+
+      // ERC20 ABI for balanceOf function
+      const ERC20_ABI = [
+        {
+          inputs: [{ name: 'owner', type: 'address' }],
+          name: 'balanceOf',
+          outputs: [{ name: '', type: 'uint256' }],
+          stateMutability: 'view',
+          type: 'function',
+        },
+      ] as const;
+
+      // Create public client
+      const publicClient = createPublicClient({
+        transport: http(rpcUrl),
+      });
+
+      // Get token balance
+      const balance = await publicClient.readContract({
+        address: networkConfig.tokenAddress as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: 'balanceOf',
+        args: [body.address as `0x${string}`],
+      });
+
+      // Convert BigInt to decimal string (raw balance)
+      const balanceDecimal = balance.toString();
+
+      // Format balance with decimals using viem's formatUnits
+      const balanceFormatted = formatUnits(balance, networkConfig.decimals);
+
+      // Convert to USD (assuming 1:1 for stablecoins)
+      const balanceUSD = parseFloat(balanceFormatted);
+
+      return {
+        success: true,
+        data: {
+          balance: balanceDecimal,
+          balanceFormatted,
+          balanceUSD,
+          decimals: networkConfig.decimals,
+          tokenAddress: networkConfig.tokenAddress,
+        },
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error getting token balance: ${error.message}`,
         error.stack,
       );
       throw error;

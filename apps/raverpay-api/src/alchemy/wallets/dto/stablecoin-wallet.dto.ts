@@ -24,6 +24,7 @@ export enum StablecoinBlockchain {
   ETHEREUM = 'ETHEREUM',
   POLYGON = 'POLYGON',
   ARBITRUM = 'ARBITRUM',
+  BASE = 'BASE',
   BSC = 'BSC',
   SOLANA = 'SOLANA',
 }

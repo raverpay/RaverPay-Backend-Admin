@@ -135,6 +135,20 @@ export class AdminAlchemyService {
               lastName: true,
             },
           },
+          stablecoinWallets: {
+            select: {
+              id: true,
+              tokenType: true,
+              blockchain: true,
+              network: true,
+              address: true,
+              status: true,
+              monthlyIncomeRange: true,
+              termsAccepted: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -167,6 +181,21 @@ export class AdminAlchemyService {
             lastName: true,
           },
         },
+        stablecoinWallets: {
+          select: {
+            id: true,
+            tokenType: true,
+            blockchain: true,
+            network: true,
+            address: true,
+            status: true,
+            monthlyIncomeRange: true,
+            bankStatementUrl: true,
+            termsAccepted: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
         alchemyTransactions: {
           take: 10,
           orderBy: { createdAt: 'desc' },
@@ -187,6 +216,22 @@ export class AdminAlchemyService {
   async getWalletsByUser(userId: string) {
     const wallets = await this.prisma.alchemyWallet.findMany({
       where: { userId },
+      include: {
+        stablecoinWallets: {
+          select: {
+            id: true,
+            tokenType: true,
+            blockchain: true,
+            network: true,
+            address: true,
+            status: true,
+            monthlyIncomeRange: true,
+            termsAccepted: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
     return wallets.map((w) => this.serializeBigInt(w));

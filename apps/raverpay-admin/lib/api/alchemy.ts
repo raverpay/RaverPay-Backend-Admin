@@ -1,5 +1,18 @@
 import apiClient from '../api-client';
 
+export interface StablecoinWallet {
+  id: string;
+  tokenType: string;
+  blockchain: string;
+  network: string;
+  address: string;
+  status: string;
+  monthlyIncomeRange: string | null;
+  termsAccepted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AlchemyWallet {
   id: string;
   userId: string;
@@ -19,6 +32,7 @@ export interface AlchemyWallet {
     firstName: string;
     lastName: string;
   };
+  stablecoinWallets?: StablecoinWallet[];
   alchemyTransactions?: AlchemyTransaction[];
 }
 

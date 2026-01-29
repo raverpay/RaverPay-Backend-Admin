@@ -47,6 +47,7 @@ import { AdminAlchemyController } from './alchemy/admin-alchemy.controller';
 import { AdminAlchemyService } from './alchemy/admin-alchemy.service';
 import { AdminStablecoinDepositsController } from './alchemy/stablecoin-deposits/admin-stablecoin-deposits.controller';
 import { AdminStablecoinDepositsService } from './alchemy/stablecoin-deposits/admin-stablecoin-deposits.service';
+import { AdminNetworkConfigModule } from './alchemy/admin-network-config.module';
 import { HierarchyService } from '../common/services/hierarchy.service';
 import { AccountLockingService } from '../common/services/account-locking.service';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -77,6 +78,7 @@ import { DeviceModule } from '../device/device.module';
     CircleModule,
     AlchemyModule,
     AdminAuthModule,
+    AdminNetworkConfigModule,
     EmailModule,
     AuthModule,
     DeviceModule,

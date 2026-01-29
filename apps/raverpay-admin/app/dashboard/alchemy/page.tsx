@@ -2,7 +2,15 @@
 
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Wallet, ArrowLeftRight, Activity, Zap, DollarSign, TrendingUp } from 'lucide-react';
+import {
+  Wallet,
+  ArrowLeftRight,
+  Activity,
+  Zap,
+  DollarSign,
+  TrendingUp,
+  Settings,
+} from 'lucide-react';
 import { alchemyApi } from '@/lib/api/alchemy';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -143,7 +151,7 @@ export default function AlchemyPage() {
       </div>
 
       {/* Quick Links */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Link href="/dashboard/alchemy/wallets">
           <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
             <CardHeader className="pb-3">
@@ -182,6 +190,20 @@ export default function AlchemyPage() {
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Track gas spending and sponsorship analytics
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/dashboard/alchemy/network-config">
+          <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Settings className="h-4 w-4 text-orange-600" />
+                Network Config
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              Manage enabled networks for stablecoin wallets
             </CardContent>
           </Card>
         </Link>

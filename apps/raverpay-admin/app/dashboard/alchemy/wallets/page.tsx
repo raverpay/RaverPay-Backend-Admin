@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import Link from 'next/link';
-import { Search, Eye, Wallet, Zap, Shield } from 'lucide-react';
+import { Search, Eye, Wallet, Zap, Shield, Coins } from 'lucide-react';
 
 import { alchemyApi } from '@/lib/api/alchemy';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -237,6 +237,7 @@ export default function AlchemyWalletsPage() {
                       <TableHead>Blockchain</TableHead>
                       <TableHead>Network</TableHead>
                       <TableHead>Account Type</TableHead>
+                      <TableHead>Stablecoin Wallets</TableHead>
                       <TableHead>Gas Sponsored</TableHead>
                       <TableHead>State</TableHead>
                       <TableHead>Created</TableHead>
@@ -292,6 +293,25 @@ export default function AlchemyWalletsPage() {
                               'EOA'
                             )}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {wallet.stablecoinWallets && wallet.stablecoinWallets.length > 0 ? (
+                            <div className="flex items-center gap-2">
+                              <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                                <Coins className="h-3 w-3" />
+                                {wallet.stablecoinWallets.length}
+                              </Badge>
+                              <div className="flex gap-1">
+                                {wallet.stablecoinWallets.map((sw) => (
+                                  <Badge key={sw.id} variant="outline" className="text-xs">
+                                    {sw.tokenType}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">None</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           {wallet.isGasSponsored ? (

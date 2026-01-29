@@ -7,12 +7,11 @@ import * as Sharing from 'expo-sharing';
 import { useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useRef, useState } from 'react';
-import { Alert, Pressable, View } from 'react-native';
+import { Alert, Pressable, View, ScrollView } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import ViewShot from 'react-native-view-shot';
 import { toast } from '@/src/lib/utils/toast';
 import NetworkWarningModal from '@/src/components/stablecoin/NetworkWarningModal';
-import { ScrollView } from 'react-native-gesture-handler';
 
 export default function ReceiveScreen() {
   const { isDark } = useTheme();
@@ -75,7 +74,13 @@ export default function ReceiveScreen() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <ScreenHeader title="Receive Stablecoin" />
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingBottom: 200,
+        }}
+      >
         <View className="flex-1 px-6 pt-6">
           <View className="items-center">
             <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 0.9 }}>

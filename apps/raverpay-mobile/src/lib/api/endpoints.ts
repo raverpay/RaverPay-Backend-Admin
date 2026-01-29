@@ -283,6 +283,8 @@ export const API_ENDPOINTS = {
       GET_BY_TOKEN: (tokenType: string, blockchain: string, network: string) =>
         `/alchemy/wallets/stablecoin/by-token/${tokenType}/${blockchain}/${network}`,
       GET_NETWORKS: '/alchemy/wallets/stablecoin/networks',
+      GET_STABLECOIN_WALLETS_LIST: '/alchemy/wallets/stablecoin/list',
+      GET_TOKEN_BALANCE: '/alchemy/wallets/stablecoin/balance',
     },
   },
 

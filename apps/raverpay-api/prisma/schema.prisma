@@ -2127,3 +2127,33 @@ model StablecoinDeposit {
   @@index([createdAt])
   @@map("stablecoin_deposits")
 }
+
+// Alchemy Network Configuration - Controls which networks are available
+model AlchemyNetworkConfig {
+  id              String   @id @default(cuid())
+  tokenType       String   // 'USDT' | 'USDC'
+  tokenName       String   // 'Tether USD' | 'USD Coin'
+  tokenSymbol     String   // 'USDT' | 'USDC'
+  blockchain      String   // 'POLYGON' | 'ARBITRUM' | 'BASE'
+  blockchainName  String   // 'Polygon' | 'Arbitrum' | 'Base'
+  network         String   // 'mainnet' | 'amoy' | 'sepolia'
+  networkLabel    String   // 'Polygon Mainnet' | 'Base Sepolia'
+  isTestnet       Boolean  @default(false)
+  isEnabled       Boolean  @default(true)
+  displayOrder    Int      @default(0) // For sorting in UI
+  tokenAddress    String?  // ERC20 contract address for this token on this network
+  decimals        Int      @default(6) // Token decimals (USDC/USDT = 6)
+  metadata        Json?    // Additional network-specific config
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdBy       String?  // Admin user ID who created
+  updatedBy       String?  // Admin user ID who last updated
+
+  @@unique([tokenType, blockchain, network])
+  @@index([isEnabled])
+  @@index([tokenType])
+  @@index([blockchain])
+  @@index([network])
+  @@index([displayOrder])
+  @@map("alchemy_network_config")
+}

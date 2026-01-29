@@ -53,21 +53,60 @@ export default function SelectTokenScreen() {
     }
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!selectedToken || !selectedBlockchain || !selectedNetwork) {
       Alert.alert('Selection Required', 'Please select token, blockchain, and network');
       return;
     }
 
-    router.push({
-      pathname: '/stablecoin/kyc-info',
-      params: {
-        tokenType: selectedToken.type as StablecoinToken,
-        blockchain: selectedBlockchain.blockchain as StablecoinBlockchain,
-        network: selectedNetwork.network as StablecoinNetwork,
-        networkLabel: selectedNetwork.label,
-      },
-    });
+    try {
+      setLoading(true);
+
+      // Check if wallet already exists for this token/blockchain/network
+      const existingWallet = await stablecoinService.getStablecoinWalletByToken(
+        selectedToken.type as StablecoinToken,
+        selectedBlockchain.blockchain as StablecoinBlockchain,
+        selectedNetwork.network as StablecoinNetwork,
+      );
+
+      // If wallet exists, go directly to receive screen
+      if (existingWallet) {
+        toast.success('Wallet already exists! Redirecting to receive screen...');
+        router.replace({
+          pathname: '/stablecoin/receive',
+          params: {
+            walletId: existingWallet.id,
+            address: existingWallet.address,
+            tokenType: selectedToken.type,
+            blockchain: selectedBlockchain.blockchain,
+            network: selectedNetwork.network,
+            networkLabel: selectedNetwork.label,
+          },
+        });
+        return;
+      }
+    } catch (error: any) {
+      // If wallet doesn't exist (404), continue to KYC flow
+      if (error?.response?.status === 404) {
+        // Continue to KYC info screen
+        router.push({
+          pathname: '/stablecoin/kyc-info',
+          params: {
+            tokenType: selectedToken.type as StablecoinToken,
+            blockchain: selectedBlockchain.blockchain as StablecoinBlockchain,
+            network: selectedNetwork.network as StablecoinNetwork,
+            networkLabel: selectedNetwork.label,
+          },
+        });
+        return;
+      }
+
+      // Other errors
+      toast.error(error.message || 'Failed to check existing wallet');
+      Alert.alert('Error', 'Failed to check if wallet exists. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading) {
@@ -306,10 +345,10 @@ export default function SelectTokenScreen() {
       <View className="p-5 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
         <Button
           onPress={handleContinue}
-          disabled={!selectedToken || !selectedBlockchain || !selectedNetwork}
+          disabled={!selectedToken || !selectedBlockchain || !selectedNetwork || loading}
           variant="primary"
         >
-          Continue
+          {loading ? 'Checking...' : 'Continue'}
         </Button>
       </View>
     </View>

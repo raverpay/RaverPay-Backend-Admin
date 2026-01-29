@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AlchemyKeyEncryptionService } from './encryption/alchemy-key-encryption.service';
 import { AlchemyConfigService } from './config/alchemy-config.service';
+import { AlchemyNetworkConfigModule } from './config/alchemy-network-config.module';
 import { AlchemyWalletGenerationService } from './wallets/alchemy-wallet-generation.service';
 import { AlchemySmartAccountService } from './wallets/alchemy-smart-account.service';
 import { AlchemyTransactionService } from './transactions/alchemy-transaction.service';
@@ -25,7 +26,7 @@ import { UsersModule } from '../users/users.module';
  * - Multi-blockchain support (Polygon, Arbitrum, Base)
  */
 @Module({
-  imports: [UsersModule], // Import UsersModule to use UsersService
+  imports: [UsersModule, AlchemyNetworkConfigModule], // Import UsersModule to use UsersService
   controllers: [
     AlchemyWalletController,
     AlchemyTransactionController,
