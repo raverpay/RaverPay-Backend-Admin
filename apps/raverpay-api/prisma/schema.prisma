@@ -2134,15 +2134,17 @@ model AlchemyNetworkConfig {
   tokenType       String   // 'USDT' | 'USDC'
   tokenName       String   // 'Tether USD' | 'USD Coin'
   tokenSymbol     String   // 'USDT' | 'USDC'
-  blockchain      String   // 'POLYGON' | 'ARBITRUM' | 'BASE'
-  blockchainName  String   // 'Polygon' | 'Arbitrum' | 'Base'
-  network         String   // 'mainnet' | 'amoy' | 'sepolia'
-  networkLabel    String   // 'Polygon Mainnet' | 'Base Sepolia'
+  blockchain      String   // 'POLYGON' | 'ARBITRUM' | 'BASE' | 'ETHEREUM' | 'BSC' | 'SOLANA' | 'TRON'
+  blockchainName  String   // 'Polygon' | 'Arbitrum' | 'Base' | 'Ethereum' | 'BNB Smart Chain' | 'Solana' | 'Tron'
+  blockchainType  String   @default("EVM") // 'EVM' | 'SOLANA' | 'TRON'
+  network         String   // 'mainnet' | 'amoy' | 'sepolia' | 'devnet' | 'shasta' | 'testnet'
+  networkLabel    String   // 'Polygon Mainnet' | 'Base Sepolia' | 'Solana Devnet'
   isTestnet       Boolean  @default(false)
   isEnabled       Boolean  @default(true)
   displayOrder    Int      @default(0) // For sorting in UI
-  tokenAddress    String?  // ERC20 contract address for this token on this network
-  decimals        Int      @default(6) // Token decimals (USDC/USDT = 6)
+  tokenAddress    String?  // ERC20/SPL/TRC20 contract/mint address for this token on this network
+  decimals        Int      @default(6) // Token decimals (USDC/USDT = 6, BSC exceptions = 18)
+  iconUrl         String?  // Cloudinary URL for blockchain logo
   metadata        Json?    // Additional network-specific config
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -2153,6 +2155,7 @@ model AlchemyNetworkConfig {
   @@index([isEnabled])
   @@index([tokenType])
   @@index([blockchain])
+  @@index([blockchainType])
   @@index([network])
   @@index([displayOrder])
   @@map("alchemy_network_config")
